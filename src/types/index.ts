@@ -27,6 +27,7 @@ export interface CouponAnalysis {
   imageUrl: string;
   uploadedAt: number;
   analysis: {
+    finalCoupon?: string[];
     matches: MatchAnalysis[];
     totalOdds: number;
     recommendations: string[];
@@ -43,8 +44,18 @@ export interface MatchAnalysis {
     ms1: { odds: number; confidence: number; };
     ms2: { odds: number; confidence: number; };
     beraberlik: { odds: number; confidence: number; };
-    altUst: { odds: number; confidence: number; };
-    handicap: { odds: number; confidence: number; };
+    ust25?: { odds: number; confidence: number; type: string; };
+    alt25?: { odds: number; confidence: number; type: string; };
+    kgg?: { odds: number; confidence: number; type: string; };
+    altUst?: { odds: number; confidence: number; };
+    handicap?: { odds: number; confidence: number; };
+  };
+  realData?: {
+    homeForm: string;
+    awayForm: string;
+    h2h: string;
+    injuries: string;
+    leaguePosition: string;
   };
   factors: {
     teamForm: string;

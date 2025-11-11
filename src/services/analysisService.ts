@@ -5,56 +5,71 @@ import { database } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-const analysisPrompt = `Bu spor bahis kuponunu detaylı analiz et:
+const analysisPrompt = `Görseldeki spor bahis kuponunu analiz et. İNTERNETTEN GERÇEK VERİLERİ ARAŞTIR!
 
-GÖREV:
-1. Görseldeki TÜM maçları oku (takım isimleri, ligler, tarihler)
-2. Her maç için profesyonel analiz yap
-3. Takım formlarını, son maçları, istatistikleri değerlendir
-4. Bahis tahminleri oluştur (MS1, MS2, Beraberlik, Alt/Üst, Handicap)
-5. Gerçekçi oranlar ve güven skorları ver
-6. Kullanıcıya stratejik öneriler sun
+ÖNEMLİ KURALLAR:
+1. Her maç için internetten GERÇEK ZAMANLIDA veri araştır (Google Search kullan)
+2. Takımların son maç sonuçlarını, formlarını, lig sıralamasını KONTROL ET
+3. Sakatlık haberleri, kadro durumu, son transferleri ARAŞTIR
+4. Karşılıklı maç geçmişini (H2H) KONTROL ET
+5. ASLA RASTGELE TAHMİN YAPMA - sadece gerçek verilere dayalı analiz yap
+6. Oranlara göre öneride bulunma - takımların gerçek performansına bak
 
-ANALİZ KRİTERLERİ:
-- Takım güncel formu (son 5 maç)
-- Sakatlık/ceza durumları
-- İç saha/dış saha performansı
-- Takımlar arası geçmiş karşılaşmalar
-- Lig durumu ve motivasyon
-- İstatistiksel veriler
+GÖREV ADIMLARI:
+1. Görseldeki maçları oku (takım adları, ligler, tarihler)
+2. HER MAÇ İÇİN internetten şu bilgileri ara:
+   - Takımların son 5 maç sonuçları (kazandı/kaybetti/berabere)
+   - Güncel lig sıralamaları ve puan durumu
+   - Sakatlık/ceza durumları (resmi takım haberleri)
+   - Son karşılaşmaları (H2H istatistikleri)
+   - İç saha/dış saha performansları
+3. Toplanan gerçek verilere göre SADECE MANTIKLI TAHMİNLER yap
+4. Sadece bahse değer maçları seç - şüpheli maçları ekleme
 
 ÇIKTI FORMATI (JSON):
 {
+  "finalCoupon": [
+    "Takım Adı - MS1",
+    "Takım Adı - Üst 2.5",
+    "Takım Adı - MS2",
+    "Takım Adı - Alt 2.5",
+    "Takım Adı - Karşılıklı Gol Var"
+  ],
   "matches": [
     {
       "matchId": "1",
       "league": "gerçek lig adı",
-      "teams": ["Ev Sahibi Takım", "Deplasman Takımı"],
+      "teams": ["Ev Sahibi", "Deplasman"],
       "predictions": {
         "ms1": {"odds": 1.85, "confidence": 78},
         "ms2": {"odds": 2.20, "confidence": 55},
         "beraberlik": {"odds": 3.10, "confidence": 35},
-        "altUst": {"odds": 1.92, "confidence": 70},
-        "handicap": {"odds": 1.88, "confidence": 65}
+        "ust25": {"odds": 1.92, "confidence": 70, "type": "Üst 2.5"},
+        "alt25": {"odds": 1.88, "confidence": 65, "type": "Alt 2.5"},
+        "kgg": {"odds": 1.95, "confidence": 60, "type": "Karşılıklı Gol Var"}
       },
-      "factors": {
-        "teamForm": "ev sahibi son 3 maçta galip",
-        "injuries": "deplasman takımında 2 önemli eksik",
-        "weather": "normal koşullar",
-        "headToHead": "son 5 maçın 3'ünü ev sahibi kazandı"
+      "realData": {
+        "homeForm": "Son 5: G-G-B-G-K (3G 1B 1K)",
+        "awayForm": "Son 5: K-K-B-G-K (1G 1B 3K)",
+        "h2h": "Son 3 maç: 2-1, 0-0, 3-1 (Ev sahibi üstün)",
+        "injuries": "Deplasman takımında 2 oyuncu eksik",
+        "leaguePosition": "Ev sahibi 3. - Deplasman 12."
       }
     }
   ],
-  "totalOdds": 12.45,
-  "confidence": 68,
+  "totalOdds": 8.50,
+  "confidence": 75,
   "recommendations": [
-    "Ev sahibi takımlar form üstünde, MS1 kombinasyonu mantıklı",
-    "3. maçta beraberlik ihtimali yüksek, dikkatli ol",
-    "Toplam oran 12.45, orta riskli bir kupon"
+    "Gerçek verilere göre mantıklı 3 maçlık kombine",
+    "Toplam oran: 8.50 - Risk: Orta"
   ]
 }
 
-ÖNEMLİ: Sadece JSON döndür, ekstra açıklama yapma.`;
+ÖNEMLİ:
+- İnternetten araştırma yap, rastgele sonuç üretme!
+- finalCoupon'da sadece bahse değer maçları listele
+- Uzun açıklama yapma, sade ve net ol
+- Sadece JSON döndür`;
 
 export const analysisService = {
   async analyzeImageWithGemini(base64Image: string): Promise<CouponAnalysis['analysis']> {

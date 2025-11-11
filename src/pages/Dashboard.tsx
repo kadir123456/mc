@@ -111,31 +111,27 @@ export const Dashboard: React.FC = () => {
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-4 sm:p-8">
           {activeTab === 'upload' && (
             <>
-              <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-6 mb-6">
-                <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-2">
-                  <Upload className="w-6 h-6" />
+              <ImageUpload />
+              <div className="mt-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-bold text-white mb-3 flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
                   Nasıl Kullanılır?
                 </h2>
-                <div className="space-y-3 text-slate-200">
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0">1</span>
-                    <p className="pt-1"><strong>Kupon görselinizi yükleyin:</strong> Bahis sitesinden kuponunuzun ekran görüntüsünü alın veya fotoğrafını çekin.</p>
+                <div className="space-y-2 text-slate-200 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0 text-xs">1</span>
+                    <p className="pt-0.5"><strong>Kupon görselinizi yükleyin:</strong> Bahis sitesinden kuponunuzun ekran görüntüsünü alın.</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0">2</span>
-                    <p className="pt-1"><strong>AI analizi başlatsın:</strong> Yapay zeka kuponunuzdaki tüm maçları okuyup profesyonel analiz yapar.</p>
+                  <div className="flex items-start gap-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0 text-xs">2</span>
+                    <p className="pt-0.5"><strong>AI analizi başlatsın:</strong> Yapay zeka kuponunuzdaki tüm maçları okuyup analiz yapar.</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0">3</span>
-                    <p className="pt-1"><strong>Sonuçları inceleyin:</strong> Her maç için tahminler, oranlar, güven skorları ve stratejik öneriler görün.</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0">4</span>
-                    <p className="pt-1"><strong>Geçmişe erişin:</strong> Tüm analizleriniz tarih/saat ile birlikte "Geçmiş" sekmesinde saklanır.</p>
+                  <div className="flex items-start gap-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0 text-xs">3</span>
+                    <p className="pt-0.5"><strong>Sonuçları inceleyin:</strong> Her maç için tahminler ve güven skorları görün.</p>
                   </div>
                 </div>
               </div>
-              <ImageUpload />
             </>
           )}
           {activeTab === 'pricing' && <PricingPlans />}

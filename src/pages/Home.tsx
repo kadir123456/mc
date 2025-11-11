@@ -36,11 +36,11 @@ export const Home: React.FC = () => {
           <div className="max-w-7xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-6">
               <Star className="w-4 h-4" />
-              Yapay Zeka Destekli Kupon Analizi
+              Yapay Zeka Destekli Spor Analizi
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Bahis Kuponlarınızı
+              Spor Kuponlarınızı
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                 AI ile Analiz Edin
@@ -48,8 +48,8 @@ export const Home: React.FC = () => {
             </h1>
 
             <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Kupon görselinizi yükleyin, yapay zeka her maçı detaylı analiz etsin.
-              Profesyonel tahminler, oranlar ve stratejik önerilerle kazanma şansınızı artırın.
+              Kupon görselinizi yükleyin, yapay zeka her maçı istatistiksel olarak analiz etsin.
+              Eğitim ve bilgilendirme amaçlı veri analizleri ile bilinçli kararlar alın.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
@@ -97,9 +97,9 @@ export const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4">
                   <TrendingUp className="w-6 h-6 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Detaylı Analiz</h3>
+                <h3 className="text-xl font-bold text-white mb-3">İstatistiksel Analiz</h3>
                 <p className="text-slate-300">
-                  Her maç için takım formu, sakatlıklar, geçmiş karşılaşmalar ve istatistiksel veriler.
+                  Her maç için takım formu, sakatlıklar, geçmiş karşılaşmalar ve gerçek istatistiksel veriler.
                 </p>
               </div>
 
@@ -107,9 +107,9 @@ export const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center mb-4">
                   <BarChart3 className="w-6 h-6 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Güven Skorları</h3>
+                <h3 className="text-xl font-bold text-white mb-3">Veri Skorları</h3>
                 <p className="text-slate-300">
-                  Her tahmin için 0-100 arası güvenilirlik puanı ve gerçekçi oran önerileri.
+                  Her analiz için 0-100 arası veri güvenilirlik puanı ve istatistiksel değerlendirmeler.
                 </p>
               </div>
 
@@ -119,7 +119,7 @@ export const Home: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Hızlı Sonuç</h3>
                 <p className="text-slate-300">
-                  Kuponunuzu yükleyin, 30 saniye içinde profesyonel analiz alın.
+                  Kuponunuzu yükleyin, 30 saniye içinde istatistiksel analiz alın.
                 </p>
               </div>
 
@@ -140,7 +140,7 @@ export const Home: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-white mb-4">Nasıl Çalışır?</h2>
-              <p className="text-xl text-slate-300">3 basit adımda profesyonel analiz</p>
+              <p className="text-xl text-slate-300">3 basit adımda istatistiksel analiz</p>
             </div>
 
             <div className="space-y-8">
@@ -177,8 +177,8 @@ export const Home: React.FC = () => {
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">Sonuçları İncele</h3>
                   <p className="text-slate-300 text-lg">
-                    Her maç için tahminler, oranlar, güven skorları ve stratejik öneriler görün.
-                    Tüm analizler tarih/saat ile kaydedilir.
+                    Her maç için istatistiksel değerlendirmeler, veri skorları ve analiz önerileri görün.
+                    Tüm analizler eğitim amaçlı kaydedilir.
                   </p>
                 </div>
               </div>
@@ -197,24 +197,35 @@ export const Home: React.FC = () => {
         </section>
 
         <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-800/30">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl font-bold text-white mb-6">Hemen Başlayın</h2>
-            <p className="text-xl text-slate-300 mb-10">
-              Ücretsiz hesap oluşturun, ilk analizinizi yapın. Kredi kartı bilgisi gerekmez.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-lg font-bold text-lg transition w-full sm:w-auto"
-              >
-                Ücretsiz Kayıt Ol
-              </Link>
-              <Link
-                to="/contact"
-                className="bg-slate-700 hover:bg-slate-600 text-white px-10 py-4 rounded-lg font-bold text-lg transition border border-slate-600 w-full sm:w-auto"
-              >
-                İletişim
-              </Link>
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-12">
+              <h3 className="text-lg font-bold text-yellow-400 mb-2">Önemli Uyarı</h3>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                Bu platform sadece eğitim ve bilgilendirme amaçlıdır. Sunulan analizler yatırım tavsiyesi niteliğinde değildir.
+                Kullanıcılar kendi kararlarından tamamen sorumludur. Sonuçlar garanti edilmez ve platform yöneticileri
+                herhangi bir kayıptan sorumlu tutulamaz.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <h2 className="text-4xl font-bold text-white mb-6">Hemen Başlayın</h2>
+              <p className="text-xl text-slate-300 mb-10">
+                Ücretsiz hesap oluşturun, ilk analizinizi yapın. Kredi kartı bilgisi gerekmez.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  to="/register"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-lg font-bold text-lg transition w-full sm:w-auto"
+                >
+                  Ücretsiz Kayıt Ol
+                </Link>
+                <Link
+                  to="/contact"
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-10 py-4 rounded-lg font-bold text-lg transition border border-slate-600 w-full sm:w-auto"
+                >
+                  İletişim
+                </Link>
+              </div>
             </div>
           </div>
         </section>
