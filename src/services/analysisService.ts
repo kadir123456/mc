@@ -345,10 +345,13 @@ export const analysisService = {
         throw new Error('API yanıtında metin bulunamadı');
       }
 
-      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      const cleanedText = textContent.replace(/\[cite:\s*\d+\]/g, '').replace(/```json\n?|```\n?/g, '');
+      console.log('🧹 Cleaned text:', cleanedText);
+
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
 
       if (!jsonMatch) {
-        console.error('❌ No JSON found in text:', textContent);
+        console.error('❌ No JSON found in text:', cleanedText);
         throw new Error('Yanıtta JSON formatı bulunamadı');
       }
 
