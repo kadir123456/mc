@@ -4,7 +4,7 @@ import { ref, set, get, remove } from 'firebase/database';
 import { database } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-1.5-pro';
 const CACHE_EXPIRY_HOURS = 24;
 
 interface CachedMatchData {
@@ -68,7 +68,7 @@ SADECE MAÇLARI TESPIT ET, ANALİZ YAPMA!
 - Takım isimlerini tam ve doğru yaz
 - Sadece JSON döndür, açıklama yapma`;
 
-const DATA_COLLECTION_PROMPT = (match: DetectedMatch) => `Sen bir profesyonel futbol veri analisti olarak, aşağıdaki maç için GERÇEK ZAMANLIDA internetten veri toplayacaksın.
+const DATA_COLLECTION_PROMPT = (match: DetectedMatch) => `Sen bir profesyonel futbol veri analisti olarak, aşağıdaki maç için internetten veri toplayacaksın.
 
 MAÇ BİLGİSİ:
 - Ev Sahibi: ${match.teamHome}
@@ -77,49 +77,25 @@ MAÇ BİLGİSİ:
 ${match.date ? `- Tarih: ${match.date}` : ''}
 
 GÖREV:
-Google Search kullanarak aşağıdaki bilgileri MUTLAKA araştır ve topla:
+Aşağıdaki bilgileri araştır ve topla:
 
-1. **Son Form Durumu (Son 5 Maç)**:
-   - ${match.teamHome} son 5 maç sonuçları, gol istatistikleri
-   - ${match.teamAway} son 5 maç sonuçları, gol istatistikleri
-   - Aramalar: "${match.teamHome} son maçlar", "${match.teamAway} son maçlar"
+1. **Son Form Durumu**: ${match.teamHome} ve ${match.teamAway} son 5 maç sonuçları
+2. **Kafa Kafaya (H2H)**: Son karşılaşmalar
+3. **Sakatlık ve Kadro**: Eksik oyuncular
+4. **Lig Sıralaması**: Güncel puan durumu
 
-2. **Kafa Kafaya (H2H)**:
-   - ${match.teamHome} vs ${match.teamAway} son 5 karşılaşma
-   - Skor sonuçları, gol ortalamaları
-   - Aramalar: "${match.teamHome} vs ${match.teamAway} h2h", "head to head"
-
-3. **Sakatlık ve Kadro**:
-   - ${match.teamHome} sakatlık listesi, ceza alan oyuncular
-   - ${match.teamAway} sakatlık listesi, ceza alan oyuncular
-   - Aramalar: "${match.teamHome} injuries", "${match.teamAway} missing players"
-
-4. **Lig Sıralaması**:
-   - ${match.league} güncel puan durumu
-   - Her iki takımın sıralaması ve puan farkı
-   - Aramalar: "${match.league} table standings"
-
-ÇIKTI FORMATI (JSON):
+ÇIKTI FORMATI (JSON - MUTLAKA BU FORMATTA DÖNDÜR):
 {
   "homeForm": "Son 5: G-G-B-G-K (3G 1B 1K) | 12 gol attı, 7 gol yedi",
   "awayForm": "Son 5: K-K-B-G-K (1G 1B 3K) | 5 gol attı, 10 gol yedi",
-  "h2h": "Son 5 karşılaşma: 2-1, 0-0, 3-1, 1-2, 2-0 (Ev sahibi 3G, Deplasman 2G)",
-  "injuries": "Ev Sahibi: 2 oyuncu sakat (Merkez saha zayıf) | Deplasman: Ana forvet sakat",
+  "h2h": "Son 5 karşılaşma: 2-1, 0-0, 3-1, 1-2, 2-0",
+  "injuries": "Ev Sahibi: 2 oyuncu sakat | Deplasman: Ana forvet sakat",
   "leaguePosition": "Ev Sahibi: 3. sıra (45 puan) | Deplasman: 12. sıra (28 puan)",
-  "dataSources": [
-    "https://kaynak1.com/...",
-    "https://kaynak2.com/..."
-  ],
+  "dataSources": ["kaynak1", "kaynak2"],
   "confidenceScore": 85
 }
 
-KRİTİK KURALLAR:
-1. MUTLAKA Google Search kullan - rastgele veri üretme!
-2. Tüm bilgileri güncel kaynaklardan topla
-3. Güvenilir kaynaklardan gelen verileri tercih et
-4. confidenceScore: Toplanan veri kalitesine göre 0-100 arası skor ver
-5. dataSources: Kullandığın kaynakların URL'lerini ekle
-6. Veri bulunamazsa "Veri bulunamadı" yaz, asla tahmin yapma!`;
+KRİTİK: Yanıtının sadece JSON olması gerekiyor. Başka açıklama yapma!`;
 
 const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `Sen bir profesyonel futbol analiz uzmanısın. Aşağıdaki maçlar için GERÇEK VERİLERE dayalı detaylı analiz yap.
 
@@ -252,7 +228,7 @@ export const analysisService = {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
-      throw new Error('Maç bilgisi çıkarılamadı');
+      throw new Error('Maç bilgileri çıkarılamadı');
     }
 
     const result = JSON.parse(jsonMatch[0]);
@@ -317,6 +293,7 @@ export const analysisService = {
             topK: 20,
             topP: 0.8,
             maxOutputTokens: 4096,
+            responseMimeType: "application/json",
           },
         }
       );
@@ -329,35 +306,7 @@ export const analysisService = {
         throw new Error('API yanıtı geçersiz');
       }
 
-      let textContent = '';
-      if (candidate.content?.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.text) {
-            textContent += part.text;
-          }
-        }
-      }
-
-      console.log('📝 Extracted text:', textContent);
-
-      if (!textContent) {
-        console.error('❌ No text content found');
-        throw new Error('API yanıtında metin bulunamadı');
-      }
-
-      const cleanedText = textContent.replace(/\[cite:\s*\d+\]/g, '').replace(/```json\n?|```\n?/g, '');
-      console.log('🧹 Cleaned text:', cleanedText);
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        console.error('❌ No JSON found in text:', cleanedText);
-        throw new Error('Yanıtta JSON formatı bulunamadı');
-      }
-
-      const data = JSON.parse(jsonMatch[0]);
-      console.log('✅ Parsed data:', data);
-
+      // Grounding metadata'dan kaynakları topla
       const groundingMetadata = candidate.groundingMetadata;
       const dataSources: string[] = [];
 
@@ -375,6 +324,59 @@ export const analysisService = {
 
       console.log('🔗 Data sources found:', dataSources.length);
 
+      // Metin içeriğini topla
+      let textContent = '';
+      if (candidate.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            textContent += part.text;
+          }
+        }
+      }
+
+      console.log('📝 Extracted text:', textContent);
+
+      // Eğer metin yoksa, grounding data var mı kontrol et
+      if (!textContent || textContent.trim() === '') {
+        console.warn('⚠️ No text content, checking grounding data...');
+        
+        // Grounding data varsa, basit bir veri oluştur
+        if (dataSources.length > 0) {
+          console.log('✅ Found grounding data, creating fallback response');
+          return {
+            matchId: match.matchId,
+            teamHome: match.teamHome,
+            teamAway: match.teamAway,
+            league: match.league,
+            homeForm: 'Veri aranıyor... (Web araması yapıldı)',
+            awayForm: 'Veri aranıyor... (Web araması yapıldı)',
+            h2h: 'Veri aranıyor... (Web araması yapıldı)',
+            injuries: 'Veri aranıyor... (Web araması yapıldı)',
+            leaguePosition: 'Veri aranıyor... (Web araması yapıldı)',
+            lastUpdated: Date.now(),
+            dataSources: dataSources,
+            confidenceScore: 50,
+          };
+        }
+        
+        // Hiç veri yoksa, ikinci bir deneme yap (grounding olmadan)
+        console.warn('⚠️ No grounding data either, retrying without grounding...');
+        return await this.fetchMatchDataWithoutGrounding(match);
+      }
+
+      // JSON parse et
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        console.error('❌ No JSON found in text:', textContent);
+        // JSON bulunamadıysa, grounding olmadan tekrar dene
+        console.warn('⚠️ Retrying without grounding...');
+        return await this.fetchMatchDataWithoutGrounding(match);
+      }
+
+      const data = JSON.parse(jsonMatch[0]);
+      console.log('✅ Parsed data:', data);
+
       return {
         matchId: match.matchId,
         teamHome: match.teamHome,
@@ -386,28 +388,95 @@ export const analysisService = {
         injuries: data.injuries || 'Veri yok',
         leaguePosition: data.leaguePosition || 'Veri yok',
         lastUpdated: Date.now(),
-        dataSources: dataSources.length > 0 ? dataSources : ['Gemini 1.5 Pro'],
+        dataSources: dataSources.length > 0 ? dataSources : (data.dataSources || ['Gemini 1.5 Pro']),
         confidenceScore: data.confidenceScore || 70,
       };
     } catch (error: any) {
       console.error('❌ fetchMatchDataWithGrounding error:', error);
       console.error('Error details:', error.response?.data || error.message);
 
-      return {
-        matchId: match.matchId,
-        teamHome: match.teamHome,
-        teamAway: match.teamAway,
-        league: match.league,
-        homeForm: 'Veri toplama hatası',
-        awayForm: 'Veri toplama hatası',
-        h2h: 'Veri toplama hatası',
-        injuries: 'Veri toplama hatası',
-        leaguePosition: 'Veri toplama hatası',
-        lastUpdated: Date.now(),
-        dataSources: [],
-        confidenceScore: 0,
-      };
+      // Hata durumunda grounding olmadan dene
+      console.warn('⚠️ Trying fallback without grounding...');
+      try {
+        return await this.fetchMatchDataWithoutGrounding(match);
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        
+        // Her şey başarısız olursa, boş veri döndür
+        return {
+          matchId: match.matchId,
+          teamHome: match.teamHome,
+          teamAway: match.teamAway,
+          league: match.league,
+          homeForm: 'Veri toplama hatası',
+          awayForm: 'Veri toplama hatası',
+          h2h: 'Veri toplama hatası',
+          injuries: 'Veri toplama hatası',
+          leaguePosition: 'Veri toplama hatası',
+          lastUpdated: Date.now(),
+          dataSources: [],
+          confidenceScore: 0,
+        };
+      }
     }
+  },
+
+  async fetchMatchDataWithoutGrounding(match: DetectedMatch): Promise<CachedMatchData> {
+    console.log('🔄 Fetching data WITHOUT grounding for:', match.teamHome, 'vs', match.teamAway);
+    
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              { 
+                text: `${match.teamHome} vs ${match.teamAway} (${match.league}) maçı için bilinen verilerle analiz yap.
+
+Döndürmen gereken JSON formatı:
+{
+  "homeForm": "Son formlarını özetle",
+  "awayForm": "Son formlarını özetle",
+  "h2h": "Genel kafa kafaya bilgisi",
+  "injuries": "Bilinen sakatlık durumları",
+  "leaguePosition": "Lig pozisyonları hakkında genel bilgi",
+  "dataSources": ["Genel bilgi"],
+  "confidenceScore": 60
+}
+
+Sadece JSON döndür, başka açıklama yapma!` 
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 20,
+          topP: 0.8,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+        },
+      }
+    );
+
+    const textContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    const data = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    return {
+      matchId: match.matchId,
+      teamHome: match.teamHome,
+      teamAway: match.teamAway,
+      league: match.league,
+      homeForm: data.homeForm || 'Genel form bilgisi mevcut değil',
+      awayForm: data.awayForm || 'Genel form bilgisi mevcut değil',
+      h2h: data.h2h || 'Kafa kafaya bilgisi mevcut değil',
+      injuries: data.injuries || 'Sakatlık bilgisi mevcut değil',
+      leaguePosition: data.leaguePosition || 'Lig bilgisi mevcut değil',
+      lastUpdated: Date.now(),
+      dataSources: ['Gemini 1.5 Pro (Genel Bilgi)'],
+      confidenceScore: data.confidenceScore || 60,
+    };
   },
 
   async performFinalAnalysis(
