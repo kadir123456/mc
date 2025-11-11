@@ -4,7 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { analysisService } from '../services/analysisService';
 import { authService } from '../services/authService';
 
-export const ImageUpload: React.FC = () => {
+interface ImageUploadProps {
+  onAnalysisComplete?: () => void;
+}
+
+export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) => {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +66,11 @@ export const ImageUpload: React.FC = () => {
 
       setSuccess('Analiz başarıyla tamamlandı!');
       setPreview(null);
+
+      if (onAnalysisComplete) {
+        onAnalysisComplete();
+      }
+
       setTimeout(() => setSuccess(''), 5000);
     } catch (err: any) {
       setError(err.message || 'Analiz sırasında hata oluştu');

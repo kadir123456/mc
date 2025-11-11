@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { CouponAnalysis } from '../types';
-import { ref, set, get } from 'firebase/database';
+import { ref, set, get, remove } from 'firebase/database';
 import { database } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -111,6 +111,7 @@ export const analysisService = {
       const analysis = JSON.parse(jsonMatch[0]);
 
       return {
+        finalCoupon: analysis.finalCoupon || [],
         matches: analysis.matches || [],
         totalOdds: analysis.totalOdds || 0,
         recommendations: analysis.recommendations || [],
@@ -135,7 +136,23 @@ export const analysisService = {
     await set(ref(database, `analyses/${analysisId}`), fullAnalysis);
     await set(ref(database, `users/${userId}/analyses/${analysisId}`), analysisId);
 
+    const userAnalyses = await this.getUserAnalyses(userId);
+    if (userAnalyses.length > 5) {
+      const oldestAnalyses = userAnalyses
+        .sort((a, b) => a.uploadedAt - b.uploadedAt)
+        .slice(0, userAnalyses.length - 5);
+
+      for (const oldAnalysis of oldestAnalyses) {
+        await this.deleteAnalysis(userId, oldAnalysis.id);
+      }
+    }
+
     return fullAnalysis;
+  },
+
+  async deleteAnalysis(userId: string, analysisId: string) {
+    await remove(ref(database, `analyses/${analysisId}`));
+    await remove(ref(database, `users/${userId}/analyses/${analysisId}`));
   },
 
   async getUserAnalyses(userId: string) {

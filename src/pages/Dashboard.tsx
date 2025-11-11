@@ -12,6 +12,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('upload');
+  const [refreshHistory, setRefreshHistory] = useState(0);
 
   const handleLogout = async () => {
     await logout();
@@ -111,7 +112,10 @@ export const Dashboard: React.FC = () => {
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-4 sm:p-8">
           {activeTab === 'upload' && (
             <>
-              <ImageUpload />
+              <ImageUpload onAnalysisComplete={() => {
+                setRefreshHistory(prev => prev + 1);
+                setActiveTab('history');
+              }} />
               <div className="mt-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-4 sm:p-6">
                 <h2 className="text-lg sm:text-xl font-bold text-white mb-3 flex items-center gap-2">
                   <Upload className="w-5 h-5" />
@@ -135,7 +139,7 @@ export const Dashboard: React.FC = () => {
             </>
           )}
           {activeTab === 'pricing' && <PricingPlans />}
-          {activeTab === 'history' && <UserAnalyses />}
+          {activeTab === 'history' && <UserAnalyses key={refreshHistory} />}
           {activeTab === 'profile' && (
             <div className="text-slate-300">
               <h2 className="text-2xl font-bold text-white mb-6">Profil Bilgileri</h2>

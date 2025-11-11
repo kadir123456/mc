@@ -1,0 +1,12 @@
+# robots.txt for aikupon.com
+
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /payment-success
+
+# Sitemap
+Sitemap: https://aikupon.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
