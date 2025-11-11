@@ -5,67 +5,62 @@ import { database } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-const analysisPrompt = `
-Aşağıdaki spor kuponunun görselini analiz edin ve aşağıdaki JSON formatında detaylı bir analiz sunun:
+const analysisPrompt = `Bu spor bahis kuponunu detaylı analiz et:
 
-KRİTERLER:
-1. Her maç için aşağıdaki tahminleri yapın:
-   - MS1 (Ev sahibi kazanır)
-   - MS2 (Misafir kazanır)
-   - Beraberlik
-   - Alt/Üst
-   - Handicap
+GÖREV:
+1. Görseldeki TÜM maçları oku (takım isimleri, ligler, tarihler)
+2. Her maç için profesyonel analiz yap
+3. Takım formlarını, son maçları, istatistikleri değerlendir
+4. Bahis tahminleri oluştur (MS1, MS2, Beraberlik, Alt/Üst, Handicap)
+5. Gerçekçi oranlar ve güven skorları ver
+6. Kullanıcıya stratejik öneriler sun
 
-2. Her tahmin için:
-   - Oran (1.50 - 3.50 arası)
-   - Güven oranı (0-100)
+ANALİZ KRİTERLERİ:
+- Takım güncel formu (son 5 maç)
+- Sakatlık/ceza durumları
+- İç saha/dış saha performansı
+- Takımlar arası geçmiş karşılaşmalar
+- Lig durumu ve motivasyon
+- İstatistiksel veriler
 
-3. Etkileyen faktörler:
-   - Takım formu (çok iyi/iyi/orta/kötü)
-   - Yaralı oyuncular
-   - Hava durumu
-   - Başa baş karşılaştırmalar
-
-4. Genel öneriler
-
-ÇIKTI FORMATI:
+ÇIKTI FORMATI (JSON):
 {
   "matches": [
     {
       "matchId": "1",
-      "league": "Süper Lig",
-      "teams": ["Takım A", "Takım B"],
+      "league": "gerçek lig adı",
+      "teams": ["Ev Sahibi Takım", "Deplasman Takımı"],
       "predictions": {
-        "ms1": {"odds": 1.80, "confidence": 75},
-        "ms2": {"odds": 2.10, "confidence": 60},
-        "beraberlik": {"odds": 3.20, "confidence": 40},
-        "altUst": {"odds": 1.90, "confidence": 65},
-        "handicap": {"odds": 1.85, "confidence": 70}
+        "ms1": {"odds": 1.85, "confidence": 78},
+        "ms2": {"odds": 2.20, "confidence": 55},
+        "beraberlik": {"odds": 3.10, "confidence": 35},
+        "altUst": {"odds": 1.92, "confidence": 70},
+        "handicap": {"odds": 1.88, "confidence": 65}
       },
       "factors": {
-        "teamForm": "iyi",
-        "injuries": "önemli oyuncu yok",
-        "weather": "uygun",
-        "headToHead": "ev sahibi avantajlı"
+        "teamForm": "ev sahibi son 3 maçta galip",
+        "injuries": "deplasman takımında 2 önemli eksik",
+        "weather": "normal koşullar",
+        "headToHead": "son 5 maçın 3'ünü ev sahibi kazandı"
       }
     }
   ],
-  "totalOdds": 8.50,
-  "confidence": 72,
+  "totalOdds": 12.45,
+  "confidence": 68,
   "recommendations": [
-    "MS1 + Üst - Ev sahibi form başında",
-    "Uygun oranlar için beklemeyin"
+    "Ev sahibi takımlar form üstünde, MS1 kombinasyonu mantıklı",
+    "3. maçta beraberlik ihtimali yüksek, dikkatli ol",
+    "Toplam oran 12.45, orta riskli bir kupon"
   ]
 }
 
-Lütfen JSON'u geçerli ve tam olarak bu formatta sunun.
-`;
+ÖNEMLİ: Sadece JSON döndür, ekstra açıklama yapma.`;
 
 export const analysisService = {
   async analyzeImageWithGemini(base64Image: string): Promise<CouponAnalysis['analysis']> {
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
         {
           contents: [
             {
@@ -82,6 +77,12 @@ export const analysisService = {
               ],
             },
           ],
+          generationConfig: {
+            temperature: 0.4,
+            topK: 32,
+            topP: 1,
+            maxOutputTokens: 2048,
+          },
         }
       );
 
