@@ -296,64 +296,93 @@ export const analysisService = {
   },
 
   async fetchMatchDataWithGrounding(match: DetectedMatch): Promise<CachedMatchData> {
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              { text: DATA_COLLECTION_PROMPT(match) },
-            ],
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          contents: [
+            {
+              parts: [
+                { text: DATA_COLLECTION_PROMPT(match) },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 32,
+            topP: 0.9,
+            maxOutputTokens: 2048,
           },
-        ],
-        tools: [
-          {
-            googleSearch: {},
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          topK: 20,
-          topP: 0.8,
-          maxOutputTokens: 4096,
-        },
-      }
-    );
-
-    const content = response.data.candidates[0].content.parts[0].text;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      throw new Error('Veri toplanamadı');
-    }
-
-    const data = JSON.parse(jsonMatch[0]);
-
-    const groundingMetadata = response.data.candidates[0].groundingMetadata;
-    const dataSources: string[] = [];
-
-    if (groundingMetadata?.groundingChunks) {
-      groundingMetadata.groundingChunks.forEach((chunk: any) => {
-        if (chunk.web?.uri) {
-          dataSources.push(chunk.web.uri);
         }
-      });
-    }
+      );
 
-    return {
-      matchId: match.matchId,
-      teamHome: match.teamHome,
-      teamAway: match.teamAway,
-      league: match.league,
-      homeForm: data.homeForm || 'Veri bulunamadı',
-      awayForm: data.awayForm || 'Veri bulunamadı',
-      h2h: data.h2h || 'Veri bulunamadı',
-      injuries: data.injuries || 'Veri bulunamadı',
-      leaguePosition: data.leaguePosition || 'Veri bulunamadı',
-      lastUpdated: Date.now(),
-      dataSources: dataSources.length > 0 ? dataSources : data.dataSources || [],
-      confidenceScore: data.confidenceScore || 50,
-    };
+      console.log('📡 API Response:', JSON.stringify(response.data, null, 2));
+
+      const candidate = response.data.candidates?.[0];
+      if (!candidate) {
+        console.error('❌ No candidates in response');
+        throw new Error('API yanıtı geçersiz');
+      }
+
+      let textContent = '';
+      if (candidate.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            textContent += part.text;
+          }
+        }
+      }
+
+      console.log('📝 Extracted text:', textContent);
+
+      if (!textContent) {
+        console.error('❌ No text content found');
+        throw new Error('API yanıtında metin bulunamadı');
+      }
+
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        console.error('❌ No JSON found in text:', textContent);
+        throw new Error('Yanıtta JSON formatı bulunamadı');
+      }
+
+      const data = JSON.parse(jsonMatch[0]);
+      console.log('✅ Parsed data:', data);
+
+      return {
+        matchId: match.matchId,
+        teamHome: match.teamHome,
+        teamAway: match.teamAway,
+        league: match.league,
+        homeForm: data.homeForm || 'Veri yok',
+        awayForm: data.awayForm || 'Veri yok',
+        h2h: data.h2h || 'Veri yok',
+        injuries: data.injuries || 'Veri yok',
+        leaguePosition: data.leaguePosition || 'Veri yok',
+        lastUpdated: Date.now(),
+        dataSources: ['Gemini AI Model'],
+        confidenceScore: data.confidenceScore || 70,
+      };
+    } catch (error: any) {
+      console.error('❌ fetchMatchDataWithGrounding error:', error);
+      console.error('Error details:', error.response?.data || error.message);
+
+      return {
+        matchId: match.matchId,
+        teamHome: match.teamHome,
+        teamAway: match.teamAway,
+        league: match.league,
+        homeForm: 'Veri toplama hatası',
+        awayForm: 'Veri toplama hatası',
+        h2h: 'Veri toplama hatası',
+        injuries: 'Veri toplama hatası',
+        leaguePosition: 'Veri toplama hatası',
+        lastUpdated: Date.now(),
+        dataSources: [],
+        confidenceScore: 0,
+      };
+    }
   },
 
   async performFinalAnalysis(
