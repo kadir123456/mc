@@ -17,7 +17,7 @@ export const About: React.FC = () => {
 
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 mb-8">
             <p className="text-slate-300 text-lg leading-relaxed mb-6">
-              Coupon Analyzer, spor kuponlarınızı detaylı şekilde analiz etmenize yardımcı olan modern bir platformdur.
+              Aikupon, spor kuponlarınızı detaylı şekilde analiz etmenize yardımcı olan modern bir platformdur.
               Akıllı analiz teknolojisi ile kuponlarınızı değerlendirip, size en iyi önerileri sunuyoruz.
             </p>
 

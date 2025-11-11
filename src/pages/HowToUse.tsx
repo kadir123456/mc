@@ -15,7 +15,7 @@ export const HowToUse: React.FC = () => {
 
           <h1 className="text-4xl font-bold text-white mb-4">Nasıl Kullanılır?</h1>
           <p className="text-slate-400 mb-12">
-            Coupon Analyzer'ı kullanarak kuponlarınızı kolayca analiz edebilirsiniz. İşte adım adım rehber:
+            Aikupon'ı kullanarak kuponlarınızı kolayca analiz edebilirsiniz. İşte adım adım rehber:
           </p>
 
           <div className="space-y-8">

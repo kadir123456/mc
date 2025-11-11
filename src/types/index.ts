@@ -7,6 +7,10 @@ export interface User {
   totalSpent: number;
   createdAt: number;
   lastLogin: number;
+  isBanned?: boolean;
+  bannedReason?: string;
+  registrationIP?: string;
+  lastIP?: string;
 }
 
 export interface Package {

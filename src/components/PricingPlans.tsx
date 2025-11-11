@@ -104,9 +104,15 @@ export const PricingPlans: React.FC = () => {
           Tüm ödemeler güvenli ödeme altyapısı ile işlenir.
           Kredi kartı, banka transferi ve diğer ödeme yöntemlerini kabul ediyoruz.
         </p>
-        <p className="text-slate-400 text-sm">
+        <p className="text-slate-400 text-sm mb-3">
           Ödeme işlemi sırasında Gizlilik Politikamız ve Kullanım Şartlarımız geçerlidir.
         </p>
+        <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-4">
+          <p className="text-yellow-400 text-sm font-medium">
+            <strong>Önemli:</strong> Dijital ürün satışı olduğu için geri ödeme bulunmamaktadır.
+            Satın almadan önce paket içeriklerini dikkatlice inceleyiniz.
+          </p>
+        </div>
       </div>
     </div>
   );

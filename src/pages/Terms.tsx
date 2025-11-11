@@ -32,7 +32,7 @@ export const Terms: React.FC = () => {
             <section>
               <h2 className="text-2xl font-bold text-white mb-3">2. Hizmet Kapsamı</h2>
               <p className="text-slate-300 leading-relaxed">
-                Coupon Analyzer, spor kuponlarını analiz ederek bilgilendirme amaçlı raporlar sunar.
+                Aikupon, spor kuponlarını analiz ederek bilgilendirme amaçlı raporlar sunar.
                 Bu analizler kesinlikle tavsiye niteliğinde değildir. Kullanıcılar kendi kararlarından
                 kendileri sorumludur.
               </p>
