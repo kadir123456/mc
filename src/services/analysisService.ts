@@ -691,9 +691,22 @@ export const analysisService = {
         throw new Error('Geçersiz analiz formatı');
       }
 
+      // Validation: Her maçın predictions'ını kontrol et
+      const validatedMatches = analysis.matches.map((match: any) => ({
+        ...match,
+        predictions: match.predictions || {
+          ms1: { odds: 0, confidence: 0, reasoning: 'Veri yok' },
+          ms2: { odds: 0, confidence: 0, reasoning: 'Veri yok' },
+          beraberlik: { odds: 0, confidence: 0, reasoning: 'Veri yok' },
+          ust25: { odds: 0, confidence: 0, type: 'Üst 2.5 Gol', reasoning: 'Veri yok' },
+          alt25: { odds: 0, confidence: 0, type: 'Alt 2.5 Gol', reasoning: 'Veri yok' },
+          kgg: { odds: 0, confidence: 0, type: 'Karşılıklı Gol', reasoning: 'Veri yok' },
+        },
+      }));
+
       return {
         finalCoupon: Array.isArray(analysis.finalCoupon) ? analysis.finalCoupon : [],
-        matches: Array.isArray(analysis.matches) ? analysis.matches : [],
+        matches: validatedMatches,
         totalOdds: Number(analysis.totalOdds) || 0,
         recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
         confidence: Number(analysis.confidence) || 0,
