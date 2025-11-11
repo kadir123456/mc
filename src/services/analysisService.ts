@@ -463,7 +463,7 @@ export const analysisService = {
 
       console.log('\n✅ ANALİZ TAMAMLANDI!');
       console.log(`📋 ${finalAnalysis.finalCoupon.length} tahmin`);
-      console.log(`💰 Oran: ${finalAnalysis.totalOdds.toFixed(2)}`);
+      console.log(`💰 Oran: ${Number(finalAnalysis.totalOdds || 0).toFixed(2)}`);
       console.log(`🎯 Güven: ${finalAnalysis.confidence}%\n`);
       
       return finalAnalysis;
@@ -692,11 +692,11 @@ export const analysisService = {
       }
 
       return {
-        finalCoupon: analysis.finalCoupon || [],
-        matches: analysis.matches || [],
-        totalOdds: analysis.totalOdds || 0,
-        recommendations: analysis.recommendations || [],
-        confidence: analysis.confidence || 0,
+        finalCoupon: Array.isArray(analysis.finalCoupon) ? analysis.finalCoupon : [],
+        matches: Array.isArray(analysis.matches) ? analysis.matches : [],
+        totalOdds: Number(analysis.totalOdds) || 0,
+        recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
+        confidence: Number(analysis.confidence) || 0,
       };
       
     } catch (error) {
