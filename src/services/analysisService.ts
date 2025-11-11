@@ -5,15 +5,15 @@ import { database } from './firebase';
 
 // ==================== KONFİGÜRASYON ====================
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.5-flash-latest'; // 🚀 En yeni Gemini 2.5 Flash
+const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 const GEMINI_API_VERSION = 'v1beta';
 const GEMINI_API_BASE = `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models`;
 
 // Cache ve retry ayarları
-const CACHE_EXPIRY_HOURS = 12; // Daha güncel veri için 12 saat
+const CACHE_EXPIRY_HOURS = 24; // 12 saatten 24 saate çıkardık (daha fazla tasarruf)
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
-const API_TIMEOUT_MS = 90000; // 90 saniye
+const API_TIMEOUT_MS = 90000;
 
 // ==================== TYPE DEFINITIONS ====================
 interface CachedMatchData {
@@ -231,180 +231,90 @@ const DATA_COLLECTION_PROMPT = (match: DetectedMatch) => {
 
 ✅ ZORUNLU:
    • Google Search sonuçlarını MUTLAKA kullan
-   • Güvenilir kaynaklardan veri topla (FlashScore, SofaScore, ESPN, BBC)
+   • Güvenilir kaynaklardan veri topla
    • SON 48 SAAT içindeki güncel verileri tercih et
    • Her bilgi için kaynak URL'si ekle
-   • confidenceScore: Veri kalitesine göre 0-100
+   • confidenceScore: 0-100
 
 ✅ KALİTE:
-   • 90-100: Mükemmel (5+ güvenilir kaynak)
+   • 90-100: Mükemmel (5+ kaynak)
    • 80-89: Çok İyi (4 kaynak)
    • 70-79: İyi (3 kaynak)
    • 60-69: Orta (2 kaynak)
-   • 0-59: Zayıf (1 veya daha az)
+   • 0-59: Zayıf
 
 ❌ YASAK:
-   • Tahmin/varsayım yapma
-   • Eski verileri güncel gibi gösterme
-   • Rastgele sayılar üretme
-   • Veri yoksa "Veri bulunamadı" yaz
-
-🎯 HEDEFİMİZ: %100 doğru, güncel ve güvenilir analiz!`;
+   • Tahmin yapma
+   • Eski veri güncel gösterme
+   • Rastgele sayı üretme
+   • Veri yoksa "Veri bulunamadı" yaz`;
 };
 
-const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `🎯 PROFESYONEL FUTBOL ANALİZ SİSTEMİ - EXPERT ANALYSIS
+const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `🎯 PROFESYONEL FUTBOL ANALİZ SİSTEMİ
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 BİLİMSEL AĞIRLIK SİSTEMİ
+📊 AĞIRLIK SİSTEMİ
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔴 Son Form (%40) - EN ÖNEMLİ
-🟠 Kafa Kafaya (%25) - PSİKOLOJİK
-🟡 Sakatlık/Kadro (%15) - KALİTE
-🟢 Lig Sıralaması (%10) - MOTİVASYON
-🔵 İç/Dış Saha (%10) - AVANTAJ
+🔴 Form (%40) 🟠 H2H (%25) 🟡 Kadro (%15) 🟢 Sıralama (%10) 🔵 Saha (%10)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📋 ANALİZ EDİLECEK MAÇLAR VE GERÇEK VERİLER:
+📋 MAÇLAR:
 
 ${matches.map((m, i) => `
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ 🎮 MAÇ ${i + 1}/${matches.length}: ${m.teamHome} 🆚 ${m.teamAway}
-┃ 🏆 ${m.league} | 📅 ${m.date || 'Yakında'}
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-📊 TOPLANAN GERÇEK VERİLER:
-├─ 🏠 Ev Form: ${m.cachedData.homeForm}
-├─ ✈️ Deplasman Form: ${m.cachedData.awayForm}
-├─ 🤝 H2H: ${m.cachedData.h2h}
-├─ 🏥 Sakatlık: ${m.cachedData.injuries}
-├─ 📊 Lig: ${m.cachedData.leaguePosition}
-├─ 🔗 Kaynaklar: ${m.cachedData.dataSources.length} güvenilir
-└─ ✅ Güven: ${m.cachedData.confidenceScore}/100
-
-${m.odds ? `💰 ORANLAR:
-├─ MS1: ${m.odds.ms1}
-├─ Beraberlik: ${m.odds.beraberlik}
-├─ MS2: ${m.odds.ms2}
-├─ Üst 2.5: ${m.odds.ust25}
-├─ Alt 2.5: ${m.odds.alt25}
-└─ KGG: ${m.odds.kgg}` : ''}
+MAÇ ${i + 1}: ${m.teamHome} vs ${m.teamAway} (${m.league})
+Form: ${m.cachedData.homeForm} | ${m.cachedData.awayForm}
+H2H: ${m.cachedData.h2h}
+Sakatlık: ${m.cachedData.injuries}
+Sıralama: ${m.cachedData.leaguePosition}
+Güven: ${m.cachedData.confidenceScore}/100
+${m.odds ? `Oranlar: MS1=${m.odds.ms1} Beraberlik=${m.odds.beraberlik} MS2=${m.odds.ms2} Üst2.5=${m.odds.ust25} Alt2.5=${m.odds.alt25} KGG=${m.odds.kgg}` : ''}
 `).join('\n')}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 ANALİZ GÖREVLERİ
+GÖREV: Her maç için detaylı analiz yap
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1️⃣ HER MAÇ İÇİN DETAYLI ANALİZ:
-   • Ağırlık sistemine göre değerlendir
-   • Confidence score hesapla (0-100)
-   • Veri bazlı reasoning sun
-   • Risk seviyesi belirle
+CONFIDENCE HESAPLAMA:
+• 90-100: Kesin
+• 80-89: Çok Güvenli
+• 70-79: Güvenli
+• 60-69: Orta Risk
+• 0-59: Yüksek Risk
 
-2️⃣ CONFIDENCE HESAPLAMA:
-   • 90-100: %100 Kesin
-   • 80-89: Çok Güvenli
-   • 70-79: Güvenli
-   • 60-69: Orta Risk
-   • 0-59: Yüksek Risk
-
-3️⃣ FİNAL KUPON:
-   • SADECE 70+ confidence seç
-   • Max 3-4 maç öner
-   • Oran/risk dengesi
-   • Alternatif öneriler
-
-4️⃣ RİSK YÖNETİMİ:
-   🟢 Düşük (70-79)
-   🟡 Orta (80-89)
-   🔴 Yüksek Güven (90-100)
+SADECE 70+ confidence finalCoupon'a ekle!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📤 ÇIKTI FORMATI - SADECE GEÇERLİ JSON
+ÇIKTI - SADECE JSON:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
-  "finalCoupon": [
-    "Liverpool - MS1 (Oran: 1.85, Risk: Orta)",
-    "Barcelona - Üst 2.5 (Oran: 1.92, Risk: Düşük)"
-  ],
-  "matches": [
-    {
-      "matchId": "liv_ars_epl_20241111",
-      "league": "Premier League",
-      "teams": ["Liverpool", "Arsenal"],
-      "predictions": {
-        "ms1": {
-          "odds": 1.85,
-          "confidence": 78,
-          "reasoning": "Liverpool ev sahibi, son 5'te 4 galibiyet (%40). H2H ev sahibi 3/5 (%25). Arsenal 2 önemli sakat (%15). Liverpool şampiyonluk yarışında (%10). Ev avantajı güçlü (%10). TOPLAM: 78/100"
-        },
-        "ust25": {
-          "odds": 1.92,
-          "confidence": 72,
-          "type": "Üst 2.5 Gol",
-          "reasoning": "Her iki takım gol atıyor. Son 5 H2H'de 4 maçta 3+ gol. Liverpool 2.4 gol/maç. Arsenal defans zayıf. Üst 2.5 yüksek ihtimal."
-        }
+  "finalCoupon": ["Liverpool - MS1 (1.85, Orta Risk)"],
+  "matches": [{
+    "matchId": "liv_ars_epl",
+    "league": "Premier League",
+    "teams": ["Liverpool", "Arsenal"],
+    "predictions": {
+      "ms1": {
+        "odds": 1.85,
+        "confidence": 78,
+        "reasoning": "Liverpool ev sahibi, form iyi (%40). H2H avantajlı (%25). Arsenal sakat (%15). Şampiyonluk yarışı (%10). Ev avantajı (%10). Toplam: 78"
       },
-      "realData": {
-        "homeForm": "${matches[0]?.cachedData.homeForm}",
-        "awayForm": "${matches[0]?.cachedData.awayForm}",
-        "h2h": "${matches[0]?.cachedData.h2h}",
-        "injuries": "${matches[0]?.cachedData.injuries}",
-        "leaguePosition": "${matches[0]?.cachedData.leaguePosition}"
-      },
-      "dataQuality": {
-        "sources": ${matches[0]?.cachedData.dataSources.length || 0},
-        "confidence": ${matches[0]?.cachedData.confidenceScore || 0},
-        "lastUpdated": "${new Date(matches[0]?.cachedData.lastUpdated || Date.now()).toLocaleString('tr-TR')}"
-      },
-      "recommendation": "MS1 veya Üst 2.5 güvenli. Kombine yapılabilir."
+      "ust25": {
+        "odds": 1.92,
+        "confidence": 72,
+        "type": "Üst 2.5 Gol",
+        "reasoning": "Her iki takım gol atıyor. H2H'de 4/5 maçta 3+ gol."
+      }
     }
-  ],
+  }],
   "totalOdds": 3.55,
   "confidence": 75,
   "recommendations": [
-    "🎯 2 Maçlık Premium Kombine",
-    "💰 Toplam Oran: 3.55",
-    "🟡 Risk: ORTA (Her iki tahmin 70+)",
-    "📊 Veri Kalitesi: YÜKSEK",
-    "✅ Strateji: 2'li kombine veya tekli",
-    "⚠️ Alternatif: Tekli daha güvenli"
-  ],
-  "riskAnalysis": {
-    "level": "ORTA",
-    "factors": [
-      "Form faktörü güçlü",
-      "Sakatlık kontrol altında",
-      "Veri kalitesi yüksek",
-      "Oranlar makul"
-    ],
-    "warnings": [
-      "Futbol tahmin edilemez",
-      "Sorumlu bahis oynayın",
-      "Sadece kaybedebileceğiniz parayı yatırın"
-    ]
-  }
-}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ KRİTİK KURALLAR
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ YAPILACAKLAR:
-   • SADECE 70+ confidence finalCoupon'a ekle
-   • DETAYLI reasoning yaz
-   • Ağırlık sistemini TAM uygula
-   • Risk AÇIKÇA belirt
-   • Alternatif öner
-   • SADECE geçerli JSON
-
-❌ YASAK:
-   • 70 altı tahmin ekleme
-   • Rastgele tahminde bulunma
-   • Veri olmadan confidence verme
-   • 5+ maçlık kombineler
-
-🎯 MİSYON: Profesyonel, veri odaklı, güvenilir analiz!`;
+    "2 Maçlık Kombine",
+    "Toplam Oran: 3.55",
+    "Risk: ORTA"
+  ]
+}`;
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -452,52 +362,114 @@ async function callGeminiAPI(
 ): Promise<GeminiResponse> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`📡 API çağrısı (Deneme ${attempt}/${retries})...`);
+      console.log(`📡 API çağrısı (${attempt}/${retries})...`);
       
       const response = await axios.post<GeminiResponse>(endpoint, payload, {
         headers: { 'Content-Type': 'application/json' },
         timeout: API_TIMEOUT_MS,
       });
       
-      if (!detectedMatches || detectedMatches.length === 0) {
-        throw new Error('❌ Görselde maç tespit edilemedi');
+      if (response.data.usageMetadata) {
+        const usage = response.data.usageMetadata;
+        console.log(`📊 Token: ${usage.totalTokenCount}`);
       }
       
-      console.log(`\n✅ ${detectedMatches.length} maç tespit edildi:`);
-      detectedMatches.forEach((m, i) => {
-        console.log(`   ${i + 1}. ${m.teamHome} vs ${m.teamAway} (${m.league})`);
-      });
-
-      // ===== ADIM 2: VERİ TOPLAMA =====
-      console.log('\n\n📊 [2/3] GERÇEK ZAMANLI VERİ TOPLAMA (Google Search)...');
+      console.log('✅ API başarılı');
+      return response.data;
       
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      console.error(`❌ API hatası (${attempt}/${retries}):`, errorMsg);
+      
+      if (attempt === retries) {
+        throw new Error(`API başarısız: ${errorMsg}`);
+      }
+      
+      if (error.response?.status === 429 || error.response?.status === 503 || error.response?.status === 500) {
+        const waitTime = RETRY_DELAY_MS * attempt;
+        console.log(`⏳ ${waitTime}ms bekleniyor...`);
+        await sleep(waitTime);
+      } else {
+        throw error;
+      }
+    }
+  }
+  
+  throw new Error('API çağrısı başarısız');
+}
+
+function extractGroundingData(candidate: any): { sources: string[]; queries: string[] } {
+  const sources: string[] = [];
+  const queries: string[] = [];
+  
+  if (!candidate.groundingMetadata) return { sources, queries };
+  
+  const metadata = candidate.groundingMetadata;
+  
+  if (metadata.groundingChunks) {
+    metadata.groundingChunks.forEach((chunk: any) => {
+      if (chunk.web?.uri) sources.push(chunk.web.uri);
+    });
+  }
+  
+  if (metadata.webSearchQueries) {
+    queries.push(...metadata.webSearchQueries);
+  }
+  
+  return { sources, queries };
+}
+
+function validateAPIKey(): void {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+    throw new Error('⚠️ GEMINI_API_KEY bulunamadı!');
+  }
+  
+  if (!GEMINI_API_KEY.startsWith('AIzaSy')) {
+    throw new Error('⚠️ GEMINI_API_KEY geçersiz!');
+  }
+  
+  console.log('✅ API anahtarı doğrulandı');
+}
+
+// ==================== MAIN SERVICE ====================
+
+export const analysisService = {
+  async analyzeImageWithGemini(base64Image: string): Promise<CouponAnalysis['analysis']> {
+    try {
+      validateAPIKey();
+      
+      console.log('\n🚀 GEMINI 2.0 FLASH ANALİZ BAŞLADI\n');
+      
+      // ADIM 1: MAÇ TESPİTİ
+      console.log('📸 [1/3] Görsel analizi...');
+      const detectedMatches = await this.detectMatches(base64Image);
+      
+      if (!detectedMatches || detectedMatches.length === 0) {
+        throw new Error('❌ Maç tespit edilemedi');
+      }
+      
+      console.log(`✅ ${detectedMatches.length} maç tespit edildi\n`);
+
+      // ADIM 2: VERİ TOPLAMA
+      console.log('📊 [2/3] Veri toplama (Google Search)...');
       const matchesWithData = await this.getOrFetchMatchData(detectedMatches);
       
       const validMatches = matchesWithData.filter(m => m.cachedData.confidenceScore >= 60);
-      const excellentMatches = matchesWithData.filter(m => m.cachedData.confidenceScore >= 80);
-      
-      console.log(`\n📈 Veri Kalite Özeti:`);
-      console.log(`   ✅ Toplam: ${matchesWithData.length}`);
-      console.log(`   ✅ Geçerli: ${validMatches.length} (60+)`);
-      console.log(`   ⭐ Mükemmel: ${excellentMatches.length} (80+)`);
+      console.log(`✅ ${validMatches.length} maç için kaliteli veri\n`);
 
-      // ===== ADIM 3: PROFESYONEL ANALİZ =====
-      console.log('\n\n🧠 [3/3] PROFESYONEL ANALİZ...');
-      
+      // ADIM 3: ANALİZ
+      console.log('🧠 [3/3] Profesyonel analiz...');
       const finalAnalysis = await this.performFinalAnalysis(matchesWithData);
 
-      console.log('\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
-      console.log('┃  ✅ ANALİZ TAMAMLANDI!                    ┃');
-      console.log('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛');
-      console.log(`\n📋 Final Kupon: ${finalAnalysis.finalCoupon.length} tahmin`);
-      console.log(`💰 Toplam Oran: ${finalAnalysis.totalOdds.toFixed(2)}`);
-      console.log(`🎯 Güven: ${finalAnalysis.confidence}%`);
-      console.log(`📊 Analiz: ${finalAnalysis.matches.length} maç\n`);
+      console.log('\n✅ ANALİZ TAMAMLANDI!');
+      console.log(`📋 ${finalAnalysis.finalCoupon.length} tahmin`);
+      console.log(`💰 Oran: ${finalAnalysis.totalOdds.toFixed(2)}`);
+      console.log(`🎯 Güven: ${finalAnalysis.confidence}%\n`);
       
       return finalAnalysis;
       
     } catch (error) {
-      console.error('\n❌ ANALİZ HATASI:', error);
+      console.error('\n❌ HATA:', error);
       throw error;
     }
   },
@@ -529,7 +501,7 @@ async function callGeminiAPI(
       const data = await callGeminiAPI(endpoint, payload);
       
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-        throw new Error('API yanıtında içerik yok');
+        throw new Error('API yanıtı boş');
       }
 
       const content = data.candidates[0].content.parts[0].text;
@@ -539,7 +511,6 @@ async function callGeminiAPI(
         throw new Error('Maç listesi bulunamadı');
       }
 
-      console.log(`✅ ${result.matches.length} maç parse edildi`);
       return result.matches;
       
     } catch (error) {
@@ -555,7 +526,7 @@ async function callGeminiAPI(
 
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];
-      console.log(`\n┌─ Maç ${i + 1}/${matches.length}: ${match.teamHome} vs ${match.teamAway}`);
+      console.log(`Maç ${i + 1}/${matches.length}: ${match.teamHome} vs ${match.teamAway}`);
       
       const cacheKey = `match_cache/${match.matchId}`;
       const cacheRef = ref(database, cacheKey);
@@ -569,27 +540,23 @@ async function callGeminiAPI(
           const hoursSinceUpdate = (Date.now() - cached.lastUpdated) / (1000 * 60 * 60);
 
           if (hoursSinceUpdate < CACHE_EXPIRY_HOURS) {
-            console.log(`│  ✅ Cache HIT (${hoursSinceUpdate.toFixed(1)}h, Skor: ${cached.confidenceScore})`);
+            console.log(`✅ Cache HIT (${hoursSinceUpdate.toFixed(1)}h)`);
             cachedData = cached;
           } else {
-            console.log(`│  🔄 Cache yenileniyor (${hoursSinceUpdate.toFixed(1)}h)...`);
+            console.log(`🔄 Cache yenileniyor...`);
             cachedData = await this.fetchMatchDataWithGrounding(match);
             await set(cacheRef, cachedData);
-            console.log(`│  💾 Cache güncellendi (Skor: ${cachedData.confidenceScore})`);
           }
         } else {
-          console.log(`│  🆕 İlk veri toplama...`);
+          console.log(`🆕 İlk veri toplama...`);
           cachedData = await this.fetchMatchDataWithGrounding(match);
           await set(cacheRef, cachedData);
-          console.log(`│  💾 Cache'e kaydedildi (Skor: ${cachedData.confidenceScore})`);
         }
 
         matchesWithData.push({ ...match, cachedData });
-        console.log(`└─ ✅ Tamamlandı\n`);
         
       } catch (error) {
-        console.error(`│  ❌ Hata:`, error);
-        console.log(`└─ ⚠️ Varsayılan verilerle devam\n`);
+        console.error(`❌ Hata:`, error);
         
         matchesWithData.push({
           ...match,
@@ -598,11 +565,11 @@ async function callGeminiAPI(
             teamHome: match.teamHome,
             teamAway: match.teamAway,
             league: match.league,
-            homeForm: 'Veri toplama hatası',
-            awayForm: 'Veri toplama hatası',
-            h2h: 'Veri toplama hatası',
-            injuries: 'Veri toplama hatası',
-            leaguePosition: 'Veri toplama hatası',
+            homeForm: 'Veri hatası',
+            awayForm: 'Veri hatası',
+            h2h: 'Veri hatası',
+            injuries: 'Veri hatası',
+            leaguePosition: 'Veri hatası',
             lastUpdated: Date.now(),
             dataSources: [],
             confidenceScore: 0,
@@ -638,11 +605,10 @@ async function callGeminiAPI(
         },
       };
 
-      console.log(`│  🔍 Google Search başlatılıyor...`);
       const data = await callGeminiAPI(endpoint, payload);
 
       if (!data.candidates?.[0]) {
-        throw new Error('API yanıtında aday yok');
+        throw new Error('API yanıtı boş');
       }
 
       const candidate = data.candidates[0];
@@ -655,16 +621,13 @@ async function callGeminiAPI(
       }
 
       if (!textContent) {
-        throw new Error('API yanıtında metin yok');
+        throw new Error('Metin bulunamadı');
       }
 
       const parsedData = cleanAndParseJSON(textContent);
       const { sources, queries } = extractGroundingData(candidate);
 
-      console.log(`│  ✅ ${sources.length} kaynak bulundu`);
-      if (queries.length > 0) {
-        console.log(`│  🔎 ${queries.length} arama yapıldı`);
-      }
+      console.log(`✅ ${sources.length} kaynak`);
 
       return {
         matchId: match.matchId,
@@ -683,7 +646,7 @@ async function callGeminiAPI(
       };
       
     } catch (error: any) {
-      console.error(`│  ❌ Veri hatası:`, error.message);
+      console.error(`❌ Veri hatası:`, error.message);
       
       return {
         matchId: match.matchId,
@@ -720,11 +683,10 @@ async function callGeminiAPI(
         },
       };
 
-      console.log('   🧠 Analiz motoru çalışıyor...');
       const data = await callGeminiAPI(endpoint, payload);
 
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-        throw new Error('API yanıtında analiz yok');
+        throw new Error('API yanıtı boş');
       }
 
       const content = data.candidates[0].content.parts[0].text;
@@ -733,8 +695,6 @@ async function callGeminiAPI(
       if (!analysis.matches || !Array.isArray(analysis.matches)) {
         throw new Error('Geçersiz analiz formatı');
       }
-
-      console.log('   ✅ Analiz tamamlandı');
 
       return {
         finalCoupon: analysis.finalCoupon || [],
@@ -745,7 +705,7 @@ async function callGeminiAPI(
       };
       
     } catch (error) {
-      console.error('   ❌ Analiz hatası:', error);
+      console.error('❌ Analiz hatası:', error);
       throw error;
     }
   },
@@ -891,83 +851,4 @@ async function callGeminiAPI(
       };
     }
   },
-}; (response.data.usageMetadata) {
-        const usage = response.data.usageMetadata;
-        console.log(`📊 Token: Input ${usage.promptTokenCount}, Output ${usage.candidatesTokenCount}, Total ${usage.totalTokenCount}`);
-      }
-      
-      console.log('✅ API yanıt başarılı');
-      return response.data;
-      
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      console.error(`❌ API hatası (${attempt}/${retries}):`, errorMsg);
-      
-      if (attempt === retries) {
-        throw new Error(`API başarısız (${retries} deneme): ${errorMsg}`);
-      }
-      
-      if (error.response?.status === 429 || error.response?.status === 503 || error.response?.status === 500) {
-        const waitTime = RETRY_DELAY_MS * attempt;
-        console.log(`⏳ ${waitTime}ms bekleniyor...`);
-        await sleep(waitTime);
-      } else {
-        throw error;
-      }
-    }
-  }
-  
-  throw new Error('API çağrısı başarısız');
-}
-
-function extractGroundingData(candidate: any): { sources: string[]; queries: string[] } {
-  const sources: string[] = [];
-  const queries: string[] = [];
-  
-  if (!candidate.groundingMetadata) return { sources, queries };
-  
-  const metadata = candidate.groundingMetadata;
-  
-  if (metadata.groundingChunks) {
-    metadata.groundingChunks.forEach((chunk: any) => {
-      if (chunk.web?.uri) sources.push(chunk.web.uri);
-    });
-  }
-  
-  if (metadata.webSearchQueries) {
-    queries.push(...metadata.webSearchQueries);
-  }
-  
-  return { sources, queries };
-}
-
-function validateAPIKey(): void {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
-    throw new Error('⚠️ GEMINI_API_KEY bulunamadı!');
-  }
-  
-  if (!GEMINI_API_KEY.startsWith('AIzaSy')) {
-    throw new Error('⚠️ GEMINI_API_KEY geçersiz!');
-  }
-  
-  console.log('✅ API anahtarı doğrulandı');
-}
-
-// ==================== MAIN SERVICE ====================
-
-export const analysisService = {
-  async analyzeImageWithGemini(base64Image: string): Promise<CouponAnalysis['analysis']> {
-    try {
-      validateAPIKey();
-      
-      console.log('\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
-      console.log('┃  🚀 GEMINI 2.5 FLASH PRO ANALİZ SİSTEMİ   ┃');
-      console.log('┃  Model: gemini-2.5-flash-latest           ┃');
-      console.log('┃  Google Search: ✅ AKTIF (Ücretli)        ┃');
-      console.log('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n');
-      
-      // ===== ADIM 1: MAÇ TESPİTİ =====
-      console.log('📸 [1/3] GÖRSEL ANALİZİ...');
-      const detectedMatches = await this.detectMatches(base64Image);
-      
-      if
+};
