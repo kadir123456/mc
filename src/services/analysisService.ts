@@ -590,12 +590,7 @@ export const analysisService = {
           parts: [{ text: DATA_COLLECTION_PROMPT(match) }],
         }],
         tools: [{
-          google_search_retrieval: {
-            dynamic_retrieval_config: {
-              mode: 'MODE_DYNAMIC',
-              dynamic_threshold: 0.3,
-            },
-          },
+          googleSearch: {},
         }],
         generationConfig: {
           temperature: 0.2,
