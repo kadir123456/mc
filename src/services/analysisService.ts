@@ -4,7 +4,7 @@ import { ref, set, get, remove } from 'firebase/database';
 import { database } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-1.5-pro-latest';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const CACHE_EXPIRY_HOURS = 24;
 
 interface CachedMatchData {
