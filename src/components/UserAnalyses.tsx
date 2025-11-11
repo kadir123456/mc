@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { analysisService } from '../services/analysisService';
 import { CouponAnalysis } from '../types';
-import { Loader, TrendingUp } from 'lucide-react';
+import { Loader, TrendingUp, ChevronDown, ChevronUp, Database, Clock } from 'lucide-react';
 
 export const UserAnalyses: React.FC = () => {
   const { user } = useAuth();
   const [analyses, setAnalyses] = useState<CouponAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAnalysis, setSelectedAnalysis] = useState<CouponAnalysis | null>(null);
+  const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const loadAnalyses = async () => {
@@ -25,6 +26,10 @@ export const UserAnalyses: React.FC = () => {
 
     loadAnalyses();
   }, [user]);
+
+  const toggleMatchExpand = (matchId: string) => {
+    setExpandedMatches((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
+  };
 
   if (loading) {
     return (
@@ -122,7 +127,147 @@ export const UserAnalyses: React.FC = () => {
             </div>
           )}
 
+          <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Database className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-white font-medium mb-1">Gerçek Zamanlı Veri Analizi</h4>
+                <p className="text-slate-300 text-sm">
+                  Bu analiz, Google Search ile toplanan güncel verilerle yapılmıştır.
+                  Her maç için takım formu, sakatlıklar ve istatistikler gerçek zamanlı olarak toplanmıştır.
+                </p>
+              </div>
+            </div>
+          </div>
 
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white">🔍 Detaylı Maç Analizleri</h3>
+            {selectedAnalysis.analysis.matches.map((match) => {
+              const isExpanded = expandedMatches[match.matchId];
+              const dataQuality = (match as any).dataQuality;
+              const confidenceColor =
+                match.predictions.ms1.confidence >= 80 ? 'text-green-400' :
+                match.predictions.ms1.confidence >= 70 ? 'text-yellow-400' :
+                'text-red-400';
+
+              return (
+                <div key={match.matchId} className="bg-slate-700/50 border border-slate-600 rounded-lg overflow-hidden">
+                  <div
+                    className="p-4 cursor-pointer hover:bg-slate-700/70 transition"
+                    onClick={() => toggleMatchExpand(match.matchId)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1">
+                        <p className="text-xs text-slate-400 mb-1">{match.league}</p>
+                        <h4 className="text-white font-bold">
+                          {match.teams[0]} <span className="text-slate-400">vs</span> {match.teams[1]}
+                        </h4>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className={`font-medium ${confidenceColor}`}>
+                        Güven: {Math.max(
+                          match.predictions.ms1.confidence,
+                          match.predictions.ms2.confidence,
+                          match.predictions.beraberlik?.confidence || 0
+                        )}%
+                      </span>
+                      {dataQuality && (
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <Database className="w-4 h-4" />
+                          {dataQuality.sources} kaynak
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-slate-600 p-4 space-y-4 bg-slate-800/30">
+                      <div>
+                        <h5 className="text-white font-semibold mb-2 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Tahmin Oranları
+                        </h5>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-slate-700 rounded p-2 text-center">
+                            <p className="text-slate-400 text-xs mb-1">MS1</p>
+                            <p className="text-white font-bold">{match.predictions.ms1.odds}</p>
+                            <p className="text-xs text-slate-400">{match.predictions.ms1.confidence}%</p>
+                          </div>
+                          <div className="bg-slate-700 rounded p-2 text-center">
+                            <p className="text-slate-400 text-xs mb-1">Beraberlik</p>
+                            <p className="text-white font-bold">{match.predictions.beraberlik.odds}</p>
+                            <p className="text-xs text-slate-400">{match.predictions.beraberlik.confidence}%</p>
+                          </div>
+                          <div className="bg-slate-700 rounded p-2 text-center">
+                            <p className="text-slate-400 text-xs mb-1">MS2</p>
+                            <p className="text-white font-bold">{match.predictions.ms2.odds}</p>
+                            <p className="text-xs text-slate-400">{match.predictions.ms2.confidence}%</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {match.realData && (
+                        <div>
+                          <h5 className="text-white font-semibold mb-2 flex items-center gap-2">
+                            <Database className="w-4 h-4" />
+                            Gerçek Veriler
+                          </h5>
+                          <div className="space-y-2 text-sm">
+                            <div className="bg-slate-700/50 rounded p-2">
+                              <p className="text-slate-400 text-xs mb-1">Ev Sahibi Formu</p>
+                              <p className="text-slate-200">{match.realData.homeForm}</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded p-2">
+                              <p className="text-slate-400 text-xs mb-1">Deplasman Formu</p>
+                              <p className="text-slate-200">{match.realData.awayForm}</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded p-2">
+                              <p className="text-slate-400 text-xs mb-1">Kafa Kafaya (H2H)</p>
+                              <p className="text-slate-200">{match.realData.h2h}</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded p-2">
+                              <p className="text-slate-400 text-xs mb-1">Sakatlıklar</p>
+                              <p className="text-slate-200">{match.realData.injuries}</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded p-2">
+                              <p className="text-slate-400 text-xs mb-1">Lig Durumu</p>
+                              <p className="text-slate-200">{match.realData.leaguePosition}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {dataQuality && (
+                        <div className="border-t border-slate-600 pt-3">
+                          <h5 className="text-white font-semibold mb-2 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Veri Kalitesi
+                          </h5>
+                          <div className="space-y-1 text-sm">
+                            <p className="text-slate-300">
+                              Güven Skoru: <span className="font-bold text-cyan-400">{dataQuality.confidence}/100</span>
+                            </p>
+                            <p className="text-slate-300">
+                              Kaynak Sayısı: <span className="font-bold text-cyan-400">{dataQuality.sources}</span>
+                            </p>
+                            <p className="text-slate-300">
+                              Son Güncelleme: <span className="font-bold text-cyan-400">{dataQuality.lastUpdated}</span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           {selectedAnalysis.analysis.recommendations.length > 0 && (
             <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-4">

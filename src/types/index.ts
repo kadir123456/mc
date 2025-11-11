@@ -57,7 +57,12 @@ export interface MatchAnalysis {
     injuries: string;
     leaguePosition: string;
   };
-  factors: {
+  dataQuality?: {
+    sources: number;
+    confidence: number;
+    lastUpdated: string;
+  };
+  factors?: {
     teamForm: string;
     injuries: string;
     weather: string;

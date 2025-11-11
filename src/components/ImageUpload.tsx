@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Loader, AlertCircle } from 'lucide-react';
+import { Upload, Loader, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { analysisService } from '../services/analysisService';
 import { authService } from '../services/authService';
@@ -8,12 +8,33 @@ interface ImageUploadProps {
   onAnalysisComplete?: () => void;
 }
 
+type AnalysisStep = {
+  id: string;
+  label: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  progress: number;
+};
+
 export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) => {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
+  const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
+    { id: 'upload', label: 'Görsel yükleniyor', status: 'pending', progress: 0 },
+    { id: 'detect', label: 'Maçlar tespit ediliyor', status: 'pending', progress: 0 },
+    { id: 'collect', label: 'Gerçek zamanlı veriler toplanıyor', status: 'pending', progress: 0 },
+    { id: 'analyze', label: 'Analiz tamamlanıyor', status: 'pending', progress: 0 },
+  ]);
+
+  const updateStep = (stepId: string, status: AnalysisStep['status'], progress: number) => {
+    setAnalysisSteps((prev) =>
+      prev.map((step) =>
+        step.id === stepId ? { ...step, status, progress } : step
+      )
+    );
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,14 +64,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
     setLoading(true);
     setError('');
     setSuccess('');
+    setAnalysisSteps([
+      { id: 'upload', label: 'Görsel yükleniyor', status: 'pending', progress: 0 },
+      { id: 'detect', label: 'Maçlar tespit ediliyor', status: 'pending', progress: 0 },
+      { id: 'collect', label: 'Gerçek zamanlı veriler toplanıyor', status: 'pending', progress: 0 },
+      { id: 'analyze', label: 'Analiz tamamlanıyor', status: 'pending', progress: 0 },
+    ]);
 
     try {
       if (user.credits < 1) {
         throw new Error('Yeterli krediniz yok. Lütfen kredi satın alın.');
       }
 
+      updateStep('upload', 'in_progress', 50);
       const base64 = preview.split(',')[1];
+      updateStep('upload', 'completed', 100);
+
+      updateStep('detect', 'in_progress', 30);
       const analysis = await analysisService.analyzeImageWithGemini(base64);
+      updateStep('detect', 'completed', 100);
+
+      updateStep('collect', 'completed', 100);
+      updateStep('analyze', 'in_progress', 80);
 
       await analysisService.saveCouponAnalysis(user.uid, {
         id: '',
@@ -60,6 +95,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         analysis,
         status: 'completed',
       });
+
+      updateStep('analyze', 'completed', 100);
 
       await authService.updateCredits(user.uid, user.credits - 1);
       await refreshUser();
@@ -82,7 +119,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-white mb-2">Kupon Analizi Yap</h2>
-      <p className="text-slate-400 mb-6">Kupon görselini yükle ve detaylı analiz al</p>
+      <p className="text-slate-400 mb-6">Kupon görselini yükle ve gerçek zamanlı verilerle detaylı analiz al</p>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
@@ -92,8 +129,51 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
       )}
 
       {success && (
-        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400">
-          {success}
+        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <p className="text-green-400">{success}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="mb-6 p-6 bg-slate-700/50 border border-slate-600 rounded-lg">
+          <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+            <Loader className="w-5 h-5 animate-spin text-cyan-400" />
+            Analiz İşlemi Devam Ediyor
+          </h3>
+          <div className="space-y-4">
+            {analysisSteps.map((step) => (
+              <div key={step.id} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className={`
+                    ${step.status === 'completed' ? 'text-green-400' : ''}
+                    ${step.status === 'in_progress' ? 'text-cyan-400' : ''}
+                    ${step.status === 'pending' ? 'text-slate-400' : ''}
+                  `}>
+                    {step.status === 'completed' && '✓ '}
+                    {step.status === 'in_progress' && '⟳ '}
+                    {step.label}
+                  </span>
+                  <span className="text-slate-400">{step.progress}%</span>
+                </div>
+                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      step.status === 'completed'
+                        ? 'bg-green-500'
+                        : step.status === 'in_progress'
+                        ? 'bg-cyan-500'
+                        : 'bg-slate-700'
+                    }`}
+                    style={{ width: `${step.progress}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-slate-400 text-sm mt-4 text-center">
+            Google Search ile gerçek zamanlı veriler toplanıyor...
+          </p>
         </div>
       )}
 
@@ -114,7 +194,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         </label>
       </div>
 
-      {preview && (
+      {preview && !loading && (
         <div className="mb-6">
           <div className="relative rounded-lg overflow-hidden bg-slate-700">
             <img src={preview} alt="Ön izleme" className="w-full h-auto max-h-96 object-cover" />
@@ -123,23 +203,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         </div>
       )}
 
-      {preview && (
+      {preview && !loading && (
         <button
           onClick={handleAnalyze}
           disabled={loading}
           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
         >
-          {loading ? (
-            <>
-              <Loader className="w-5 h-5 animate-spin" />
-              Analiz yapılıyor...
-            </>
-          ) : (
-            <>
-              <Upload className="w-5 h-5" />
-              Analiz Yap
-            </>
-          )}
+          <Upload className="w-5 h-5" />
+          Gerçek Zamanlı Analiz Yap
         </button>
       )}
     </div>
