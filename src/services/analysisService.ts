@@ -4,7 +4,9 @@ import { ref, set, get, remove } from 'firebase/database';
 import { database } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-1.5-pro';
+const GEMINI_MODEL = 'gemini-2.0-flash-exp'; // ✅ En yeni Flash model (ücretsiz experimental)
+// Alternatif ücretli: 'gemini-2.5-flash' veya 'gemini-2.5-flash-lite'
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const CACHE_EXPIRY_HOURS = 24;
 
 interface CachedMatchData {
@@ -265,15 +267,15 @@ export const analysisService = {
   async detectMatches(base64Image: string): Promise<DetectedMatch[]> {
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
         {
           contents: [
             {
               parts: [
                 { text: OCR_PROMPT },
                 {
-                  inlineData: {
-                    mimeType: 'image/jpeg',
+                  inline_data: { // ✅ inlineData -> inline_data
+                    mime_type: 'image/jpeg', // ✅ mimeType -> mime_type
                     data: base64Image,
                   },
                 },
@@ -345,7 +347,7 @@ export const analysisService = {
   async fetchMatchDataWithGrounding(match: DetectedMatch): Promise<CachedMatchData> {
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
         {
           contents: [
             {
@@ -356,7 +358,12 @@ export const analysisService = {
           ],
           tools: [
             {
-              googleSearch: {},
+              google_search_retrieval: { // ✅ googleSearch -> google_search_retrieval
+                dynamic_retrieval_config: {
+                  mode: "MODE_DYNAMIC",
+                  dynamic_threshold: 0.7
+                }
+              },
             },
           ],
           generationConfig: {
@@ -453,7 +460,7 @@ export const analysisService = {
   ): Promise<CouponAnalysis['analysis']> {
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
         {
           contents: [
             {
