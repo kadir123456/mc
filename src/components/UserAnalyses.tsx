@@ -103,14 +103,12 @@ export const UserAnalyses: React.FC = () => {
                     <div key={idx} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2">
                             <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-500 text-white text-xs font-bold rounded">
                               {idx + 1}
                             </span>
-                            <span className="text-xs text-slate-500">CANLI</span>
+                            <h4 className="font-bold text-slate-800 text-sm leading-tight">{teamName}</h4>
                           </div>
-                          <h4 className="font-bold text-slate-800 text-sm leading-tight mb-1">{teamName}</h4>
-                          <p className="text-xs text-slate-500">Bugün 22:00</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-center">
@@ -131,10 +129,9 @@ export const UserAnalyses: React.FC = () => {
             <div className="flex items-start gap-3">
               <Database className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-white font-medium mb-1">Gerçek Zamanlı Veri Analizi</h4>
+                <h4 className="text-white font-medium mb-1">Detaylı Analiz</h4>
                 <p className="text-slate-300 text-sm">
-                  Bu analiz, Google Search ile toplanan güncel verilerle yapılmıştır.
-                  Her maç için takım formu, sakatlıklar ve istatistikler gerçek zamanlı olarak toplanmıştır.
+                  Her maç için takım formu, geçmiş performans ve istatistikler analiz edilmiştir.
                 </p>
               </div>
             </div>

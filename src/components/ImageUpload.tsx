@@ -119,7 +119,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-white mb-2">Kupon Analizi Yap</h2>
-      <p className="text-slate-400 mb-6">Kupon görselini yükle ve gerçek zamanlı verilerle detaylı analiz al</p>
+      <p className="text-slate-400 mb-6">Kupon görselini yükle ve detaylı analiz al</p>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
@@ -172,7 +172,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
             ))}
           </div>
           <p className="text-slate-400 text-sm mt-4 text-center">
-            Google Search ile gerçek zamanlı veriler toplanıyor...
+            Maçlar analiz ediliyor...
           </p>
         </div>
       )}
@@ -210,7 +210,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
         >
           <Upload className="w-5 h-5" />
-          Gerçek Zamanlı Analiz Yap
+          Analiz Yap
         </button>
       )}
     </div>

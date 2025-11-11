@@ -1,8 +1,8 @@
-# Gemini 2.0 Flash Exp + Google Search Grounding Entegrasyonu
+# Gemini 1.5 Pro + Google Search Grounding Entegrasyonu
 
 ## Genel Bakış
 
-Bu proje, **Gemini 2.0 Flash Exp** modelini kullanarak bahis kuponu analizleri yapmaktadır. Sistem, **Google Search Grounding** özelliğini kullanarak gerçek zamanlı verilerle analizler sunar ve **Firebase Realtime Database** üzerinde akıllı önbellekleme yapar.
+Bu proje, **Gemini 1.5 Pro** modelini kullanarak bahis kuponu analizleri yapmaktadır. Sistem, **Google Search Grounding** özelliğini kullanarak gerçek zamanlı verilerle analizler sunar ve **Firebase Realtime Database** üzerinde akıllı önbellekleme yapar.
 
 ## Temel Özellikler
 
@@ -85,7 +85,7 @@ Bu özellik sayesinde:
 ### Model ve Konfigürasyon
 
 ```typescript
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const GEMINI_MODEL = 'gemini-1.5-pro';
 const CACHE_EXPIRY_HOURS = 24;
 
 // OCR için
