@@ -8,11 +8,14 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "start": "node server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "firebase": "^12.5.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
