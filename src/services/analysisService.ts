@@ -3,6 +3,7 @@ import { CouponAnalysis } from '../types';
 import { ref, set, get, remove } from 'firebase/database';
 import { database } from './firebase';
 import { compressImage } from '../utils/imageCompressor';
+import sportsradarService from './sportsradarService'; // ← YENİ!
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.0-flash-exp';
@@ -69,42 +70,18 @@ KURALLAR:
 - Takım isimlerini tam ve doğru yaz
 - Sadece JSON döndür, açıklama yapma`;
 
-const DATA_COLLECTION_PROMPT = (match: DetectedMatch) => `Sen profesyonel futbol veri analistisin. Aşağıdaki maç için GERÇEK ZAMANLIDA internetten veri toplayacaksın.
-
-MAÇ: ${match.teamHome} vs ${match.teamAway} (${match.league})
-
-GÖREV - Google Search kullanarak araştır:
-
-1. Son Form (Son 5 maç): "${match.teamHome} son maçlar", "${match.teamAway} son maçlar"
-2. H2H: "${match.teamHome} vs ${match.teamAway} h2h"
-3. Sakatlıklar: "${match.teamHome} injuries", "${match.teamAway} missing players"
-4. Lig Sıralaması: "${match.league} table standings"
-
-ÇIKTI (JSON):
-{
-  "homeForm": "Son 5: G-G-B-G-K | 12 gol attı, 7 yedi",
-  "awayForm": "Son 5: K-K-B-G-K | 5 gol attı, 10 yedi",
-  "h2h": "Son 5: 2-1, 0-0, 3-1, 1-2, 2-0",
-  "injuries": "Ev: 2 sakat | Deplasman: Ana forvet sakat",
-  "leaguePosition": "Ev: 3. (45p) | Deplasman: 12. (28p)",
-  "dataSources": ["url1", "url2"],
-  "confidenceScore": 85
-}
-
-KURAL: Veri bulunamazsa "Veri yok" yaz, tahmin yapma!`;
-
 const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `Sen profesyonel futbol analiz uzmanısın. GERÇEK VERİLERE dayalı analiz yap.
 
 AĞIRLIK: Form %40, H2H %25, Sakatlık %15, Lig %10, İç Saha %10
 
 MAÇLAR:
 ${matches.map((m, i) => `
-${i + 1}. ${m.teamHome} vs ${m.teamAway}
+${i + 1}. ${m.teamHome} vs ${m.teamAway} (${m.league})
 - Form (Ev): ${m.cachedData.homeForm}
 - Form (Deplasman): ${m.cachedData.awayForm}
 - H2H: ${m.cachedData.h2h}
-- Sakatlık: ${m.cachedData.injuries}
-- Lig: ${m.cachedData.leaguePosition}
+- Veri Kaynağı: ${m.cachedData.dataSources.join(', ')}
+- Güven Skoru: ${m.cachedData.confidenceScore}%
 ${m.odds ? `- Oranlar: MS1 ${m.odds.ms1}, MS2 ${m.odds.ms2}` : ''}
 `).join('\n')}
 
@@ -198,8 +175,8 @@ export const analysisService = {
         },
       },
       {
-        timeout: 60000, // 60 saniye timeout
-        maxContentLength: 50 * 1024 * 1024, // 50MB limit
+        timeout: 60000,
+        maxContentLength: 50 * 1024 * 1024,
         maxBodyLength: 50 * 1024 * 1024,
       }
     );
@@ -236,12 +213,12 @@ export const analysisService = {
           cachedData = cached;
         } else {
           console.log(`🔄 Cache EXPIRED: ${match.teamHome} vs ${match.teamAway} - Yeni veri çekiliyor...`);
-          cachedData = await this.fetchMatchDataWithGrounding(match);
+          cachedData = await this.fetchMatchDataWithSportsradar(match);
           await set(cacheRef, cachedData);
         }
       } else {
         console.log(`🆕 Cache MISS: ${match.teamHome} vs ${match.teamAway} - İlk kez veri çekiliyor...`);
-        cachedData = await this.fetchMatchDataWithGrounding(match);
+        cachedData = await this.fetchMatchDataWithSportsradar(match);
         await set(cacheRef, cachedData);
       }
 
@@ -251,69 +228,97 @@ export const analysisService = {
     return matchesWithData;
   },
 
-  async fetchMatchDataWithGrounding(match: DetectedMatch): Promise<CachedMatchData> {
+  // ✅ YENİ: Sportsradar ile veri çekme
+  async fetchMatchDataWithSportsradar(match: DetectedMatch): Promise<CachedMatchData> {
+    try {
+      console.log(`🏟️ Sportsradar API'den veri çekiliyor: ${match.teamHome} vs ${match.teamAway}`);
+
+      const apiData = await sportsradarService.getMatchData(
+        match.teamHome,
+        match.teamAway,
+        match.league
+      );
+
+      if (apiData && apiData.confidenceScore >= 50) {
+        console.log('✅ Sportsradar verisi başarıyla kullanıldı');
+
+        return {
+          matchId: match.matchId,
+          teamHome: match.teamHome,
+          teamAway: match.teamAway,
+          league: match.league,
+          homeForm: apiData.homeForm,
+          awayForm: apiData.awayForm,
+          h2h: apiData.h2h,
+          injuries: apiData.injuries,
+          leaguePosition: apiData.leaguePosition,
+          lastUpdated: Date.now(),
+          dataSources: apiData.dataSources,
+          confidenceScore: apiData.confidenceScore,
+        };
+      }
+
+      // ❌ Sportsradar başarısız, Gemini'ye geri dön
+      console.warn('⚠️ Sportsradar verisi yetersiz, Gemini Google Search kullanılıyor...');
+      return await this.fetchWithGemini(match);
+    } catch (error) {
+      console.error('Sportsradar hatası:', error);
+      return await this.fetchWithGemini(match);
+    }
+  },
+
+  // Gemini fallback (eski sistem)
+  async fetchWithGemini(match: DetectedMatch): Promise<CachedMatchData> {
+    console.log('🔄 Gemini Google Search kullanılıyor (fallback)');
+
+    const DATA_COLLECTION_PROMPT = `Sen profesyonel futbol veri analistisin. 
+
+MAÇ: ${match.teamHome} vs ${match.teamAway} (${match.league})
+
+Google Search ile araştır:
+1. Son Form: "${match.teamHome} son maçlar", "${match.teamAway} son maçlar"
+2. H2H: "${match.teamHome} vs ${match.teamAway} h2h"
+
+ÇIKTI (JSON):
+{
+  "homeForm": "Son 5: G-G-B-G-K",
+  "awayForm": "Son 5: K-K-B-G-K",
+  "h2h": "Son 5: 2-1, 0-0, 3-1",
+  "confidenceScore": 60
+}`;
+
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
-        contents: [
-          {
-            parts: [
-              { text: DATA_COLLECTION_PROMPT(match) },
-            ],
-          },
-        ],
-        tools: [
-          {
-            googleSearch: {},
-          },
-        ],
+        contents: [{ parts: [{ text: DATA_COLLECTION_PROMPT }] }],
+        tools: [{ googleSearch: {} }],
         generationConfig: {
           temperature: 0.2,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 2048,
         },
       },
-      {
-        timeout: 90000, // 90 saniye timeout
-        maxContentLength: 50 * 1024 * 1024,
-        maxBodyLength: 50 * 1024 * 1024,
-      }
+      { timeout: 60000 }
     );
 
     const content = response.data.candidates[0].content.parts[0].text;
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      throw new Error('Veri toplanamadı');
-    }
-
-    const data = JSON.parse(jsonMatch[0]);
-
-    const groundingMetadata = response.data.candidates[0].groundingMetadata;
-    const dataSources: string[] = [];
-
-    if (groundingMetadata?.groundingChunks) {
-      groundingMetadata.groundingChunks.forEach((chunk: any) => {
-        if (chunk.web?.uri) {
-          dataSources.push(chunk.web.uri);
-        }
-      });
-    }
+    const data = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
     return {
       matchId: match.matchId,
       teamHome: match.teamHome,
       teamAway: match.teamAway,
       league: match.league,
-      homeForm: data.homeForm || 'Veri bulunamadı',
-      awayForm: data.awayForm || 'Veri bulunamadı',
-      h2h: data.h2h || 'Veri bulunamadı',
-      injuries: data.injuries || 'Veri bulunamadı',
-      leaguePosition: data.leaguePosition || 'Veri bulunamadı',
+      homeForm: data.homeForm || 'Veri yok',
+      awayForm: data.awayForm || 'Veri yok',
+      h2h: data.h2h || 'Veri yok',
+      injuries: 'Veri yok',
+      leaguePosition: 'Veri yok',
       lastUpdated: Date.now(),
-      dataSources: dataSources.length > 0 ? dataSources : data.dataSources || [],
-      confidenceScore: data.confidenceScore || 50,
+      dataSources: ['Google Search (Gemini Fallback)'],
+      confidenceScore: data.confidenceScore || 40,
     };
   },
 
@@ -325,9 +330,7 @@ export const analysisService = {
       {
         contents: [
           {
-            parts: [
-              { text: FINAL_ANALYSIS_PROMPT(matchesWithData) },
-            ],
+            parts: [{ text: FINAL_ANALYSIS_PROMPT(matchesWithData) }],
           },
         ],
         generationConfig: {
@@ -337,11 +340,7 @@ export const analysisService = {
           maxOutputTokens: 4096,
         },
       },
-      {
-        timeout: 60000,
-        maxContentLength: 50 * 1024 * 1024,
-        maxBodyLength: 50 * 1024 * 1024,
-      }
+      { timeout: 60000 }
     );
 
     const content = response.data.candidates[0].content.parts[0].text;
