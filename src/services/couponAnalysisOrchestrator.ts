@@ -1,9 +1,6 @@
 import { geminiVisionService, DetectedMatch } from './geminiVisionService';
 import { sportsradarService, SportsradarMatchData } from './sportsradarService';
 import { geminiAnalysisService, FinalAnalysis } from './geminiAnalysisService';
-import { ref, set } from 'firebase/database';
-import { ref as storageRef, uploadString } from 'firebase/storage';
-import { database, storage } from './firebase';
 
 export interface AnalysisResult {
   id: string;
@@ -52,61 +49,21 @@ export const couponAnalysisOrchestrator = {
 
       const analysisId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      let imageUrl = analysisId;
-      if (base64Image.startsWith('data:image')) {
-        try {
-          const imagePath = `coupon_images/${userId}/${analysisId}.jpg`;
-          const imageRef = storageRef(storage, imagePath);
-          await uploadString(imageRef, base64Image, 'data_url');
-          imageUrl = imagePath;
-          console.log('📸 Görsel Storage\'a kaydedildi');
-        } catch (error) {
-          console.warn('⚠️ Görsel yüklenemedi, sadece ID kaydedildi:', error);
-          imageUrl = analysisId;
-        }
-      }
-
       const result: AnalysisResult = {
         id: analysisId,
         userId,
-        imageUrl,
+        imageUrl: analysisId,
         uploadedAt: Date.now(),
         analysis,
         status: 'completed',
       };
 
-      await set(ref(database, `analyses/${analysisId}`), result);
-      await set(ref(database, `users/${userId}/analyses/${analysisId}`), analysisId);
-
-      await this.cleanOldAnalyses(userId);
-
-      console.log('✅ Orchestrator: Analiz tamamlandı ve kaydedildi!');
+      console.log('✅ Orchestrator: Analiz tamamlandı! (Veritabanına kaydedilmedi)');
       return result;
 
     } catch (error: any) {
       console.error('❌ Orchestrator hatası:', error);
       throw new Error(error.message || 'Analiz sırasında hata oluştu');
-    }
-  },
-
-  async cleanOldAnalyses(userId: string): Promise<void> {
-    try {
-      const { analysisService } = await import('./analysisService');
-      const userAnalyses = await analysisService.getUserAnalyses(userId);
-
-      if (userAnalyses.length > 5) {
-        const oldestAnalyses = userAnalyses
-          .sort((a, b) => a.uploadedAt - b.uploadedAt)
-          .slice(0, userAnalyses.length - 5);
-
-        console.log(`🗑️ ${oldestAnalyses.length} eski analiz silinecek...`);
-
-        for (const oldAnalysis of oldestAnalyses) {
-          await analysisService.deleteAnalysis(userId, oldAnalysis.id);
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ Eski analizler silinirken hata:', error);
     }
   },
 
