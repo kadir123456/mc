@@ -161,7 +161,7 @@ const formatStandings = (standings: any): string => {
 
 export const sportsradarService = {
   async fetchMatchData(match: DetectedMatch): Promise<SportsradarMatchData> {
-    const cacheKey = `sportsradar_cache/${match.league}/${match.teamHome}_${match.teamAway}`;
+    const cacheKey = `sportsradar_cache/${match.league}/${match.teamHome}_${match.teamAway}`.replace(/[.#$[\]]/g, '_');
 
     try {
       const cacheRef = ref(database, cacheKey);
@@ -178,6 +178,7 @@ export const sportsradarService = {
       }
 
       console.log(`🌐 Sportsradar: ${match.teamHome} vs ${match.teamAway} için canlı veri çekiliyor...`);
+      console.warn('⚠️ Not: Trial API kullanılıyor - Kadın futbolu ve bazı ligler desteklenmiyor');
 
       const homeTeamId = await findTeamByName(match.teamHome);
       const awayTeamId = await findTeamByName(match.teamAway);

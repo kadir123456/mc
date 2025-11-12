@@ -52,8 +52,8 @@ export const couponAnalysisOrchestrator = {
 
       const analysisId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      let imageUrl = base64Image;
-      if (base64Image.startsWith('data:')) {
+      let imageUrl = analysisId;
+      if (base64Image.startsWith('data:image')) {
         try {
           const imagePath = `coupon_images/${userId}/${analysisId}.jpg`;
           const imageRef = storageRef(storage, imagePath);
@@ -61,7 +61,8 @@ export const couponAnalysisOrchestrator = {
           imageUrl = imagePath;
           console.log('📸 Görsel Storage\'a kaydedildi');
         } catch (error) {
-          console.warn('⚠️ Görsel yükleme hatası:', error);
+          console.warn('⚠️ Görsel yüklenemedi, sadece ID kaydedildi:', error);
+          imageUrl = analysisId;
         }
       }
 
