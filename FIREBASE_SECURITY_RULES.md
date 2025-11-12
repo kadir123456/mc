@@ -38,8 +38,7 @@ Bu döküman, projenin Firebase Realtime Database güvenlik kurallarını içeri
     "match_cache": {
       "$matchId": {
         ".read": "auth != null",
-        ".write": "auth != null",
-        ".validate": "newData.hasChildren(['matchId', 'teamHome', 'teamAway', 'league', 'homeForm', 'awayForm', 'h2h', 'injuries', 'leaguePosition', 'lastUpdated', 'dataSources', 'confidenceScore'])"
+        ".write": "auth != null"
       }
     },
     "transactions": {

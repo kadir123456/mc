@@ -1,10 +1,11 @@
 import axios from 'axios';
 import { CouponAnalysis } from '../types';
 import { ref, set, get, remove } from 'firebase/database';
-import { database } from './firebase';
+import { ref as storageRef, uploadString, deleteObject } from 'firebase/storage';
+import { database, storage } from './firebase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-1.5-pro';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const CACHE_EXPIRY_HOURS = 24;
 
 interface CachedMatchData {
@@ -119,7 +120,8 @@ KRİTİK KURALLAR:
 3. Güvenilir kaynaklardan gelen verileri tercih et
 4. confidenceScore: Toplanan veri kalitesine göre 0-100 arası skor ver
 5. dataSources: Kullandığın kaynakların URL'lerini ekle
-6. Veri bulunamazsa "Veri bulunamadı" yaz, asla tahmin yapma!`;
+6. Veri bulunamazsa "Veri bulunamadı" yaz, asla tahmin yapma!
+7. SADECE JSON döndür, markdown veya açıklama ekleme!`;
 
 const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `Sen bir profesyonel futbol analiz uzmanısın. Aşağıdaki maçlar için GERÇEK VERİLERE dayalı detaylı analiz yap.
 
@@ -297,6 +299,8 @@ export const analysisService = {
 
   async fetchMatchDataWithGrounding(match: DetectedMatch): Promise<CachedMatchData> {
     try {
+      console.log('🌐 Google Search ile veri toplama başlıyor:', match.teamHome, 'vs', match.teamAway);
+
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
         {
@@ -318,10 +322,11 @@ export const analysisService = {
             topP: 0.8,
             maxOutputTokens: 4096,
           },
+        },
+        {
+          timeout: 30000,
         }
       );
-
-      console.log('📡 API Response:', JSON.stringify(response.data, null, 2));
 
       const candidate = response.data.candidates?.[0];
       if (!candidate) {
@@ -338,23 +343,6 @@ export const analysisService = {
         }
       }
 
-      console.log('📝 Extracted text:', textContent);
-
-      if (!textContent) {
-        console.error('❌ No text content found');
-        throw new Error('API yanıtında metin bulunamadı');
-      }
-
-      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        console.error('❌ No JSON found in text:', textContent);
-        throw new Error('Yanıtta JSON formatı bulunamadı');
-      }
-
-      const data = JSON.parse(jsonMatch[0]);
-      console.log('✅ Parsed data:', data);
-
       const groundingMetadata = candidate.groundingMetadata;
       const dataSources: string[] = [];
 
@@ -367,10 +355,31 @@ export const analysisService = {
       }
 
       if (groundingMetadata?.webSearchQueries) {
-        console.log('🔍 Search queries:', groundingMetadata.webSearchQueries);
+        console.log('🔍 Arama sorguları:', groundingMetadata.webSearchQueries);
       }
 
-      console.log('🔗 Data sources found:', dataSources.length);
+      console.log('🔗 Bulunan kaynak sayısı:', dataSources.length);
+
+      if (!textContent || textContent.trim() === '') {
+        console.warn('⚠️ Metin yanıt yok, fallback kullanılıyor...');
+        return await this.fetchMatchDataWithoutGrounding(match);
+      }
+
+      const cleanedText = textContent
+        .replace(/\[cite:\s*\d+\]/g, '')
+        .replace(/```json\n?|```\n?/g, '')
+        .trim();
+
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        console.warn('⚠️ JSON bulunamadı, fallback kullanılıyor...');
+        console.log('📝 Ham metin:', cleanedText.substring(0, 200));
+        return await this.fetchMatchDataWithoutGrounding(match);
+      }
+
+      const data = JSON.parse(jsonMatch[0]);
+      console.log('✅ Veri başarıyla parse edildi, kaynak sayısı:', dataSources.length);
 
       return {
         matchId: match.matchId,
@@ -383,28 +392,101 @@ export const analysisService = {
         injuries: data.injuries || 'Veri yok',
         leaguePosition: data.leaguePosition || 'Veri yok',
         lastUpdated: Date.now(),
-        dataSources: dataSources.length > 0 ? dataSources : ['Gemini 1.5 Pro'],
+        dataSources: dataSources.length > 0 ? dataSources : (data.dataSources || ['Gemini 2.5 Flash']),
         confidenceScore: data.confidenceScore || 70,
       };
     } catch (error: any) {
-      console.error('❌ fetchMatchDataWithGrounding error:', error);
-      console.error('Error details:', error.response?.data || error.message);
+      console.error('❌ Google Search grounding hatası:', error.message);
 
-      return {
-        matchId: match.matchId,
-        teamHome: match.teamHome,
-        teamAway: match.teamAway,
-        league: match.league,
-        homeForm: 'Veri toplama hatası',
-        awayForm: 'Veri toplama hatası',
-        h2h: 'Veri toplama hatası',
-        injuries: 'Veri toplama hatası',
-        leaguePosition: 'Veri toplama hatası',
-        lastUpdated: Date.now(),
-        dataSources: [],
-        confidenceScore: 0,
-      };
+      if (error.response?.data) {
+        const errorDetails = error.response.data;
+        console.error('📋 Hata detayı:', JSON.stringify(errorDetails, null, 2));
+
+        if (errorDetails.error?.message) {
+          console.error('💬 API mesajı:', errorDetails.error.message);
+        }
+      }
+
+      console.warn('⚠️ Fallback yöntemi deneniyor (grounding olmadan)...');
+      try {
+        return await this.fetchMatchDataWithoutGrounding(match);
+      } catch (fallbackError) {
+        console.error('❌ Fallback da başarısız:', fallbackError);
+
+        return {
+          matchId: match.matchId,
+          teamHome: match.teamHome,
+          teamAway: match.teamAway,
+          league: match.league,
+          homeForm: 'Veri toplama başarısız',
+          awayForm: 'Veri toplama başarısız',
+          h2h: 'Veri toplama başarısız',
+          injuries: 'Veri toplama başarısız',
+          leaguePosition: 'Veri toplama başarısız',
+          lastUpdated: Date.now(),
+          dataSources: [],
+          confidenceScore: 0,
+        };
+      }
     }
+  },
+
+  async fetchMatchDataWithoutGrounding(match: DetectedMatch): Promise<CachedMatchData> {
+    console.log('🔄 Fetching data WITHOUT grounding for:', match.teamHome, 'vs', match.teamAway);
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: `${match.teamHome} vs ${match.teamAway} (${match.league}) maçı için bilinen verilerle analiz yap.
+
+Döndürmen gereken JSON formatı:
+{
+  "homeForm": "Son formlarını özetle",
+  "awayForm": "Son formlarını özetle",
+  "h2h": "Genel kafa kafaya bilgisi",
+  "injuries": "Bilinen sakatlık durumları",
+  "leaguePosition": "Lig pozisyonları hakkında genel bilgi",
+  "dataSources": ["Genel bilgi"],
+  "confidenceScore": 60
+}
+
+Sadece JSON döndür, başka açıklama yapma!`
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 20,
+          topP: 0.8,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+        },
+      }
+    );
+
+    const textContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    const data = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    return {
+      matchId: match.matchId,
+      teamHome: match.teamHome,
+      teamAway: match.teamAway,
+      league: match.league,
+      homeForm: data.homeForm || 'Genel form bilgisi mevcut değil',
+      awayForm: data.awayForm || 'Genel form bilgisi mevcut değil',
+      h2h: data.h2h || 'Kafa kafaya bilgisi mevcut değil',
+      injuries: data.injuries || 'Sakatlık bilgisi mevcut değil',
+      leaguePosition: data.leaguePosition || 'Lig bilgisi mevcut değil',
+      lastUpdated: Date.now(),
+      dataSources: ['Gemini 2.5 Flash (Genel Bilgi)'],
+      confidenceScore: data.confidenceScore || 60,
+    };
   },
 
   async performFinalAnalysis(
@@ -449,10 +531,26 @@ export const analysisService = {
 
   async saveCouponAnalysis(userId: string, analysis: CouponAnalysis) {
     const analysisId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    let imageUrl = analysis.imageUrl;
+
+    if (analysis.imageUrl && analysis.imageUrl.startsWith('data:')) {
+      try {
+        const imagePath = `coupon_images/${userId}/${analysisId}.jpg`;
+        const imageRef = storageRef(storage, imagePath);
+        await uploadString(imageRef, analysis.imageUrl, 'data_url');
+        imageUrl = imagePath;
+        console.log('📸 Görsel Storage\'a yüklendi:', imagePath);
+      } catch (error) {
+        console.error('❌ Görsel yükleme hatası:', error);
+      }
+    }
+
     const fullAnalysis: CouponAnalysis = {
       ...analysis,
       id: analysisId,
       userId,
+      imageUrl,
       uploadedAt: Date.now(),
       status: 'completed',
     };
@@ -466,6 +564,8 @@ export const analysisService = {
         .sort((a, b) => a.uploadedAt - b.uploadedAt)
         .slice(0, userAnalyses.length - 5);
 
+      console.log(`🗑️ ${oldestAnalyses.length} eski analiz silinecek...`);
+
       for (const oldAnalysis of oldestAnalyses) {
         await this.deleteAnalysis(userId, oldAnalysis.id);
       }
@@ -475,8 +575,30 @@ export const analysisService = {
   },
 
   async deleteAnalysis(userId: string, analysisId: string) {
-    await remove(ref(database, `analyses/${analysisId}`));
-    await remove(ref(database, `users/${userId}/analyses/${analysisId}`));
+    try {
+      const analysisRef = ref(database, `analyses/${analysisId}`);
+      const snapshot = await get(analysisRef);
+
+      if (snapshot.exists()) {
+        const analysis = snapshot.val() as CouponAnalysis;
+
+        if (analysis.imageUrl && !analysis.imageUrl.startsWith('data:')) {
+          try {
+            const imageRef = storageRef(storage, analysis.imageUrl);
+            await deleteObject(imageRef);
+            console.log('🗑️ Görsel Storage\'dan silindi:', analysis.imageUrl);
+          } catch (error) {
+            console.warn('⚠️ Görsel silinemedi (zaten silinmiş olabilir):', error);
+          }
+        }
+      }
+
+      await remove(ref(database, `analyses/${analysisId}`));
+      await remove(ref(database, `users/${userId}/analyses/${analysisId}`));
+      console.log('✅ Analiz silindi:', analysisId);
+    } catch (error) {
+      console.error('❌ Analiz silme hatası:', error);
+    }
   },
 
   async getUserAnalyses(userId: string) {
