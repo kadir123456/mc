@@ -2,6 +2,7 @@ import axios from 'axios';
 import { ref, get, set } from 'firebase/database';
 import { database } from './firebase';
 import { DetectedMatch } from './geminiVisionService';
+import { createSafeCacheKey, extractJsonFromText, safeJsonParse } from '../utils/sanitizePath';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -52,7 +53,8 @@ KURALLAR:
 
 export const googleSearchService = {
   async fetchMatchData(match: DetectedMatch, retryCount = 0): Promise<MatchData> {
-    const cacheKey = `match_cache/${match.league}/${match.teamHome}_vs_${match.teamAway}`;
+    const cacheKey = createSafeCacheKey(match.league, match.teamHome, match.teamAway);
+    console.log(`🔑 Güvenli cache key: ${cacheKey}`);
 
     try {
       const cacheRef = ref(database, cacheKey);
@@ -124,17 +126,19 @@ export const googleSearchService = {
         throw new Error('Boş yanıt alındı');
       }
 
-      const cleanedText = textContent
-        .replace(/\[cite:\s*\d+\]/g, '')
-        .replace(/```json\n?|```\n?/g, '')
-        .trim();
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonString = extractJsonFromText(textContent);
+      if (!jsonString) {
         throw new Error('JSON bulunamadı');
       }
 
-      const data = JSON.parse(jsonMatch[0]);
+      const data = safeJsonParse(jsonString, {
+        homeForm: 'Parse hatası',
+        awayForm: 'Parse hatası',
+        h2h: 'Parse hatası',
+        injuries: 'Parse hatası',
+        leaguePosition: 'Parse hatası',
+        confidenceScore: 0,
+      });
 
       const matchData: MatchData = {
         matchId: match.matchId,
