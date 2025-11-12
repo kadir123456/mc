@@ -73,7 +73,7 @@ export const geminiVisionService = {
           },
         },
         {
-          timeout: 30000,
+          timeout: 45000,
         }
       );
 
