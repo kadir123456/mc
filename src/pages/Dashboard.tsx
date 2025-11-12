@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Zap, ShoppingCart, LogOut, User as UserIcon } from 'lucide-react';
+import { Upload, Zap, ShoppingCart, LogOut, History, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ImageUpload } from '../components/ImageUpload';
 import { PricingPlans } from '../components/PricingPlans';
+import { UserAnalyses } from '../components/UserAnalyses';
 
-type TabType = 'upload' | 'pricing' | 'profile';
+type TabType = 'upload' | 'pricing' | 'history' | 'profile';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('upload');
+  const [refreshHistory, setRefreshHistory] = useState(0);
 
   const handleLogout = async () => {
     await logout();
@@ -57,7 +59,7 @@ export const Dashboard: React.FC = () => {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-3 gap-4 mb-8 max-w-3xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <button
             onClick={() => setActiveTab('upload')}
             className={`p-4 rounded-lg border-2 transition ${
@@ -83,6 +85,18 @@ export const Dashboard: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('history')}
+            className={`p-4 rounded-lg border-2 transition ${
+              activeTab === 'history'
+                ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+                : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
+            }`}
+          >
+            <History className="w-6 h-6 mx-auto mb-2" />
+            <p className="font-medium text-sm">Geçmiş</p>
+          </button>
+
+          <button
             onClick={() => setActiveTab('profile')}
             className={`p-4 rounded-lg border-2 transition ${
               activeTab === 'profile'
@@ -98,7 +112,10 @@ export const Dashboard: React.FC = () => {
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-4 sm:p-8">
           {activeTab === 'upload' && (
             <>
-              <ImageUpload onAnalysisComplete={() => {}} />
+              <ImageUpload onAnalysisComplete={() => {
+                setRefreshHistory(prev => prev + 1);
+                setActiveTab('history');
+              }} />
               <div className="mt-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-4 sm:p-6">
                 <h2 className="text-lg sm:text-xl font-bold text-white mb-3 flex items-center gap-2">
                   <Upload className="w-5 h-5" />
@@ -122,6 +139,7 @@ export const Dashboard: React.FC = () => {
             </>
           )}
           {activeTab === 'pricing' && <PricingPlans />}
+          {activeTab === 'history' && <UserAnalyses key={refreshHistory} />}
           {activeTab === 'profile' && (
             <div className="text-slate-300">
               <h2 className="text-2xl font-bold text-white mb-6">Profil Bilgileri</h2>

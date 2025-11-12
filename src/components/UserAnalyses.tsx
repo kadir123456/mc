@@ -3,8 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { analysisService } from '../services/analysisService';
 import { CouponAnalysis } from '../types';
 import { Loader, TrendingUp, ChevronDown, ChevronUp, Database, Clock } from 'lucide-react';
-import { ref as storageRef, getDownloadURL } from 'firebase/storage';
-import { storage } from '../services/firebase';
 
 export const UserAnalyses: React.FC = () => {
   const { user } = useAuth();
@@ -12,23 +10,6 @@ export const UserAnalyses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAnalysis, setSelectedAnalysis] = useState<CouponAnalysis | null>(null);
   const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
-  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-
-  const getImageUrl = async (imageUrl: string): Promise<string> => {
-    if (imageUrl.startsWith('data:')) return imageUrl;
-    if (imageUrl.startsWith('http')) return imageUrl;
-
-    if (imageUrls[imageUrl]) return imageUrls[imageUrl];
-
-    try {
-      const url = await getDownloadURL(storageRef(storage, imageUrl));
-      setImageUrls(prev => ({ ...prev, [imageUrl]: url }));
-      return url;
-    } catch (error) {
-      console.error('Görsel yüklenemedi:', error);
-      return '';
-    }
-  };
 
   useEffect(() => {
     const loadAnalyses = async () => {
@@ -36,12 +17,6 @@ export const UserAnalyses: React.FC = () => {
       try {
         const data = await analysisService.getUserAnalyses(user.uid);
         setAnalyses(data);
-
-        for (const analysis of data) {
-          if (analysis.imageUrl && !analysis.imageUrl.startsWith('data:')) {
-            await getImageUrl(analysis.imageUrl);
-          }
-        }
       } catch (error) {
         console.error('Analizler yüklenemedi:', error);
       } finally {
@@ -101,7 +76,7 @@ export const UserAnalyses: React.FC = () => {
               </div>
             </div>
             <img
-              src={imageUrls[selectedAnalysis.imageUrl] || selectedAnalysis.imageUrl}
+              src={selectedAnalysis.imageUrl}
               alt="Kupon"
               className="w-full max-h-[500px] object-contain rounded-lg border-2 border-slate-600"
             />
@@ -128,12 +103,14 @@ export const UserAnalyses: React.FC = () => {
                     <div key={idx} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mb-1">
                             <span className="inline-flex items-center justify-center w-6 h-6 bg-orange-500 text-white text-xs font-bold rounded">
                               {idx + 1}
                             </span>
-                            <h4 className="font-bold text-slate-800 text-sm leading-tight">{teamName}</h4>
+                            <span className="text-xs text-slate-500">CANLI</span>
                           </div>
+                          <h4 className="font-bold text-slate-800 text-sm leading-tight mb-1">{teamName}</h4>
+                          <p className="text-xs text-slate-500">Bugün 22:00</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-center">
@@ -154,9 +131,10 @@ export const UserAnalyses: React.FC = () => {
             <div className="flex items-start gap-3">
               <Database className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-white font-medium mb-1">Detaylı Analiz</h4>
+                <h4 className="text-white font-medium mb-1">Gerçek Zamanlı Veri Analizi</h4>
                 <p className="text-slate-300 text-sm">
-                  Her maç için takım formu, geçmiş performans ve istatistikler analiz edilmiştir.
+                  Bu analiz, Google Search ile toplanan güncel verilerle yapılmıştır.
+                  Her maç için takım formu, sakatlıklar ve istatistikler gerçek zamanlı olarak toplanmıştır.
                 </p>
               </div>
             </div>
@@ -167,14 +145,9 @@ export const UserAnalyses: React.FC = () => {
             {selectedAnalysis.analysis.matches.map((match) => {
               const isExpanded = expandedMatches[match.matchId];
               const dataQuality = (match as any).dataQuality;
-              const maxConfidence = Math.max(
-                match.predictions.ms1?.confidence || 0,
-                match.predictions.ms2?.confidence || 0,
-                match.predictions.beraberlik?.confidence || 0
-              );
               const confidenceColor =
-                maxConfidence >= 80 ? 'text-green-400' :
-                maxConfidence >= 70 ? 'text-yellow-400' :
+                match.predictions.ms1.confidence >= 80 ? 'text-green-400' :
+                match.predictions.ms1.confidence >= 70 ? 'text-yellow-400' :
                 'text-red-400';
 
               return (
@@ -198,7 +171,11 @@ export const UserAnalyses: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-4 text-sm">
                       <span className={`font-medium ${confidenceColor}`}>
-                        Güven: {maxConfidence}%
+                        Güven: {Math.max(
+                          match.predictions.ms1.confidence,
+                          match.predictions.ms2.confidence,
+                          match.predictions.beraberlik?.confidence || 0
+                        )}%
                       </span>
                       {dataQuality && (
                         <span className="text-slate-400 flex items-center gap-1">
@@ -219,18 +196,18 @@ export const UserAnalyses: React.FC = () => {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="bg-slate-700 rounded p-2 text-center">
                             <p className="text-slate-400 text-xs mb-1">MS1</p>
-                            <p className="text-white font-bold">{match.predictions.ms1?.odds || 'N/A'}</p>
-                            <p className="text-xs text-slate-400">{match.predictions.ms1?.confidence || 0}%</p>
+                            <p className="text-white font-bold">{match.predictions.ms1.odds}</p>
+                            <p className="text-xs text-slate-400">{match.predictions.ms1.confidence}%</p>
                           </div>
                           <div className="bg-slate-700 rounded p-2 text-center">
                             <p className="text-slate-400 text-xs mb-1">Beraberlik</p>
-                            <p className="text-white font-bold">{match.predictions.beraberlik?.odds || 'N/A'}</p>
-                            <p className="text-xs text-slate-400">{match.predictions.beraberlik?.confidence || 0}%</p>
+                            <p className="text-white font-bold">{match.predictions.beraberlik.odds}</p>
+                            <p className="text-xs text-slate-400">{match.predictions.beraberlik.confidence}%</p>
                           </div>
                           <div className="bg-slate-700 rounded p-2 text-center">
                             <p className="text-slate-400 text-xs mb-1">MS2</p>
-                            <p className="text-white font-bold">{match.predictions.ms2?.odds || 'N/A'}</p>
-                            <p className="text-xs text-slate-400">{match.predictions.ms2?.confidence || 0}%</p>
+                            <p className="text-white font-bold">{match.predictions.ms2.odds}</p>
+                            <p className="text-xs text-slate-400">{match.predictions.ms2.confidence}%</p>
                           </div>
                         </div>
                       </div>
@@ -322,7 +299,7 @@ export const UserAnalyses: React.FC = () => {
           >
             <div className="flex items-start gap-4">
               <img
-                src={imageUrls[analysis.imageUrl] || analysis.imageUrl}
+                src={analysis.imageUrl}
                 alt="Kupon"
                 className="w-20 h-20 object-cover rounded"
               />

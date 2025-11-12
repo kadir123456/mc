@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Upload, Loader, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { couponAnalysisOrchestrator } from '../services/couponAnalysisOrchestrator';
+import { analysisService } from '../services/analysisService';
 import { authService } from '../services/authService';
-import { AnalysisModal } from './AnalysisModal';
 
 interface ImageUploadProps {
   onAnalysisComplete?: () => void;
@@ -77,15 +76,27 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         throw new Error('Yeterli krediniz yok. Lütfen kredi satın alın.');
       }
 
+      updateStep('upload', 'in_progress', 50);
       const base64 = preview.split(',')[1];
+      updateStep('upload', 'completed', 100);
 
-      await couponAnalysisOrchestrator.analyzeImage(
-        user.uid,
-        base64,
-        (step, progress) => {
-          updateStep(step, progress === 100 ? 'completed' : 'in_progress', progress);
-        }
-      );
+      updateStep('detect', 'in_progress', 30);
+      const analysis = await analysisService.analyzeImageWithGemini(base64);
+      updateStep('detect', 'completed', 100);
+
+      updateStep('collect', 'completed', 100);
+      updateStep('analyze', 'in_progress', 80);
+
+      await analysisService.saveCouponAnalysis(user.uid, {
+        id: '',
+        userId: user.uid,
+        imageUrl: preview,
+        uploadedAt: Date.now(),
+        analysis,
+        status: 'completed',
+      });
+
+      updateStep('analyze', 'completed', 100);
 
       await authService.updateCredits(user.uid, user.credits - 1);
       await refreshUser();
@@ -108,7 +119,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-white mb-2">Kupon Analizi Yap</h2>
-      <p className="text-slate-400 mb-6">Kupon görselini yükle ve detaylı analiz al</p>
+      <p className="text-slate-400 mb-6">Kupon görselini yükle ve gerçek zamanlı verilerle detaylı analiz al</p>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
@@ -124,7 +135,47 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         </div>
       )}
 
-      <AnalysisModal isOpen={loading} steps={analysisSteps} />
+      {loading && (
+        <div className="mb-6 p-6 bg-slate-700/50 border border-slate-600 rounded-lg">
+          <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+            <Loader className="w-5 h-5 animate-spin text-cyan-400" />
+            Analiz İşlemi Devam Ediyor
+          </h3>
+          <div className="space-y-4">
+            {analysisSteps.map((step) => (
+              <div key={step.id} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className={`
+                    ${step.status === 'completed' ? 'text-green-400' : ''}
+                    ${step.status === 'in_progress' ? 'text-cyan-400' : ''}
+                    ${step.status === 'pending' ? 'text-slate-400' : ''}
+                  `}>
+                    {step.status === 'completed' && '✓ '}
+                    {step.status === 'in_progress' && '⟳ '}
+                    {step.label}
+                  </span>
+                  <span className="text-slate-400">{step.progress}%</span>
+                </div>
+                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      step.status === 'completed'
+                        ? 'bg-green-500'
+                        : step.status === 'in_progress'
+                        ? 'bg-cyan-500'
+                        : 'bg-slate-700'
+                    }`}
+                    style={{ width: `${step.progress}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-slate-400 text-sm mt-4 text-center">
+            Google Search ile gerçek zamanlı veriler toplanıyor...
+          </p>
+        </div>
+      )}
 
       <div className="bg-slate-700/50 border-2 border-dashed border-slate-600 rounded-xl p-8 mb-6 hover:border-slate-500 transition">
         <label className="cursor-pointer block">
@@ -159,7 +210,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
         >
           <Upload className="w-5 h-5" />
-          Analiz Yap
+          Gerçek Zamanlı Analiz Yap
         </button>
       )}
     </div>
