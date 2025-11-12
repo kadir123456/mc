@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { extractJsonFromText, safeJsonParse } from '../utils/sanitizePath';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -85,16 +86,12 @@ export const geminiVisionService = {
       const textContent = candidate.content.parts[0].text;
       console.log('📝 Gemini Vision ham yanıt:', textContent.substring(0, 200));
 
-      const cleanedText = textContent
-        .replace(/```json\n?|```\n?/g, '')
-        .trim();
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonString = extractJsonFromText(textContent);
+      if (!jsonString) {
         throw new Error('Görsel analiz yanıtında JSON bulunamadı');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = safeJsonParse(jsonString, { matches: [] });
       const matches = parsed.matches || [];
 
       if (matches.length === 0) {
