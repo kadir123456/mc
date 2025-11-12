@@ -94,9 +94,10 @@ GÖREV:
 
 KURALLAR:
 1. Sadece gerçek verilere dayalı analiz yap
-2. Veri yetersizse güven skorunu düşür
-3. Risk seviyesi: Düşük (70-79), Orta (80-89), Yüksek (90+)
-4. SADECE JSON döndür!`;
+2. Veri yetersizse ("Veri toplanamadı" görüyorsan) güven skorunu 0-20 arası yap
+3. "Veri toplanamadı" yazan maçları analiz etme, atlayabilirsin
+4. Risk seviyesi: Düşük (70-79), Orta (80-89), Yüksek (90+)
+5. SADECE JSON döndür!`;
 
 export const geminiAnalysisService = {
   async analyzeMatches(
@@ -127,7 +128,7 @@ export const geminiAnalysisService = {
           },
         },
         {
-          timeout: 30000,
+          timeout: 60000,
         }
       );
 
