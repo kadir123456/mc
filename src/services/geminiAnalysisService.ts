@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { DetectedMatch } from './geminiVisionService';
 import { MatchData } from './googleSearchService';
+import { extractJsonFromText, safeJsonParse } from '../utils/sanitizePath';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -140,16 +141,20 @@ export const geminiAnalysisService = {
       const textContent = candidate.content.parts[0].text;
       console.log('📝 Gemini Analysis ham yanıt:', textContent.substring(0, 200));
 
-      const cleanedText = textContent
-        .replace(/```json\n?|```\n?/g, '')
-        .trim();
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonString = extractJsonFromText(textContent);
+      if (!jsonString) {
         throw new Error('Analiz yanıtında JSON bulunamadı');
       }
 
-      const analysis = JSON.parse(jsonMatch[0]) as FinalAnalysis;
+      const defaultAnalysis: FinalAnalysis = {
+        finalCoupon: [],
+        matches: [],
+        overallConfidence: 0,
+        totalOdds: 0,
+        estimatedSuccess: 0,
+      };
+
+      const analysis = safeJsonParse<FinalAnalysis>(jsonString, defaultAnalysis);
 
       console.log(`✅ Gemini Analysis: ${analysis.matches.length} maç analiz edildi`);
       console.log(`📊 Final kupon: ${analysis.finalCoupon.length} tahmin`);
