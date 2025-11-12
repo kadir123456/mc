@@ -2,10 +2,13 @@ import axios from 'axios';
 import { ref, get, set } from 'firebase/database';
 import { database } from './firebase';
 import { DetectedMatch } from './geminiVisionService';
+import { createSafeCacheKey, extractJsonFromText, safeJsonParse } from '../utils/sanitizePath';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const CACHE_EXPIRY_HOURS = 24;
+const MAX_RETRIES = 2;
+const REQUEST_TIMEOUT = 60000;
 
 export interface MatchData {
   matchId: string;
@@ -49,8 +52,9 @@ KURALLAR:
 4. SADECE JSON döndür!`;
 
 export const googleSearchService = {
-  async fetchMatchData(match: DetectedMatch): Promise<MatchData> {
-    const cacheKey = `match_cache/${match.league}/${match.teamHome}_vs_${match.teamAway}`;
+  async fetchMatchData(match: DetectedMatch, retryCount = 0): Promise<MatchData> {
+    const cacheKey = createSafeCacheKey(match.league, match.teamHome, match.teamAway);
+    console.log(`🔑 Güvenli cache key: ${cacheKey}`);
 
     try {
       const cacheRef = ref(database, cacheKey);
@@ -66,7 +70,7 @@ export const googleSearchService = {
         }
       }
 
-      console.log(`🌐 Google Search: ${match.teamHome} vs ${match.teamAway} için veri toplama...`);
+      console.log(`🌐 Google Search: ${match.teamHome} vs ${match.teamAway} için veri toplama... (Deneme: ${retryCount + 1}/${MAX_RETRIES + 1})`);
 
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -89,7 +93,7 @@ export const googleSearchService = {
           },
         },
         {
-          timeout: 30000,
+          timeout: REQUEST_TIMEOUT,
         }
       );
 
@@ -122,17 +126,19 @@ export const googleSearchService = {
         throw new Error('Boş yanıt alındı');
       }
 
-      const cleanedText = textContent
-        .replace(/\[cite:\s*\d+\]/g, '')
-        .replace(/```json\n?|```\n?/g, '')
-        .trim();
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonString = extractJsonFromText(textContent);
+      if (!jsonString) {
         throw new Error('JSON bulunamadı');
       }
 
-      const data = JSON.parse(jsonMatch[0]);
+      const data = safeJsonParse(jsonString, {
+        homeForm: 'Parse hatası',
+        awayForm: 'Parse hatası',
+        h2h: 'Parse hatası',
+        injuries: 'Parse hatası',
+        leaguePosition: 'Parse hatası',
+        confidenceScore: 0,
+      });
 
       const matchData: MatchData = {
         matchId: match.matchId,
@@ -155,6 +161,14 @@ export const googleSearchService = {
       return matchData;
 
     } catch (error: any) {
+      const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
+
+      if (isTimeout && retryCount < MAX_RETRIES) {
+        console.warn(`⏱️ Timeout: ${match.teamHome} vs ${match.teamAway} - Tekrar deneniyor...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return this.fetchMatchData(match, retryCount + 1);
+      }
+
       console.error(`❌ Google Search hatası: ${match.teamHome} vs ${match.teamAway}`, error.message);
 
       return {
@@ -162,11 +176,11 @@ export const googleSearchService = {
         teamHome: match.teamHome,
         teamAway: match.teamAway,
         league: match.league,
-        homeForm: 'Veri toplanamadı',
-        awayForm: 'Veri toplanamadı',
-        h2h: 'Veri toplanamadı',
-        injuries: 'Veri toplanamadı',
-        leaguePosition: 'Veri toplanamadı',
+        homeForm: 'Veri toplanamadı (Timeout)',
+        awayForm: 'Veri toplanamadı (Timeout)',
+        h2h: 'Veri toplanamadı (Timeout)',
+        injuries: 'Veri toplanamadı (Timeout)',
+        leaguePosition: 'Veri toplanamadı (Timeout)',
         dataSources: [],
         confidenceScore: 0,
         lastUpdated: Date.now(),

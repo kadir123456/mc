@@ -1,5 +1,5 @@
 import { geminiVisionService, DetectedMatch } from './geminiVisionService';
-import { googleSearchService, MatchData } from './googleSearchService';
+import { sportsradarService, SportsradarMatchData } from './sportsradarService';
 import { geminiAnalysisService, FinalAnalysis } from './geminiAnalysisService';
 import { ref, set } from 'firebase/database';
 import { ref as storageRef, uploadString } from 'firebase/storage';
@@ -38,8 +38,8 @@ export const couponAnalysisOrchestrator = {
       onProgress?.('detect', 100);
 
       onProgress?.('collect', 30);
-      console.log('🌐 ADIM 3/4: Google Search ile gerçek zamanlı veri toplanıyor...');
-      const matchDataList: MatchData[] = await googleSearchService.fetchAllMatches(matches);
+      console.log('🌐 ADIM 3/4: Sportsradar API ile gerçek zamanlı veri toplanıyor...');
+      const matchDataList: SportsradarMatchData[] = await sportsradarService.fetchAllMatches(matches);
       onProgress?.('collect', 100);
 
       onProgress?.('analyze', 50);

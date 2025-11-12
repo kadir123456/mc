@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { DetectedMatch } from './geminiVisionService';
-import { MatchData } from './googleSearchService';
+import { SportsradarMatchData } from './sportsradarService';
+import { extractJsonFromText, safeJsonParse } from '../utils/sanitizePath';
+
+type MatchData = SportsradarMatchData;
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -94,9 +97,10 @@ GÖREV:
 
 KURALLAR:
 1. Sadece gerçek verilere dayalı analiz yap
-2. Veri yetersizse güven skorunu düşür
-3. Risk seviyesi: Düşük (70-79), Orta (80-89), Yüksek (90+)
-4. SADECE JSON döndür!`;
+2. Veri yetersizse ("Veri toplanamadı" görüyorsan) güven skorunu 0-20 arası yap
+3. "Veri toplanamadı" yazan maçları analiz etme, atlayabilirsin
+4. Risk seviyesi: Düşük (70-79), Orta (80-89), Yüksek (90+)
+5. SADECE JSON döndür!`;
 
 export const geminiAnalysisService = {
   async analyzeMatches(
@@ -127,7 +131,7 @@ export const geminiAnalysisService = {
           },
         },
         {
-          timeout: 30000,
+          timeout: 60000,
         }
       );
 
@@ -139,16 +143,20 @@ export const geminiAnalysisService = {
       const textContent = candidate.content.parts[0].text;
       console.log('📝 Gemini Analysis ham yanıt:', textContent.substring(0, 200));
 
-      const cleanedText = textContent
-        .replace(/```json\n?|```\n?/g, '')
-        .trim();
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonString = extractJsonFromText(textContent);
+      if (!jsonString) {
         throw new Error('Analiz yanıtında JSON bulunamadı');
       }
 
-      const analysis = JSON.parse(jsonMatch[0]) as FinalAnalysis;
+      const defaultAnalysis: FinalAnalysis = {
+        finalCoupon: [],
+        matches: [],
+        overallConfidence: 0,
+        totalOdds: 0,
+        estimatedSuccess: 0,
+      };
+
+      const analysis = safeJsonParse<FinalAnalysis>(jsonString, defaultAnalysis);
 
       console.log(`✅ Gemini Analysis: ${analysis.matches.length} maç analiz edildi`);
       console.log(`📊 Final kupon: ${analysis.finalCoupon.length} tahmin`);
