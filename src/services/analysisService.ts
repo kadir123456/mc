@@ -284,33 +284,48 @@ export const analysisService = {
     matches: DetectedMatch[]
   ): Promise<Array<DetectedMatch & { cachedData: CachedMatchData }>> {
     const matchesWithData: Array<DetectedMatch & { cachedData: CachedMatchData }> = [];
+    const failedMatches: string[] = [];
 
     for (const match of matches) {
-      const cacheKey = `match_cache/${match.matchId}`;
-      const cacheRef = ref(database, cacheKey);
-      const snapshot = await get(cacheRef);
+      try {
+        const cacheKey = `match_cache/${match.matchId}`;
+        const cacheRef = ref(database, cacheKey);
+        const snapshot = await get(cacheRef);
 
-      let cachedData: CachedMatchData;
+        let cachedData: CachedMatchData;
 
-      if (snapshot.exists()) {
-        const cached = snapshot.val() as CachedMatchData;
-        const hoursSinceUpdate = (Date.now() - cached.lastUpdated) / (1000 * 60 * 60);
+        if (snapshot.exists()) {
+          const cached = snapshot.val() as CachedMatchData;
+          const hoursSinceUpdate = (Date.now() - cached.lastUpdated) / (1000 * 60 * 60);
 
-        if (hoursSinceUpdate < CACHE_EXPIRY_HOURS) {
-          console.log(`✅ Cache HIT: ${match.teamHome} vs ${match.teamAway} (${hoursSinceUpdate.toFixed(1)}h önce)`);
-          cachedData = cached;
+          if (hoursSinceUpdate < CACHE_EXPIRY_HOURS) {
+            console.log(`✅ Cache HIT: ${match.teamHome} vs ${match.teamAway} (${hoursSinceUpdate.toFixed(1)}h önce)`);
+            cachedData = cached;
+          } else {
+            console.log(`🔄 Cache EXPIRED: ${match.teamHome} vs ${match.teamAway} - Yeni veri çekiliyor...`);
+            cachedData = await this.fetchMatchDataWithSportsradar(match);
+            await set(cacheRef, cachedData);
+          }
         } else {
-          console.log(`🔄 Cache EXPIRED: ${match.teamHome} vs ${match.teamAway} - Yeni veri çekiliyor...`);
+          console.log(`🆕 Cache MISS: ${match.teamHome} vs ${match.teamAway} - İlk kez veri çekiliyor...`);
           cachedData = await this.fetchMatchDataWithSportsradar(match);
           await set(cacheRef, cachedData);
         }
-      } else {
-        console.log(`🆕 Cache MISS: ${match.teamHome} vs ${match.teamAway} - İlk kez veri çekiliyor...`);
-        cachedData = await this.fetchMatchDataWithSportsradar(match);
-        await set(cacheRef, cachedData);
-      }
 
-      matchesWithData.push({ ...match, cachedData });
+        matchesWithData.push({ ...match, cachedData });
+      } catch (error: any) {
+        console.error(`❌ Maç verisi alınamadı: ${match.teamHome} vs ${match.teamAway}`, error.message);
+        failedMatches.push(`${match.teamHome} vs ${match.teamAway}`);
+      }
+    }
+
+    if (matchesWithData.length === 0) {
+      throw new Error(`Hiçbir maç için veri alınamadı. Başarısız maçlar: ${failedMatches.join(', ')}`);
+    }
+
+    if (failedMatches.length > 0) {
+      console.warn(`⚠️ ${failedMatches.length} maç atlandı: ${failedMatches.join(', ')}`);
+      console.warn(`✅ ${matchesWithData.length} maç için veri alındı, analiz devam ediyor...`);
     }
 
     return matchesWithData;

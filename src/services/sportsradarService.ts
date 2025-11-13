@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // ✅ API-Football Resmi API (v3.9.3)
-const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
-const API_FOOTBALL_KEY = import.meta.env.VITE_API_FOOTBALL_KEY;
+const API_FOOTBALL_BASE_URL = import.meta.env.VITE_API_SPORTS_BASE_URL || 'https://v3.football.api-sports.io';
+const API_FOOTBALL_KEY = import.meta.env.VITE_API_SPORTS_KEY || import.meta.env.VITE_API_FOOTBALL_KEY;
 
 // Cache
 const requestCache = new Map<string, { data: any; timestamp: number }>();

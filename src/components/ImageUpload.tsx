@@ -143,14 +143,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
 
       updateStep('collect', 'in_progress', 30);
       const matchesWithData = await analysisService.getOrFetchMatchData(editedMatches as any);
-
-      // Veri kalitesi kontrolü
-      const validMatches = matchesWithData.filter(m => m.cachedData.confidenceScore >= 40);
-
-      if (validMatches.length === 0) {
-        throw new Error('Maç verileri alınamadı. Veri kalitesi yetersiz.');
-      }
-
       updateStep('collect', 'completed', 100);
 
       updateStep('analyze', 'in_progress', 50);
