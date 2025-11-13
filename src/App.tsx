@@ -8,6 +8,7 @@ import { PaymentSuccess } from './pages/PaymentSuccess';
 import { About } from './pages/About';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
+import { TermsOfService } from './pages/TermsOfService';
 import { Contact } from './pages/Contact';
 import { HowToUse } from './pages/HowToUse';
 
@@ -36,6 +37,7 @@ function App() {
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/about" element={<About />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/how-to-use" element={<HowToUse />} />

@@ -78,7 +78,7 @@ export const Register: React.FC = () => {
         <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Aikupon</h1>
-            <p className="text-slate-400">Kuponlarını analiz et, kazanç şansını arttır</p>
+            <p className="text-slate-400">Maç listelerini analiz et, istatistiksel değerlendirme yap</p>
           </div>
 
           {error && (
@@ -162,14 +162,14 @@ export const Register: React.FC = () => {
                 disabled={loading}
               />
               <label className="text-sm text-slate-300">
-                <Link to="/terms" className="text-blue-400 hover:text-blue-300">
-                  Kullanım şartları
+                <Link to="/terms-of-service" className="text-blue-400 hover:text-blue-300 underline">
+                  Kullanım Şartları
                 </Link>
                 {' '}ve{' '}
-                <Link to="/privacy" className="text-blue-400 hover:text-blue-300">
-                  gizlilik politikası
+                <Link to="/privacy" className="text-blue-400 hover:text-blue-300 underline">
+                  Gizlilik Politikası
                 </Link>
-                {'nı kabul ediyorum. 18 yaşında veya daha büyüğüm.'}
+                {'nı okudum, kabul ediyorum. 18 yaşında veya daha büyüğüm.'}
               </label>
             </div>
 

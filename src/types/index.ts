@@ -11,6 +11,8 @@ export interface User {
   bannedReason?: string;
   registrationIP?: string;
   lastIP?: string;
+  termsAcceptedAt?: number;
+  privacyAcceptedAt?: number;
 }
 
 export interface Package {

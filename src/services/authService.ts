@@ -39,6 +39,8 @@ export const authService = {
       isBanned: false,
       registrationIP: userIP,
       lastIP: userIP,
+      termsAcceptedAt: Date.now(),
+      privacyAcceptedAt: Date.now(),
     };
 
     await set(ref(database, `users/${userCredential.user.uid}`), userData);
@@ -104,6 +106,8 @@ export const authService = {
         isBanned: false,
         registrationIP: userIP,
         lastIP: userIP,
+        termsAcceptedAt: Date.now(),
+        privacyAcceptedAt: Date.now(),
       };
       await set(userRef, userData);
     } else {

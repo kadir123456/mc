@@ -87,7 +87,7 @@ export const Login: React.FC = () => {
         <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Aikupon</h1>
-            <p className="text-slate-400">Kuponlarını analiz etmeye başla</p>
+            <p className="text-slate-400">Maç analizi yapmaya başla</p>
           </div>
 
           {error && (
