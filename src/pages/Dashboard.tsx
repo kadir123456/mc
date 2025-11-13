@@ -59,7 +59,7 @@ export const Dashboard: React.FC = () => {
         <div className="mb-8 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-6">
           <h2 className="text-2xl font-bold text-white mb-2">🎉 Hoş Geldiniz!</h2>
           <p className="text-slate-300 mb-4">
-            Aikupon ile profesyonel maç analizlerine erişin. Bülten sayfasından maçları seçin ve Gemini AI ile detaylı tahmin analizleri alın.
+            Aikupon ile profesyonel maç analizlerine erişin. Bülten sayfasından maçları seçin ve yapay zeka ile detaylı tahmin analizleri alın.
           </p>
           <div className="flex flex-wrap gap-3">
             <button

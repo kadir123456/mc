@@ -16,44 +16,18 @@
       }
     },
     "matches": {
-      ".read": "auth != null",
-      ".write": false,
-      "$date": {
-        "$fixtureId": {
-          ".indexOn": ["date", "status", "league"]
-        }
-      }
+      ".read": true,
+      ".write": false
     },
     "coupons": {
       "$uid": {
         ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid",
-        "$couponId": {
-          ".validate": "newData.hasChildren(['matches', 'purchased_at', 'credits_used', 'type'])",
-          "matches": {
-            ".validate": "newData.isString()"
-          },
-          "analysis": {
-            ".validate": "newData.isString()"
-          },
-          "purchased_at": {
-            ".validate": "newData.isNumber()"
-          },
-          "credits_used": {
-            ".validate": "newData.isNumber() && (newData.val() === 1 || newData.val() === 5)"
-          },
-          "type": {
-            ".validate": "newData.isString() && (newData.val() === 'standard' || newData.val() === 'detailed')"
-          }
-        }
+        ".write": "$uid === auth.uid"
       }
     },
     "popular_coupons": {
-      ".read": "auth != null",
-      ".write": false,
-      "$couponId": {
-        ".indexOn": ["play_count", "success_rate"]
-      }
+      ".read": true,
+      ".write": false
     },
     "admin": {
       ".read": false,

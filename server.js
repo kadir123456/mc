@@ -132,8 +132,21 @@ async function fetchAndCacheMatches() {
 
     const processMatches = (fixtures, date) => {
       const matches = {};
+      let count = 0;
+
       fixtures.forEach(fixture => {
+        const status = fixture.fixture.status.short;
         const matchTime = new Date(fixture.fixture.date);
+        const now = Date.now();
+
+        if (status === 'FT' || status === 'AET' || status === 'PEN' || matchTime.getTime() < now - 3600000) {
+          return;
+        }
+
+        if (count >= 50) {
+          return;
+        }
+
         matches[fixture.fixture.id] = {
           homeTeam: fixture.teams.home.name,
           awayTeam: fixture.teams.away.name,
@@ -141,10 +154,10 @@ async function fetchAndCacheMatches() {
           date: date,
           time: matchTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
           timestamp: matchTime.getTime(),
-          status: fixture.fixture.status.short === 'FT' ? 'finished' :
-                  fixture.fixture.status.short === 'LIVE' ? 'live' : 'scheduled',
+          status: status === 'LIVE' || status === '1H' || status === '2H' ? 'live' : 'scheduled',
           lastUpdated: Date.now()
         };
+        count++;
       });
       return matches;
     };

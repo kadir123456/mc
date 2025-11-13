@@ -119,7 +119,7 @@ export const Home: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Anlık Analiz</h3>
                 <p className="text-slate-300">
-                  Maçları seçin, Gemini AI 30 saniye içinde detaylı tahmin analizi oluşturur.
+                  Maçları seçin, yapay zeka 30 saniye içinde detaylı tahmin analizi oluşturur.
                 </p>
               </div>
 
@@ -162,9 +162,9 @@ export const Home: React.FC = () => {
                   2
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Gemini AI Analizi</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Yapay Zeka Analizi</h3>
                   <p className="text-slate-300 text-lg">
-                    Google Gemini AI seçtiğiniz maçları gerçek verilerle analiz eder.
+                    Aikupon yapay zekası seçtiğiniz maçları gerçek verilerle analiz eder.
                     MS1, MSX, MS2, 2.5 Üst/Alt, KG ve ilk yarı tahminleri.
                   </p>
                 </div>
