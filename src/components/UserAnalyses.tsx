@@ -102,6 +102,30 @@ export const UserAnalyses: React.FC = () => {
         </button>
 
         <div className="space-y-6">
+          {selectedAnalysis.status === 'failed' && (
+            <div className="bg-red-500/10 border-2 border-red-500/30 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-4xl">❌</span>
+                <div>
+                  <h3 className="text-xl font-bold text-red-400">Analiz Başarısız</h3>
+                  <p className="text-slate-300 text-sm">Krediniz iade edildi</p>
+                </div>
+              </div>
+              {selectedAnalysis.errorMessage && (
+                <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-red-500/20">
+                  <p className="text-slate-300 text-sm">
+                    <strong className="text-red-400">Hata:</strong> {selectedAnalysis.errorMessage}
+                  </p>
+                </div>
+              )}
+              <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+                <p className="text-slate-300 text-sm">
+                  💡 <strong>Öneri:</strong> Lütfen daha net bir görsel yükleyin veya farklı bir kupon deneyin.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-2xl font-bold text-white">📋 Kupon Görseli</h3>
@@ -353,25 +377,54 @@ export const UserAnalyses: React.FC = () => {
         {analyses.map((analysis) => (
           <div
             key={analysis.id}
-            className="bg-slate-700/50 border border-slate-600 rounded-lg p-4 hover:border-slate-500 transition cursor-pointer"
+            className={`border rounded-lg p-4 hover:border-slate-500 transition cursor-pointer ${
+              analysis.status === 'failed'
+                ? 'bg-red-500/5 border-red-500/30'
+                : 'bg-slate-700/50 border-slate-600'
+            }`}
             onClick={() => setSelectedAnalysis(analysis)}
           >
             <div className="flex items-start gap-4">
-              <img
-                src={analysis.imageUrl}
-                alt="Kupon"
-                className="w-20 h-20 object-cover rounded"
-              />
+              <div className="relative">
+                <img
+                  src={analysis.imageUrl}
+                  alt="Kupon"
+                  className="w-20 h-20 object-cover rounded"
+                />
+                {analysis.status === 'failed' && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    ✕
+                  </div>
+                )}
+              </div>
               <div className="flex-1">
-                <p className="text-white font-medium mb-1">
-                  {analysis.analysis.matches.length} maç analizi
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-white font-medium">
+                    {analysis.analysis.matches.length} maç analizi
+                  </p>
+                  {analysis.status === 'failed' && (
+                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs font-medium rounded">
+                      Başarısız
+                    </span>
+                  )}
+                  {analysis.status === 'completed' && (
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded">
+                      Başarılı
+                    </span>
+                  )}
+                </div>
                 <p className="text-slate-400 text-sm mb-2">
                   {new Date(analysis.uploadedAt).toLocaleString('tr-TR')}
                 </p>
-                <p className="text-slate-300 text-sm">
-                  Toplam Oran: {analysis.analysis.totalOdds.toFixed(2)} | Güven: {analysis.analysis.confidence}%
-                </p>
+                {analysis.status === 'failed' ? (
+                  <p className="text-red-400 text-sm">
+                    ❌ {analysis.errorMessage || 'Analiz başarısız oldu'} (Kredi iade edildi)
+                  </p>
+                ) : (
+                  <p className="text-slate-300 text-sm">
+                    Toplam Oran: {analysis.analysis.totalOdds.toFixed(2)} | Güven: {analysis.analysis.confidence}%
+                  </p>
+                )}
               </div>
             </div>
           </div>

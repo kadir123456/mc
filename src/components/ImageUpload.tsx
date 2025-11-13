@@ -3,6 +3,7 @@ import { Upload, Loader, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { analysisService } from '../services/analysisService';
 import { authService } from '../services/authService';
+import { compressImage } from '../utils/imageCompressor';
 
 interface ImageUploadProps {
   onAnalysisComplete?: () => void;
@@ -15,12 +16,33 @@ type AnalysisStep = {
   progress: number;
 };
 
+interface DetectedMatch {
+  matchId: string;
+  teamHome: string;
+  teamAway: string;
+  league: string;
+  date?: string;
+  time?: string;
+  odds?: {
+    ms1?: number;
+    msx?: number;
+    ms2?: number;
+    beraberlik?: number;
+    ust25?: number;
+    alt25?: number;
+    kgg?: number;
+  };
+}
+
 export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) => {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
+  const [detectedMatches, setDetectedMatches] = useState<DetectedMatch[] | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [editedMatches, setEditedMatches] = useState<DetectedMatch[]>([]);
   const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
     { id: 'upload', label: 'Görsel yükleniyor', status: 'pending', progress: 0 },
     { id: 'detect', label: 'Maçlar tespit ediliyor', status: 'pending', progress: 0 },
@@ -58,62 +80,168 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
     reader.readAsDataURL(file);
   };
 
-  const handleAnalyze = async () => {
+  // ADIM 1: Maçları Tespit Et ve Kullanıcıya Göster
+  const handleDetectMatches = async () => {
     if (!preview || !user) return;
 
     setLoading(true);
     setError('');
-    setSuccess('');
+    setShowConfirmation(false);
+
+    try {
+      updateStep('upload', 'in_progress', 30);
+      const base64 = preview.split(',')[1];
+
+      // Görseli sıkıştır
+      const compressedImage = await compressImage(base64, 800, 0.6);
+      updateStep('upload', 'completed', 100);
+
+      updateStep('detect', 'in_progress', 50);
+      const matches = await analysisService.detectMatches(compressedImage);
+      updateStep('detect', 'completed', 100);
+
+      if (!matches || matches.length === 0) {
+        throw new Error('Görselde maç tespit edilemedi. Lütfen daha net bir görsel yükleyin.');
+      }
+
+      setDetectedMatches(matches);
+      setEditedMatches(matches);
+      setShowConfirmation(true);
+    } catch (err: any) {
+      setError(err.message || 'Maç tespiti sırasında hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ADIM 2: Kullanıcı Onayladıktan Sonra Analiz Yap
+  const handleConfirmAndAnalyze = async () => {
+    if (!preview || !user || !editedMatches) return;
+
+    if (user.credits < 1) {
+      setError('Yeterli krediniz yok. Lütfen kredi satın alın.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setShowConfirmation(false);
+
+    let creditDeducted = false;
+    let analysisSuccessful = false;
+
+    try {
+      // Önce kredi düş
+      await authService.updateCredits(user.uid, user.credits - 1);
+      creditDeducted = true;
+      await refreshUser();
+
+      updateStep('collect', 'in_progress', 30);
+      const matchesWithData = await analysisService.getOrFetchMatchData(editedMatches as any);
+
+      // Veri kalitesi kontrolü
+      const validMatches = matchesWithData.filter(m => m.cachedData.confidenceScore >= 40);
+
+      if (validMatches.length === 0) {
+        throw new Error('Maç verileri alınamadı. Veri kalitesi yetersiz.');
+      }
+
+      updateStep('collect', 'completed', 100);
+
+      updateStep('analyze', 'in_progress', 50);
+      const finalAnalysis = await analysisService.performFinalAnalysis(matchesWithData);
+
+      // Final analiz kontrolü
+      if (!finalAnalysis || !finalAnalysis.matches || finalAnalysis.matches.length === 0) {
+        throw new Error('Analiz tamamlanamadı. Veriler yetersiz.');
+      }
+
+      updateStep('analyze', 'completed', 100);
+
+      // Başarılı analizi kaydet
+      await analysisService.saveCouponAnalysis(user.uid, {
+        id: '',
+        userId: user.uid,
+        imageUrl: preview,
+        uploadedAt: Date.now(),
+        analysis: finalAnalysis,
+        status: 'completed',
+      });
+
+      analysisSuccessful = true;
+      setSuccess('✅ Analiz başarıyla tamamlandı! Detaylı sonuçlar aşağıda.');
+      setPreview(null);
+      setDetectedMatches(null);
+      setEditedMatches([]);
+
+      if (onAnalysisComplete) {
+        onAnalysisComplete();
+      }
+
+      setTimeout(() => setSuccess(''), 7000);
+    } catch (err: any) {
+      console.error('Analiz hatası:', err);
+
+      // Hata durumunda krediyi iade et
+      if (creditDeducted && !analysisSuccessful) {
+        try {
+          await authService.updateCredits(user.uid, user.credits + 1);
+          await refreshUser();
+
+          setError(
+            `❌ Analiz başarısız oldu: ${err.message}\n\n✅ Krediniz iade edildi (1 kredi geri yüklendi)`
+          );
+        } catch (refundError) {
+          console.error('Kredi iadesi hatası:', refundError);
+          setError(
+            `❌ Analiz başarısız: ${err.message}\n⚠️ Kredi iadesi yapılamadı, lütfen destek ekibiyle iletişime geçin.`
+          );
+        }
+      } else {
+        setError(`❌ ${err.message || 'Analiz sırasında hata oluştu'}`);
+      }
+
+      // Başarısız analizi kaydet
+      try {
+        await analysisService.saveCouponAnalysis(user.uid, {
+          id: '',
+          userId: user.uid,
+          imageUrl: preview,
+          uploadedAt: Date.now(),
+          analysis: {
+            matches: [],
+            finalCoupon: [],
+            totalOdds: 0,
+            confidence: 0,
+            recommendations: [`Analiz başarısız: ${err.message}`],
+          },
+          status: 'failed',
+          errorMessage: err.message,
+        });
+      } catch (saveError) {
+        console.error('Başarısız analiz kaydı hatası:', saveError);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
+    setDetectedMatches(null);
+    setEditedMatches([]);
     setAnalysisSteps([
       { id: 'upload', label: 'Görsel yükleniyor', status: 'pending', progress: 0 },
       { id: 'detect', label: 'Maçlar tespit ediliyor', status: 'pending', progress: 0 },
       { id: 'collect', label: 'Gerçek zamanlı veriler toplanıyor', status: 'pending', progress: 0 },
       { id: 'analyze', label: 'Analiz tamamlanıyor', status: 'pending', progress: 0 },
     ]);
+  };
 
-    try {
-      if (user.credits < 1) {
-        throw new Error('Yeterli krediniz yok. Lütfen kredi satın alın.');
-      }
-
-      updateStep('upload', 'in_progress', 50);
-      const base64 = preview.split(',')[1];
-      updateStep('upload', 'completed', 100);
-
-      updateStep('detect', 'in_progress', 30);
-      const analysis = await analysisService.analyzeImageWithGemini(base64);
-      updateStep('detect', 'completed', 100);
-
-      updateStep('collect', 'completed', 100);
-      updateStep('analyze', 'in_progress', 80);
-
-      await analysisService.saveCouponAnalysis(user.uid, {
-        id: '',
-        userId: user.uid,
-        imageUrl: preview,
-        uploadedAt: Date.now(),
-        analysis,
-        status: 'completed',
-      });
-
-      updateStep('analyze', 'completed', 100);
-
-      await authService.updateCredits(user.uid, user.credits - 1);
-      await refreshUser();
-
-      setSuccess('Analiz başarıyla tamamlandı!');
-      setPreview(null);
-
-      if (onAnalysisComplete) {
-        onAnalysisComplete();
-      }
-
-      setTimeout(() => setSuccess(''), 5000);
-    } catch (err: any) {
-      setError(err.message || 'Analiz sırasında hata oluştu');
-    } finally {
-      setLoading(false);
-    }
+  const handleEditMatch = (index: number, field: keyof DetectedMatch, value: string) => {
+    const updated = [...editedMatches];
+    (updated[index] as any)[field] = value;
+    setEditedMatches(updated);
   };
 
   return (
@@ -203,14 +331,109 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         </div>
       )}
 
-      {preview && !loading && (
+      {showConfirmation && detectedMatches && !loading && (
+        <div className="mb-6 p-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 border-cyan-500/30 rounded-lg">
+          <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            ✅ Tespit Edilen Maçlar
+          </h3>
+          <p className="text-slate-300 text-sm mb-4">
+            Lütfen bilgileri kontrol edin. Düzeltmek isterseniz takım isimlerini düzenleyebilirsiniz.
+          </p>
+
+          <div className="space-y-3 mb-4">
+            {editedMatches.map((match, idx) => (
+              <div key={idx} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-cyan-500 text-white px-2 py-1 rounded text-sm font-bold">
+                    #{idx + 1}
+                  </span>
+                  <span className="text-slate-400 text-xs">{match.league}</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">Ev Sahibi</label>
+                    <input
+                      type="text"
+                      value={match.teamHome}
+                      onChange={(e) => handleEditMatch(idx, 'teamHome', e.target.value)}
+                      className="w-full bg-slate-800 text-white px-3 py-2 rounded border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">Deplasman</label>
+                    <input
+                      type="text"
+                      value={match.teamAway}
+                      onChange={(e) => handleEditMatch(idx, 'teamAway', e.target.value)}
+                      className="w-full bg-slate-800 text-white px-3 py-2 rounded border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">Lig/Turnuva</label>
+                    <input
+                      type="text"
+                      value={match.league}
+                      onChange={(e) => handleEditMatch(idx, 'league', e.target.value)}
+                      className="w-full bg-slate-800 text-white px-3 py-2 rounded border border-slate-600 focus:border-cyan-500 focus:outline-none text-sm"
+                    />
+                  </div>
+
+                  {match.odds && (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {match.odds.ms1 && (
+                        <div className="bg-slate-800 rounded p-2 text-center">
+                          <p className="text-slate-400 text-xs">MS1</p>
+                          <p className="text-white font-bold">{match.odds.ms1}</p>
+                        </div>
+                      )}
+                      {(match.odds.msx || match.odds.beraberlik) && (
+                        <div className="bg-slate-800 rounded p-2 text-center">
+                          <p className="text-slate-400 text-xs">Beraberlik</p>
+                          <p className="text-white font-bold">{match.odds.msx || match.odds.beraberlik}</p>
+                        </div>
+                      )}
+                      {match.odds.ms2 && (
+                        <div className="bg-slate-800 rounded p-2 text-center">
+                          <p className="text-slate-400 text-xs">MS2</p>
+                          <p className="text-white font-bold">{match.odds.ms2}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleCancelConfirmation}
+              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 rounded-lg transition"
+            >
+              İptal Et
+            </button>
+            <button
+              onClick={handleConfirmAndAnalyze}
+              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Onayla ve Analiz Et (1 Kredi)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {preview && !loading && !showConfirmation && (
         <button
-          onClick={handleAnalyze}
+          onClick={handleDetectMatches}
           disabled={loading}
           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-slate-600 disabled:to-slate-600 text-white font-medium py-3 rounded-lg transition flex items-center justify-center gap-2"
         >
           <Upload className="w-5 h-5" />
-          Gerçek Zamanlı Analiz Yap
+          1. Adım: Maçları Tespit Et (Ücretsiz)
         </button>
       )}
     </div>

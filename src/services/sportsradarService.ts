@@ -73,7 +73,7 @@ const sportsradarService = {
   // 1. LİG ID'Sİ BULMA (isimle)
   async findLeagueId(leagueName: string): Promise<number | null> {
     try {
-      // Popüler liglerin sabit ID'leri
+      // Popüler liglerin ve turnuvaların sabit ID'leri
       const leagueMap: { [key: string]: number } = {
         'premier league': 39,
         'la liga': 140,
@@ -83,18 +83,36 @@ const sportsradarService = {
         'süper lig': 203,
         'champions league': 2,
         'europa league': 3,
+        'u21 avrupa': 33,
+        'u21 şampiyona': 33,
+        'u21 euro': 33,
+        'dünya kupası': 1,
+        'world cup': 1,
+        'afrika': 32,
+        'caf': 32,
+        'wcq africa': 32,
+        'u19 euro': 18,
+        'u19 avrupa': 18,
       };
 
-      const normalized = leagueName.toLowerCase().trim();
-      
-      // Önce sabit listeden kontrol et
+      const normalized = leagueName.toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+      console.log(`🔍 Lig aranıyor: "${leagueName}" → normalized: "${normalized}"`);
+
+      // Önce sabit listeden kontrol et (partial match)
       for (const [key, id] of Object.entries(leagueMap)) {
         if (normalized.includes(key) || key.includes(normalized)) {
+          console.log(`✅ Lig bulundu (map): ${key} → ID: ${id}`);
           return id;
         }
       }
 
       // Bulunamazsa API'den ara
+      console.log(`🌐 API'den aranıyor: ${leagueName}`);
       const data = await this.fetchWithCache<any[]>(
         '/v3/leagues',
         { name: leagueName, current: 'true' },
@@ -102,9 +120,11 @@ const sportsradarService = {
       );
 
       if (data && data.length > 0) {
+        console.log(`✅ Lig bulundu (API): ${data[0].league.name} → ID: ${data[0].league.id}`);
         return data[0].league.id;
       }
 
+      console.warn(`⚠️ Lig bulunamadı: ${leagueName}`);
       return null;
     } catch (error) {
       console.error('Lig bulunamadı:', error);
@@ -112,26 +132,55 @@ const sportsradarService = {
     }
   },
 
-  // 2. TAKIM BULMA
+  // 2. TAKIM BULMA (U21, U19 destekli)
   async findTeam(teamName: string, leagueId?: number): Promise<{ id: number; name: string } | null> {
     try {
-      const params: any = { search: teamName };
+      // U21, U19 gibi yaş gruplarını temizle (API'de bazen farklı formatlarda)
+      const cleanName = teamName
+        .replace(/\s*U21\s*/gi, '')
+        .replace(/\s*U19\s*/gi, '')
+        .replace(/\s*U20\s*/gi, '')
+        .trim();
+
+      console.log(`🔍 Takım aranıyor: "${teamName}" → clean: "${cleanName}"`);
+
+      const params: any = { search: cleanName };
       if (leagueId) params.league = leagueId;
 
       const data = await this.fetchWithCache<any[]>(
         '/v3/teams',
         params,
-        `team_search_${teamName}_${leagueId || 'all'}`
+        `team_search_${cleanName}_${leagueId || 'all'}`
       );
 
-      if (!data || data.length === 0) return null;
+      if (!data || data.length === 0) {
+        console.warn(`⚠️ Takım bulunamadı: ${teamName}`);
+        return null;
+      }
 
-      const normalized = teamName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const normalized = cleanName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 
       // En iyi eşleşmeyi bul
       for (const item of data) {
-        const apiName = item.team.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        if (apiName.includes(normalized) || normalized.includes(apiName)) {
+        const apiName = item.team.name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Tam veya kısmi eşleşme kontrolü
+        if (
+          apiName === normalized ||
+          apiName.includes(normalized) ||
+          normalized.includes(apiName)
+        ) {
+          console.log(`✅ Takım bulundu: ${item.team.name} (ID: ${item.team.id})`);
           return {
             id: item.team.id,
             name: item.team.name,
@@ -140,6 +189,7 @@ const sportsradarService = {
       }
 
       // Tam eşleşme yoksa ilk sonucu döndür
+      console.log(`⚠️ Tam eşleşme yok, ilk sonuç kullanılıyor: ${data[0].team.name}`);
       return {
         id: data[0].team.id,
         name: data[0].team.name,

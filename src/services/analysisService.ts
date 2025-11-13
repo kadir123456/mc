@@ -40,85 +40,162 @@ interface DetectedMatch {
   };
 }
 
-const OCR_PROMPT = `Görseldeki bahis kuponunu analiz et ve maç bilgilerini çıkar.
+const OCR_PROMPT = `Görseldeki bahis kuponunu DİKKATLİCE analiz et ve maç bilgilerini ÇOK NET çıkar.
 
-SADECE MAÇLARI TESPIT ET, ANALİZ YAPMA!
+ÖNEMLİ: U21, U19 gibi yaş gruplarını, Dünya Kupası, Avrupa Kupası gibi turnuva isimlerini MUTLAKA yaz!
+
+GÖRSELDE ARANACAK BİLGİLER:
+1. Takım isimleri (solda ev sahibi, sağda deplasman)
+2. Lig/Turnuva adı (üstte gri kutuda yazıyor)
+3. MS1, MS X, MS2 oranları (kutularda)
+4. 2.5 Alt, 2.5 Üst oranları
+5. Maç saati (sağda "Bugün 21:30" gibi)
 
 ÇIKTI FORMATI (JSON):
 {
   "matches": [
     {
-      "matchId": "unique_hash",
-      "teamHome": "Ev Sahibi Takım",
-      "teamAway": "Deplasman Takım",
-      "league": "Lig Adı",
-      "date": "2024-01-15",
+      "matchId": "match_luksemburg_u21_vs_izlanda_u21",
+      "teamHome": "Lüksemburg U21",
+      "teamAway": "İzlanda U21",
+      "league": "U21 Avrupa Şampiyonası Elemeleri",
+      "date": "2025-11-13",
+      "time": "21:30",
       "odds": {
-        "ms1": 1.85,
-        "ms2": 2.20,
-        "beraberlik": 3.10,
-        "ust25": 1.92,
-        "alt25": 1.88,
-        "kgg": 1.95
+        "ms1": 2.45,
+        "msx": 3.64,
+        "ms2": 2.67,
+        "alt25": 2.30,
+        "ust25": 1.52
+      }
+    },
+    {
+      "matchId": "match_kamerun_vs_kongo",
+      "teamHome": "Kamerun",
+      "teamAway": "Demokratik Kongo C.",
+      "league": "Dünya Kupası Afrika Elemeleri",
+      "date": "2025-11-13",
+      "time": "22:00",
+      "odds": {
+        "ms1": 1.91,
+        "msx": 2.50,
+        "ms2": 3.42,
+        "alt25": 1.18,
+        "ust25": 2.71
       }
     }
   ]
 }
 
-KURALLAR:
-- Her maç için benzersiz matchId oluştur
-- Takım isimlerini tam ve doğru yaz
-- Sadece JSON döndür, açıklama yapma`;
+KRİTİK KURALLAR:
+1. Her maç için benzersiz matchId oluştur (takım_ismi_vs_takım_ismi formatında)
+2. Takım isimlerini AYNEN görseldeki gibi yaz (U21, U19 varsa ekle)
+3. Lig/Turnuva ismini TAM ve DOĞRU yaz ("U21 AVRUPA ŞAMP. ELEMELERİ" → "U21 Avrupa Şampiyonası Elemeleri")
+4. Oranları DOĞRU kutudan al (MS1 solda, MS2 sağda)
+5. Sadece JSON döndür, başka açıklama yapma
+6. Eğer oran görselde yoksa null yaz`;
 
-const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `Sen profesyonel futbol analiz uzmanısın. GERÇEK VERİLERE dayalı analiz yap.
+const FINAL_ANALYSIS_PROMPT = (matches: Array<DetectedMatch & { cachedData: CachedMatchData }>) => `Sen profesyonel futbol ve uluslararası turnuva analiz uzmanısın.
 
-AĞIRLIK: Form %40, H2H %25, Sakatlık %15, Lig %10, İç Saha %10
+ÖNEMLİ: U21, U19 gibi genç takımlar ve Dünya Kupası elemeleri için ANALİZ YAPIYORSUN!
+
+AĞIRLIK SİSTEMİ:
+- Form: %40 (Son maç performansları)
+- H2H: %25 (Kafa kafaya geçmiş)
+- Lig Pozisyonu: %15 (Sıralama)
+- Veri Kalitesi: %10 (Kaynak güvenilirliği)
+- İç Saha Avantajı: %10
 
 MAÇLAR:
 ${matches.map((m, i) => `
-${i + 1}. ${m.teamHome} vs ${m.teamAway} (${m.league})
-- Form (Ev): ${m.cachedData.homeForm}
-- Form (Deplasman): ${m.cachedData.awayForm}
-- H2H: ${m.cachedData.h2h}
-- Veri Kaynağı: ${m.cachedData.dataSources.join(', ')}
-- Güven Skoru: ${m.cachedData.confidenceScore}%
-${m.odds ? `- Oranlar: MS1 ${m.odds.ms1}, MS2 ${m.odds.ms2}` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MAÇ ${i + 1}: ${m.teamHome} vs ${m.teamAway}
+Lig/Turnuva: ${m.league}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 GERÇEK VERİLER:
+• Ev Sahibi Form: ${m.cachedData.homeForm}
+• Deplasman Form: ${m.cachedData.awayForm}
+• Kafa Kafaya (H2H): ${m.cachedData.h2h}
+• Sakatlıklar: ${m.cachedData.injuries}
+• Lig Durumu: ${m.cachedData.leaguePosition}
+
+📈 VERİ KALİTESİ:
+• Veri Kaynağı: ${m.cachedData.dataSources.join(', ')}
+• Güven Skoru: ${m.cachedData.confidenceScore}/100
+
+💰 ORANLAR:
+${m.odds ? `• MS1 (Ev Kazanır): ${m.odds.ms1}
+• MS X (Beraberlik): ${m.odds.msx || m.odds.beraberlik || 'N/A'}
+• MS2 (Deplasman Kazanır): ${m.odds.ms2}
+• Üst 2.5: ${m.odds.ust25 || 'N/A'}
+• Alt 2.5: ${m.odds.alt25 || 'N/A'}` : 'Oran bilgisi yok'}
 `).join('\n')}
 
-GÖREV:
-1. AĞIRLIK SİSTEMİNE göre analiz
-2. 70+ güven skorlu maçları finalCoupon'a ekle
-3. Risk belirle (Düşük: 70-79, Orta: 80-89, Yüksek: 90+)
+GÖREVİN:
+1. Her maç için AĞIRLIK SİSTEMİNE göre detaylı analiz yap
+2. SADECE 70+ confidence skorlu tahminleri finalCoupon'a ekle
+3. Her tahmin için GÜVENİLİR sebep ver (form, H2H, sakatlık, vb.)
+4. Risk seviyesi belirle:
+   - Düşük Risk: 70-79 confidence
+   - Orta Risk: 80-89 confidence
+   - Yüksek Risk: 90-100 confidence
 
-ÇIKTI (JSON):
+ÇIKTI FORMATI (JSON):
 {
-  "finalCoupon": ["${matches[0]?.teamHome} - MS1"],
+  "finalCoupon": [
+    "Lüksemburg U21 - MS1 (Sebep: Ev sahibi son 3 maçını kazandı, İzlanda deplasmanı zayıf)",
+    "Kamerun - Alt 2.5 (Sebep: Her iki takım da defansif oynuyor, son 4 karşılaşma gol az)"
+  ],
   "matches": [
     {
-      "matchId": "${matches[0]?.matchId}",
-      "league": "${matches[0]?.league}",
-      "teams": ["${matches[0]?.teamHome}", "${matches[0]?.teamAway}"],
+      "matchId": "match_luksemburg_u21_vs_izlanda_u21",
+      "league": "U21 Avrupa Şampiyonası Elemeleri",
+      "teams": ["Lüksemburg U21", "İzlanda U21"],
       "predictions": {
-        "ms1": {"odds": 1.85, "confidence": 78},
-        "ust25": {"odds": 1.92, "confidence": 70}
+        "ms1": {
+          "odds": 2.45,
+          "confidence": 75,
+          "reasoning": "Ev sahibi son 3 maçta 2 galibiyet aldı, İzlanda deplasmanı zayıf (son 5'te 1 galibiyet)"
+        },
+        "alt25": {
+          "odds": 2.30,
+          "confidence": 68,
+          "reasoning": "Her iki takım da genç ve temkinli oynuyor"
+        }
       },
       "realData": {
-        "homeForm": "${matches[0]?.cachedData.homeForm}",
-        "awayForm": "${matches[0]?.cachedData.awayForm}",
-        "h2h": "${matches[0]?.cachedData.h2h}"
+        "homeForm": "${matches[0]?.cachedData.homeForm || 'Veri yok'}",
+        "awayForm": "${matches[0]?.cachedData.awayForm || 'Veri yok'}",
+        "h2h": "${matches[0]?.cachedData.h2h || 'Veri yok'}",
+        "injuries": "${matches[0]?.cachedData.injuries || 'Veri yok'}",
+        "leaguePosition": "${matches[0]?.cachedData.leaguePosition || 'Veri yok'}"
       },
       "dataQuality": {
         "sources": ${matches[0]?.cachedData.dataSources.length || 0},
-        "confidence": ${matches[0]?.cachedData.confidenceScore || 0}
+        "confidence": ${matches[0]?.cachedData.confidenceScore || 0},
+        "lastUpdated": "Önbellek veya yeni veri"
       }
     }
   ],
-  "totalOdds": 8.50,
-  "confidence": 75,
-  "recommendations": ["Toplam oran: 8.50 - Risk: Orta"]
+  "totalOdds": 5.63,
+  "confidence": 72,
+  "riskLevel": "Düşük",
+  "recommendations": [
+    "Toplam oran: 5.63 - Risk seviyesi: Düşük",
+    "Lüksemburg U21 ev sahibi avantajını kullanmalı",
+    "Kamerun-Kongo maçı genellikle az gollü geçiyor",
+    "Veri kalitesi iyi, 2 kaynaktan toplanan bilgiler"
+  ]
 }
 
-KURAL: SADECE 70+ confidence maçları finalCoupon'a ekle`;
+KRİTİK KURALLAR:
+1. SADECE 70+ confidence skorlu tahminleri finalCoupon'a ekle!
+2. Her tahmin için MUTLAKA reasoning (sebep) ekle
+3. Gerçek verilere dayanarak analiz yap (form, H2H, sakatlık)
+4. U21/U19 maçlarında genç takım özelliklerini dikkate al
+5. Toplam oranı doğru hesapla (çarpımla)
+6. JSON formatına DİKKATLİ UY, hata yapma!`;
 
 export const analysisService = {
   async analyzeImageWithGemini(base64Image: string): Promise<CouponAnalysis['analysis']> {
@@ -267,25 +344,48 @@ export const analysisService = {
     }
   },
 
-  // Gemini fallback (eski sistem)
+  // Gemini fallback (Google Search ile veri toplama)
   async fetchWithGemini(match: DetectedMatch): Promise<CachedMatchData> {
     console.log('🔄 Gemini Google Search kullanılıyor (fallback)');
 
-    const DATA_COLLECTION_PROMPT = `Sen profesyonel futbol veri analistisin. 
+    const DATA_COLLECTION_PROMPT = `Sen profesyonel futbol ve uluslararası turnuva analiz uzmanısın.
 
-MAÇ: ${match.teamHome} vs ${match.teamAway} (${match.league})
+ÖNEMLİ: Bu ${match.league} turnuvasından bir maç!
 
-Google Search ile araştır:
-1. Son Form: "${match.teamHome} son maçlar", "${match.teamAway} son maçlar"
-2. H2H: "${match.teamHome} vs ${match.teamAway} h2h"
+MAÇ BİLGİLERİ:
+- Ev Sahibi: ${match.teamHome}
+- Deplasman: ${match.teamAway}
+- Turnuva/Lig: ${match.league}
+- Tarih: ${match.date || 'Bugün'}
+
+GÖREV: Google Search ile GERÇEKZAMANLIMaç verilerini topla:
+
+1. "${match.teamHome} son maçlar ${match.league}" ara
+2. "${match.teamAway} son maçlar ${match.league}" ara
+3. "${match.teamHome} vs ${match.teamAway} h2h" ara
+4. "${match.teamHome} ${match.league} puan durumu" ara
+5. "${match.teamHome} sakatlıklar" ara
+
+ÖNEMLİ NOTLAR:
+- U21, U19 maçlarıysa genç takım verilerini ara
+- Dünya Kupası elemeleri ise eleme grup durumunu ara
+- Afrika elemeleri ise CAF puan durumunu ara
 
 ÇIKTI (JSON):
 {
-  "homeForm": "Son 5: G-G-B-G-K",
-  "awayForm": "Son 5: K-K-B-G-K",
-  "h2h": "Son 5: 2-1, 0-0, 3-1",
-  "confidenceScore": 60
-}`;
+  "homeForm": "Son 5: G-G-B-G-M (3G 1B 1M) | 8 gol attı, 3 yedi",
+  "awayForm": "Son 5: M-K-B-G-K (1G 1B 3M) | 4 gol attı, 9 yedi",
+  "h2h": "Son 5 karşılaşma: 2-1, 0-0, 3-1, 1-2, 2-0 (Ev sahibi 3 galibiyet)",
+  "injuries": "Ev: 2 eksik oyuncu | Deplasman: 1 sakatlık var",
+  "leaguePosition": "Ev: 2. grup, 7 puan | Deplasman: 3. grup, 4 puan",
+  "confidenceScore": 65
+}
+
+KURALLAR:
+1. SADECE Google Search'ten bulduğun GERÇEKverileri kullan
+2. Bilgi yoksa "Veri bulunamadı" yaz, tahmin etme!
+3. Confidence skoru veri kalitesine göre belirle (30-100 arası)
+4. Form bilgisi mutlaka gol istatistikli olsun`;
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -311,14 +411,14 @@ Google Search ile araştır:
       teamHome: match.teamHome,
       teamAway: match.teamAway,
       league: match.league,
-      homeForm: data.homeForm || 'Veri yok',
-      awayForm: data.awayForm || 'Veri yok',
-      h2h: data.h2h || 'Veri yok',
-      injuries: 'Veri yok',
-      leaguePosition: 'Veri yok',
+      homeForm: data.homeForm || 'Veri bulunamadı',
+      awayForm: data.awayForm || 'Veri bulunamadı',
+      h2h: data.h2h || 'Veri bulunamadı',
+      injuries: data.injuries || 'Sakatlık bilgisi bulunamadı',
+      leaguePosition: data.leaguePosition || 'Puan durumu bilgisi yok',
       lastUpdated: Date.now(),
-      dataSources: ['Google Search (Gemini Fallback)'],
-      confidenceScore: data.confidenceScore || 40,
+      dataSources: ['Google Search (Gemini Grounding)'],
+      confidenceScore: data.confidenceScore || 45,
     };
   },
 

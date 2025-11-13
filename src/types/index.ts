@@ -35,7 +35,8 @@ export interface CouponAnalysis {
     recommendations: string[];
     confidence: number;
   };
-  status: 'pending' | 'completed' | 'error';
+  status: 'pending' | 'completed' | 'failed' | 'error';
+  errorMessage?: string;
 }
 
 export interface MatchAnalysis {
