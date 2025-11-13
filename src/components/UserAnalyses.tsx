@@ -14,7 +14,6 @@ export const UserAnalyses: React.FC = () => {
 
   useEffect(() => {
     const loadAnalyses = async () => {
-      // ✅ KRITIK FIX: User yoksa işlem yapma
       if (!user || !user.uid) {
         setLoading(false);
         return;
@@ -39,7 +38,6 @@ export const UserAnalyses: React.FC = () => {
     setExpandedMatches((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
   };
 
-  // ✅ User yoksa loading göster
   if (!user) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -62,7 +60,6 @@ export const UserAnalyses: React.FC = () => {
     );
   }
 
-  // ✅ Hata durumu
   if (error) {
     return (
       <div className="text-center py-12">
@@ -191,9 +188,17 @@ export const UserAnalyses: React.FC = () => {
             {selectedAnalysis.analysis.matches.map((match) => {
               const isExpanded = expandedMatches[match.matchId];
               const dataQuality = (match as any).dataQuality;
+              
+              // ✅ KRITIK FIX: undefined kontrolü ile güvenli maksimum değer bulma
+              const maxConfidence = Math.max(
+                match.predictions?.ms1?.confidence ?? 0,
+                match.predictions?.ms2?.confidence ?? 0,
+                match.predictions?.beraberlik?.confidence ?? 0
+              );
+              
               const confidenceColor =
-                match.predictions.ms1.confidence >= 80 ? 'text-green-400' :
-                match.predictions.ms1.confidence >= 70 ? 'text-yellow-400' :
+                maxConfidence >= 80 ? 'text-green-400' :
+                maxConfidence >= 70 ? 'text-yellow-400' :
                 'text-red-400';
 
               return (
@@ -217,11 +222,7 @@ export const UserAnalyses: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-4 text-sm">
                       <span className={`font-medium ${confidenceColor}`}>
-                        Güven: {Math.max(
-                          match.predictions.ms1.confidence,
-                          match.predictions.ms2?.confidence || 0,
-                          match.predictions.beraberlik?.confidence || 0
-                        )}%
+                        Güven: {maxConfidence}%
                       </span>
                       {dataQuality && (
                         <span className="text-slate-400 flex items-center gap-1">
@@ -240,21 +241,21 @@ export const UserAnalyses: React.FC = () => {
                           Tahmin Oranları
                         </h5>
                         <div className="grid grid-cols-3 gap-2">
-                          {match.predictions.ms1 && (
+                          {match.predictions?.ms1 && (
                             <div className="bg-slate-700 rounded p-2 text-center">
                               <p className="text-slate-400 text-xs mb-1">MS1</p>
                               <p className="text-white font-bold">{match.predictions.ms1.odds}</p>
                               <p className="text-xs text-slate-400">{match.predictions.ms1.confidence}%</p>
                             </div>
                           )}
-                          {match.predictions.beraberlik && (
+                          {match.predictions?.beraberlik && (
                             <div className="bg-slate-700 rounded p-2 text-center">
                               <p className="text-slate-400 text-xs mb-1">Beraberlik</p>
                               <p className="text-white font-bold">{match.predictions.beraberlik.odds}</p>
                               <p className="text-xs text-slate-400">{match.predictions.beraberlik.confidence}%</p>
                             </div>
                           )}
-                          {match.predictions.ms2 && (
+                          {match.predictions?.ms2 && (
                             <div className="bg-slate-700 rounded p-2 text-center">
                               <p className="text-slate-400 text-xs mb-1">MS2</p>
                               <p className="text-white font-bold">{match.predictions.ms2.odds}</p>
