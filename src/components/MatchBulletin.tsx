@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Lock, CheckCircle2, Calendar } from 'lucide-react';
 import { matchService, Match } from '../services/matchService';
+import { translateLeague, formatMatchTime } from '../utils/leagueTranslations';
 
 interface MatchBulletinProps {
   onMatchSelect: (matches: Match[]) => void;
@@ -128,7 +129,7 @@ export const MatchBulletin: React.FC<MatchBulletinProps> = ({
           >
             <option value="all">Tüm Ligler</option>
             {leagues.map(league => (
-              <option key={league} value={league}>{league}</option>
+              <option key={league} value={league}>{translateLeague(league)}</option>
             ))}
           </select>
         </div>
@@ -177,9 +178,9 @@ export const MatchBulletin: React.FC<MatchBulletinProps> = ({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded">
-                            {match.time}
+                            {formatMatchTime(match.timestamp)}
                           </span>
-                          <span className="text-xs text-blue-400">{match.league}</span>
+                          <span className="text-xs text-blue-400">{translateLeague(match.league)}</span>
                         </div>
 
                         <div className="text-white font-medium mb-1">

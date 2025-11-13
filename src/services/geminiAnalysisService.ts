@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { MatchSelection } from './matchService';
 import { MatchAnalysis } from './couponService';
+import sportsradarService from './sportsradarService';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 interface MatchData {
   fixtureId: number;
@@ -24,7 +25,20 @@ export const geminiAnalysisService = {
     }
 
     try {
-      const prompt = this.buildAnalysisPrompt(matches, detailedAnalysis);
+      console.log('🔍 API\'den gerçek maç verileri çekiliyor...');
+
+      const matchDataPromises = matches.map(match =>
+        sportsradarService.getMatchData(match.homeTeam, match.awayTeam, match.league)
+          .catch(err => {
+            console.error(`⚠️ ${match.homeTeam} vs ${match.awayTeam} verisi alınamadı:`, err.message);
+            return null;
+          })
+      );
+
+      const matchesData = await Promise.all(matchDataPromises);
+      console.log('✅ API verileri alındı!');
+
+      const prompt = this.buildAnalysisPrompt(matches, matchesData, detailedAnalysis);
 
       const response = await axios.post(
         `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
@@ -35,17 +49,25 @@ export const geminiAnalysisService = {
             }]
           }],
           generationConfig: {
-            temperature: 0.4,
-            topK: 32,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          }
+            temperature: 0.1,
+            topK: 20,
+            topP: 0.9,
+            maxOutputTokens: 3072,
+          },
+          tools: [{
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: "MODE_DYNAMIC",
+                dynamicThreshold: 0.3
+              }
+            }
+          }]
         },
         {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 30000
+          timeout: 45000
         }
       );
 
@@ -58,20 +80,34 @@ export const geminiAnalysisService = {
     }
   },
 
-  buildAnalysisPrompt(matches: MatchSelection[], detailed: boolean): string {
-    const matchList = matches.map((m, i) =>
-      `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} (${m.league}) - ${m.date} ${m.time}`
-    ).join('\n');
+  buildAnalysisPrompt(matches: MatchSelection[], matchesData: any[], detailed: boolean): string {
+    const matchList = matches.map((m, i) => {
+      const data = matchesData[i];
+      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} (${m.league}) - ${m.date} ${m.time}`;
+
+      if (data) {
+        info += `\n   📊 Gerçek Veriler:`;
+        info += `\n   • Ev Sahibi Form: ${data.homeForm}`;
+        info += `\n   • Deplasman Form: ${data.awayForm}`;
+        info += `\n   • Kafa Kafaya: ${data.h2h}`;
+        info += `\n   • Puan Durumu: ${data.leaguePosition}`;
+        info += `\n   • Güven: ${data.confidenceScore}%`;
+      }
+
+      return info;
+    }).join('\n\n');
 
     const analysisType = detailed ? 'DETAYLI' : 'STANDART';
 
-    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için ${analysisType} analiz yap.
+    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için API-Football'dan alınan GERÇEK verilerle ${analysisType} analiz yap.
 
-MAÇLAR:
+⚠️ ÖNEMLİ: Aşağıdaki veriler API-Football'dan gerçek zamanlı çekilmiştir. Bu verilere göre analiz yap!
+
+MAÇLAR VE GERÇEK VERİLER:
 ${matchList}
 
 GÖREV:
-Her maç için şu tahminleri yüzde olarak ver:
+Yukarıdaki GERÇEK verileri kullanarak her maç için şu tahminleri yüzde olarak ver:
 1. MS1 (Ev sahibi kazanır): %X
 2. MSX (Beraberlik): %X
 3. MS2 (Deplasman kazanır): %X
@@ -82,12 +118,14 @@ ${detailed ? `7. İLK YARI MS1 (Ev sahibi ilk yarı önde): %X
 8. İLK YARI MSX (İlk yarı beraberlik): %X
 9. İLK YARI MS2 (Deplasman ilk yarı önde): %X` : ''}
 
-${detailed ? 'DETAYLI ANALİZ:' : 'KISA ANALİZ:'}
-- Takım formu ve son performans
-- Kafa kafaya istatistikler
-- Ev sahibi/deplasman avantajı
-- Önemli eksikler/sakatlıklar (tahminler)
-- Lig durumu ve motivasyon
+ANALİZ KRİTERLERİ:
+- Yukarıdaki API verilerini kullan (form, H2H, puan durumu)
+- Takım formunu dikkate al (G=Galibiyet, B=Beraberlik, M=Mağlubiyet)
+- Attıkları ve yedikleri gol sayısını değerlendir
+- Puan durumunu ve sıralamayı hesaba kat
+- H2H geçmişini önemse
+- Google Search ile güncel takım haberlerini kontrol et
+- Ev sahibi avantajını (genelde +10-15% şans) dahil et
 
 ÇIKTI FORMATI (JSON):
 Her maç için şu yapıda JSON döndür:
@@ -107,12 +145,14 @@ Her maç için şu yapıda JSON döndür:
   ...
 }
 
-ÖNEMLİ:
-- Sadece JSON formatında yanıt ver, başka metin ekleme
-- Yüzdeleri realistic tut (MS1+MSX+MS2 = 100)
-- Güven skoru (confidence) 0-100 arası
-- Recommendation kısa ve net olsun
-- Gerçekçi futbol analizi yap, rastgele değil`;
+KRITIK KURALLAR:
+1. SADECE JSON formatında yanıt ver, açıklama ekleme
+2. MS1+MSX+MS2 = 100 olmalı
+3. over25+under25 = 100 olmalı
+4. Confidence'ı API güven skoruna göre ayarla
+5. Recommendation'ı en yüksek ihtimalli seçeneklere göre yap
+6. AYNI MAÇ HER SEFERINDE AYNI SONUCU VERMELİ (tutarlılık)
+7. Gerçek verilere dayalı objektif analiz yap`;
   },
 
   parseAnalysisResponse(text: string, matches: MatchSelection[]): MatchAnalysis[] {

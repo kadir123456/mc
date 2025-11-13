@@ -22,16 +22,40 @@
     "coupons": {
       "$uid": {
         ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid"
+        ".write": "$uid === auth.uid",
+        "$couponId": {
+          ".read": "$uid === auth.uid",
+          ".write": "$uid === auth.uid"
+        }
       }
+    },
+    "payment_requests": {
+      "$requestId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "admins": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "transactions": {
+      "$transactionId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "banned_ips": {
+      ".read": false,
+      ".write": false
     },
     "popular_coupons": {
       ".read": true,
       ".write": false
     },
-    "admin": {
+    "ip_registrations": {
       ".read": false,
-      ".write": false
+      ".write": "auth != null"
     }
   }
 }

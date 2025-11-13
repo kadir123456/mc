@@ -85,7 +85,11 @@ async function fetchAndCacheMatches() {
           awayTeam: fixture.teams.away.name,
           league: fixture.league.name,
           date: date,
-          time: matchTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          time: matchTime.toLocaleTimeString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Europe/Istanbul'
+          }),
           timestamp: matchTime.getTime(),
           status: status === 'LIVE' || status === '1H' || status === '2H' ? 'live' : 'scheduled',
           lastUpdated: Date.now()

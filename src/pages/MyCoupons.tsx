@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Ticket, Calendar, TrendingUp, Share2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { couponService, Coupon } from '../services/couponService';
+import { translateLeague, formatMatchTime } from '../utils/leagueTranslations';
 
 export const MyCoupons: React.FC = () => {
   const navigate = useNavigate();
@@ -175,12 +176,12 @@ export const MyCoupons: React.FC = () => {
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <div className="text-xs text-blue-400 mb-1">{match.league}</div>
+                              <div className="text-xs text-blue-400 mb-1">{translateLeague(match.league)}</div>
                               <h4 className="text-white font-bold text-lg">
                                 {match.homeTeam} vs {match.awayTeam}
                               </h4>
                               <div className="text-xs text-slate-400 mt-1">
-                                {match.date} - {match.time}
+                                {new Date(match.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} - {match.time}
                               </div>
                             </div>
                             <div className="text-right">

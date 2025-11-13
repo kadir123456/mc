@@ -6,6 +6,7 @@ import { matchService, Match } from '../services/matchService';
 import { geminiAnalysisService } from '../services/geminiAnalysisService';
 import { couponService } from '../services/couponService';
 import { authService } from '../services/authService';
+import { translateLeague, formatMatchTime } from '../utils/leagueTranslations';
 
 export const Bulletin: React.FC = () => {
   const navigate = useNavigate();
@@ -278,7 +279,7 @@ export const Bulletin: React.FC = () => {
             {Object.keys(groupedMatches).map(league => (
               <div key={league} className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
                 <div className="bg-slate-700/50 px-3 py-1.5 border-b border-slate-600 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-200">{league}</h3>
+                  <h3 className="text-xs font-bold text-slate-200">{translateLeague(league)}</h3>
                   <span className="text-[10px] text-slate-400">
                     {getDateDisplay(groupedMatches[league][0].date)}
                   </span>
@@ -310,7 +311,7 @@ export const Bulletin: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <span className="text-[10px] text-slate-500 font-medium">{match.time}</span>
+                          <span className="text-[10px] text-slate-500 font-medium">{formatMatchTime(match.timestamp)}</span>
                         </div>
 
                         <div className="flex items-center justify-between">
