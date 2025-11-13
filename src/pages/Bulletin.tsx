@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, TrendingUp, Menu, X } from 'lucide-react';
+import { Zap, Menu, X, Info, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { MatchBulletin } from '../components/MatchBulletin';
-import { PopularCoupons } from '../components/PopularCoupons';
-import { ConfirmationModal } from '../components/ConfirmationModal';
-import { Match } from '../services/matchService';
+import { matchService, Match } from '../services/matchService';
 import { geminiAnalysisService } from '../services/geminiAnalysisService';
 import { couponService } from '../services/couponService';
 import { authService } from '../services/authService';
@@ -13,27 +10,46 @@ import { authService } from '../services/authService';
 export const Bulletin: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bulletin' | 'popular'>('bulletin');
+  const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Match[]>([]);
   const [analysisType, setAnalysisType] = useState<'standard' | 'detailed'>('standard');
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   const maxSelections = analysisType === 'standard' ? 3 : 5;
   const creditsRequired = analysisType === 'standard' ? 1 : 5;
 
-  const handleMatchSelect = (matches: Match[]) => {
-    setSelectedMatches(matches);
+  useEffect(() => {
+    loadMatches();
+  }, []);
+
+  const loadMatches = async () => {
+    try {
+      setLoading(true);
+      const upcomingMatches = await matchService.getAllUpcomingMatches();
+      setMatches(upcomingMatches);
+    } catch (error) {
+      console.error('Maç yükleme hatası:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePopularCouponSelect = (matches: Match[]) => {
-    setSelectedMatches(matches);
-    setAnalysisType('detailed');
-    setActiveTab('bulletin');
+  const toggleMatchSelection = (match: Match) => {
+    const isSelected = selectedMatches.some(m => m.fixtureId === match.fixtureId);
+
+    if (isSelected) {
+      setSelectedMatches(selectedMatches.filter(m => m.fixtureId !== match.fixtureId));
+    } else {
+      if (selectedMatches.length < maxSelections) {
+        setSelectedMatches([...selectedMatches, match]);
+      }
+    }
   };
 
-  const handleAnalyzeClick = () => {
+  const handleAnalyze = async () => {
     if (!user) {
       navigate('/login');
       return;
@@ -50,15 +66,14 @@ export const Bulletin: React.FC = () => {
       return;
     }
 
-    setShowConfirmation(true);
-  };
+    const confirmed = window.confirm(
+      `${selectedMatches.length} maç için ${creditsRequired} kredi harcanacak. Onaylıyor musunuz?`
+    );
 
-  const handleConfirmPurchase = async () => {
-    if (!user) return;
+    if (!confirmed) return;
 
     try {
-      setLoading(true);
-      setShowConfirmation(false);
+      setProcessing(true);
 
       const analysis = await geminiAnalysisService.analyzeMatches(
         selectedMatches,
@@ -84,7 +99,7 @@ export const Bulletin: React.FC = () => {
       console.error('Analiz hatası:', error);
       alert(error.message || 'Analiz yapılırken bir hata oluştu');
     } finally {
-      setLoading(false);
+      setProcessing(false);
     }
   };
 
@@ -106,45 +121,45 @@ export const Bulletin: React.FC = () => {
     );
   }
 
+  const groupedMatches: { [league: string]: Match[] } = {};
+  matches.forEach(match => {
+    if (!groupedMatches[match.league]) {
+      groupedMatches[match.league] = [];
+    }
+    groupedMatches[match.league].push(match);
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-24">
-      <header className="bg-slate-800/50 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-slate-900 pb-20">
+      <header className="bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 py-2.5">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Zap className="w-7 h-7 text-yellow-400" />
-                Aikupon
-              </h1>
+            <div className="flex items-center gap-2">
+              <Zap className="w-6 h-6 text-yellow-400" />
+              <h1 className="text-lg font-bold text-white">Aikupon</h1>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2 bg-slate-700 px-4 py-2 rounded-lg">
-                <Zap className="w-4 h-4 text-yellow-400" />
-                <span className="text-white font-medium">{user.credits} kredi</span>
+            <div className="flex items-center gap-2">
+              <div className="bg-slate-700/80 px-2.5 py-1.5 rounded text-xs font-medium text-yellow-400 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5" />
+                {user.credits}
               </div>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="sm:hidden p-2 text-slate-300 hover:text-white"
+                className="md:hidden p-1.5 text-slate-300 hover:text-white"
               >
-                {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           {menuOpen && (
-            <div className="sm:hidden mt-4 space-y-2">
-              <div className="bg-slate-700 px-4 py-3 rounded-lg">
-                <div className="flex items-center justify-between text-white">
-                  <span>Kredi:</span>
-                  <span className="font-bold">{user.credits}</span>
-                </div>
-              </div>
+            <div className="md:hidden mt-2 space-y-1.5">
               <button
                 onClick={() => {
                   navigate('/dashboard');
                   setMenuOpen(false);
                 }}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition"
               >
                 Kredi Al
               </button>
@@ -153,115 +168,157 @@ export const Bulletin: React.FC = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <div className="flex gap-2 mb-4">
+      <div className="max-w-7xl mx-auto px-3 py-3">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-white">Analiz Tipi</h3>
             <button
-              onClick={() => setActiveTab('bulletin')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition ${
-                activeTab === 'bulletin'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-300'
-              }`}
+              onClick={() => setShowInfo(!showInfo)}
+              className="text-slate-400 hover:text-white"
             >
-              Günlük Bülten
-            </button>
-            <button
-              onClick={() => setActiveTab('popular')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                activeTab === 'popular'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-slate-700 text-slate-300'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" />
-              Popüler Kuponlar
+              <Info className="w-4 h-4" />
             </button>
           </div>
 
-          {activeTab === 'bulletin' && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-4">
-              <p className="text-white font-medium mb-3">Analiz Tipi Seçin:</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => {
-                    setAnalysisType('standard');
-                    setSelectedMatches([]);
-                  }}
-                  className={`p-4 rounded-lg border-2 transition ${
-                    analysisType === 'standard'
-                      ? 'bg-blue-600/20 border-blue-500'
-                      : 'bg-slate-700 border-slate-600'
-                  }`}
-                >
-                  <div className="text-white font-bold mb-1">Standart</div>
-                  <div className="text-sm text-slate-300 mb-2">3 maç</div>
-                  <div className="text-yellow-400 font-bold">1 Kredi</div>
-                </button>
-                <button
-                  onClick={() => {
-                    setAnalysisType('detailed');
-                    setSelectedMatches([]);
-                  }}
-                  className={`p-4 rounded-lg border-2 transition ${
-                    analysisType === 'detailed'
-                      ? 'bg-purple-600/20 border-purple-500'
-                      : 'bg-slate-700 border-slate-600'
-                  }`}
-                >
-                  <div className="text-white font-bold mb-1">Detaylı</div>
-                  <div className="text-sm text-slate-300 mb-2">5 maç + İlk Yarı</div>
-                  <div className="text-yellow-400 font-bold">5 Kredi</div>
-                </button>
+          {showInfo && (
+            <div className="mb-2 p-2 bg-blue-900/20 border border-blue-700/30 rounded text-xs text-slate-300">
+              <strong className="text-blue-400">Standart:</strong> 3 maç, MS1-MSX-MS2, 2.5, KG (1 kredi)<br/>
+              <strong className="text-purple-400">Detaylı:</strong> 5 maç + ilk yarı tahminleri (5 kredi)
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                setAnalysisType('standard');
+                setSelectedMatches([]);
+              }}
+              className={`p-2 rounded border transition ${
+                analysisType === 'standard'
+                  ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+                  : 'bg-slate-700/50 border-slate-600 text-slate-400'
+              }`}
+            >
+              <div className="text-xs font-bold">Standart</div>
+              <div className="text-[10px] text-slate-400">3 maç • 1 kredi</div>
+            </button>
+            <button
+              onClick={() => {
+                setAnalysisType('detailed');
+                setSelectedMatches([]);
+              }}
+              className={`p-2 rounded border transition ${
+                analysisType === 'detailed'
+                  ? 'bg-purple-600/20 border-purple-500 text-purple-300'
+                  : 'bg-slate-700/50 border-slate-600 text-slate-400'
+              }`}
+            >
+              <div className="text-xs font-bold">Detaylı</div>
+              <div className="text-[10px] text-slate-400">5 maç • 5 kredi</div>
+            </button>
+          </div>
+
+          {selectedMatches.length > 0 && (
+            <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded">
+              <div className="text-xs text-yellow-400 font-medium">
+                Seçilen: {selectedMatches.length}/{maxSelections} maç
               </div>
             </div>
           )}
         </div>
 
-        {activeTab === 'bulletin' ? (
-          <MatchBulletin
-            onMatchSelect={handleMatchSelect}
-            maxSelections={maxSelections}
-            selectedMatches={selectedMatches}
-          />
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-3"></div>
+            <p className="text-sm text-slate-300">Maçlar yükleniyor...</p>
+          </div>
+        ) : matches.length === 0 ? (
+          <div className="text-center py-12 bg-slate-800/30 rounded-lg border border-slate-700">
+            <Clock className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+            <p className="text-slate-300 text-sm mb-1">Şu an için maç bulunmuyor</p>
+            <p className="text-slate-500 text-xs">Yakında maçlar eklenecek</p>
+          </div>
         ) : (
-          <PopularCoupons onSelectCoupon={handlePopularCouponSelect} />
+          <div className="space-y-3">
+            {Object.keys(groupedMatches).map(league => (
+              <div key={league} className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+                <div className="bg-slate-700/50 px-3 py-1.5 border-b border-slate-600">
+                  <h3 className="text-xs font-bold text-slate-200">{league}</h3>
+                </div>
+
+                <div className="divide-y divide-slate-700">
+                  {groupedMatches[league].map(match => {
+                    const isSelected = selectedMatches.some(m => m.fixtureId === match.fixtureId);
+                    const canSelect = selectedMatches.length < maxSelections || isSelected;
+
+                    return (
+                      <button
+                        key={match.fixtureId}
+                        onClick={() => canSelect && toggleMatchSelection(match)}
+                        disabled={!canSelect}
+                        className={`w-full text-left px-3 py-2.5 transition hover:bg-slate-700/30 ${
+                          isSelected ? 'bg-blue-600/10' : ''
+                        } ${!canSelect ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
+                            isSelected
+                              ? 'bg-blue-500 border-blue-500'
+                              : 'border-slate-600'
+                          }`}>
+                            {isSelected && (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">{match.time}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-white font-medium truncate">
+                              {match.homeTeam}
+                            </div>
+                            <div className="text-sm text-slate-300 truncate">
+                              {match.awayTeam}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 ml-3">
+                            <div className="bg-slate-700/50 px-2 py-1 rounded text-[10px] text-slate-400">
+                              Analiz
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {activeTab === 'bulletin' && selectedMatches.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700 p-4 z-50">
-          <div className="max-w-7xl mx-auto">
-            <button
-              onClick={handleAnalyzeClick}
-              disabled={selectedMatches.length !== maxSelections || loading}
-              className={`w-full px-6 py-4 rounded-lg font-bold text-lg transition ${
-                selectedMatches.length === maxSelections && !loading
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
-                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Analiz Ediliyor...
-                </div>
-              ) : (
-                `${selectedMatches.length}/${maxSelections} Maç Seçildi - ${creditsRequired} Kredi ile Analiz Et`
-              )}
-            </button>
-          </div>
+      {selectedMatches.length === maxSelections && (
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 p-3 z-50">
+          <button
+            onClick={handleAnalyze}
+            disabled={processing}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-3 rounded-lg font-bold text-sm transition"
+          >
+            {processing ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Analiz Ediliyor...
+              </div>
+            ) : (
+              `${selectedMatches.length} Maç • ${creditsRequired} Kredi ile Analiz Et`
+            )}
+          </button>
         </div>
       )}
-
-      <ConfirmationModal
-        isOpen={showConfirmation}
-        onClose={() => setShowConfirmation(false)}
-        onConfirm={handleConfirmPurchase}
-        matches={selectedMatches}
-        creditsRequired={creditsRequired}
-        analysisType={analysisType}
-      />
     </div>
   );
 };

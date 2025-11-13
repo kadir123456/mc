@@ -1,10 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Ticket, User, TrendingUp } from 'lucide-react';
+import { Home, Ticket, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { authUser } = useAuth();
+
+  if (!authUser) return null;
 
   const navItems = [
     { path: '/bulletin', icon: Home, label: 'Bülten' },
@@ -13,8 +17,8 @@ export const BottomNav: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700 z-50 sm:hidden">
-      <div className="grid grid-cols-3 gap-1 p-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 z-50 md:hidden">
+      <div className="grid grid-cols-3 px-2 py-1.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
