@@ -104,6 +104,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
         throw new Error('Görselde maç tespit edilemedi. Lütfen daha net bir görsel yükleyin.');
       }
 
+      // Kullanıcıyı bilgilendir
+      if (matches.length === 3) {
+        console.log('ℹ️ 3 maç tespit edildi (maksimum limit)');
+      }
+
       setDetectedMatches(matches);
       setEditedMatches(matches);
       setShowConfirmation(true);
@@ -333,9 +338,22 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onAnalysisComplete }) 
 
       {showConfirmation && detectedMatches && !loading && (
         <div className="mb-6 p-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 border-cyan-500/30 rounded-lg">
-          <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-            ✅ Tespit Edilen Maçlar
-          </h3>
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                ✅ Tespit Edilen Maçlar
+              </h3>
+              <p className="text-slate-300 text-sm mt-1">
+                {editedMatches.length} maç bulundu
+                {editedMatches.length === 3 && ' (maksimum limit)'}
+              </p>
+            </div>
+            {editedMatches.length === 3 && (
+              <div className="bg-cyan-500/20 border border-cyan-500/40 rounded-lg px-3 py-1.5">
+                <p className="text-cyan-300 text-xs font-medium">ℹ️ Max 3 maç</p>
+              </div>
+            )}
+          </div>
           <p className="text-slate-300 text-sm mb-4">
             Lütfen bilgileri kontrol edin. Düzeltmek isterseniz takım isimlerini düzenleyebilirsiniz.
           </p>

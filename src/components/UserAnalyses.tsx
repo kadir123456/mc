@@ -149,9 +149,17 @@ export const UserAnalyses: React.FC = () => {
             />
           </div>
 
-          {selectedAnalysis.analysis.finalCoupon && selectedAnalysis.analysis.finalCoupon.length > 0 && (
-            <div className="bg-white/95 rounded-xl shadow-lg p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-200">
+          {selectedAnalysis.status === 'completed' && selectedAnalysis.analysis.finalCoupon && selectedAnalysis.analysis.finalCoupon.length > 0 && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-lg p-4 sm:p-5 border-2 border-green-200">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-3xl">✅</span>
+                <div>
+                  <h3 className="text-xl font-bold text-green-800">Analiz Başarılı</h3>
+                  <p className="text-sm text-green-600">Detaylı sonuçlar aşağıda</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-green-200">
                 <div>
                   <h3 className="text-lg font-bold text-slate-800">Kupon Tutarı</h3>
                   <p className="text-xs text-slate-500">Toplam Oran</p>

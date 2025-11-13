@@ -8,6 +8,7 @@ import sportsradarService from './sportsradarService'; // ← YENİ!
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 const CACHE_EXPIRY_HOURS = 24;
+const MAX_MATCHES = 3; // Maximum 3 maç limiti
 
 interface CachedMatchData {
   matchId: string;
@@ -41,6 +42,8 @@ interface DetectedMatch {
 }
 
 const OCR_PROMPT = `Görseldeki bahis kuponunu DİKKATLİCE analiz et ve maç bilgilerini ÇOK NET çıkar.
+
+⚠️ ÇOK ÖNEMLİ: SADECE İLK 3 MAÇI TESPIT ET! Daha fazla maç varsa göz ardı et.
 
 ÖNEMLİ: U21, U19 gibi yaş gruplarını, Dünya Kupası, Avrupa Kupası gibi turnuva isimlerini MUTLAKA yaz!
 
@@ -266,7 +269,15 @@ export const analysisService = {
     }
 
     const result = JSON.parse(jsonMatch[0]);
-    return result.matches || [];
+    const matches = result.matches || [];
+
+    // Maximum 3 maç limiti
+    if (matches.length > MAX_MATCHES) {
+      console.warn(`⚠️ ${matches.length} maç tespit edildi, sadece ilk ${MAX_MATCHES} tanesi kullanılacak`);
+      return matches.slice(0, MAX_MATCHES);
+    }
+
+    return matches;
   },
 
   async getOrFetchMatchData(
@@ -305,10 +316,10 @@ export const analysisService = {
     return matchesWithData;
   },
 
-  // ✅ YENİ: Sportsradar ile veri çekme
+  // ✅ API-Football ile veri çekme (Gemini fallback YOK)
   async fetchMatchDataWithSportsradar(match: DetectedMatch): Promise<CachedMatchData> {
     try {
-      console.log(`🏟️ Sportsradar API'den veri çekiliyor: ${match.teamHome} vs ${match.teamAway}`);
+      console.log(`🏟️ API-Football'dan veri çekiliyor: ${match.teamHome} vs ${match.teamAway}`);
 
       const apiData = await sportsradarService.getMatchData(
         match.teamHome,
@@ -316,8 +327,8 @@ export const analysisService = {
         match.league
       );
 
-      if (apiData && apiData.confidenceScore >= 50) {
-        console.log('✅ Sportsradar verisi başarıyla kullanıldı');
+      if (apiData && apiData.confidenceScore >= 40) {
+        console.log(`✅ API-Football verisi kullanıldı (Confidence: ${apiData.confidenceScore}%)`);
 
         return {
           matchId: match.matchId,
@@ -335,92 +346,17 @@ export const analysisService = {
         };
       }
 
-      // ❌ Sportsradar başarısız, Gemini'ye geri dön
-      console.warn('⚠️ Sportsradar verisi yetersiz, Gemini Google Search kullanılıyor...');
-      return await this.fetchWithGemini(match);
-    } catch (error) {
-      console.error('Sportsradar hatası:', error);
-      return await this.fetchWithGemini(match);
+      // ❌ API-Football başarısız - Veri yetersiz
+      console.error('❌ API-Football verisi yetersiz veya bulunamadı');
+      throw new Error(`Maç verileri alınamadı: ${match.teamHome} vs ${match.teamAway}. Lüksemburg gibi küçük liglerde veri olmayabilir.`);
+    } catch (error: any) {
+      console.error('❌ API-Football hatası:', error.message);
+      throw error; // Hata yukarı ilet, kredi iade edilsin
     }
   },
 
-  // Gemini fallback (Google Search ile veri toplama)
-  async fetchWithGemini(match: DetectedMatch): Promise<CachedMatchData> {
-    console.log('🔄 Gemini Google Search kullanılıyor (fallback)');
-
-    const DATA_COLLECTION_PROMPT = `Sen profesyonel futbol ve uluslararası turnuva analiz uzmanısın.
-
-ÖNEMLİ: Bu ${match.league} turnuvasından bir maç!
-
-MAÇ BİLGİLERİ:
-- Ev Sahibi: ${match.teamHome}
-- Deplasman: ${match.teamAway}
-- Turnuva/Lig: ${match.league}
-- Tarih: ${match.date || 'Bugün'}
-
-GÖREV: Google Search ile GERÇEKZAMANLIMaç verilerini topla:
-
-1. "${match.teamHome} son maçlar ${match.league}" ara
-2. "${match.teamAway} son maçlar ${match.league}" ara
-3. "${match.teamHome} vs ${match.teamAway} h2h" ara
-4. "${match.teamHome} ${match.league} puan durumu" ara
-5. "${match.teamHome} sakatlıklar" ara
-
-ÖNEMLİ NOTLAR:
-- U21, U19 maçlarıysa genç takım verilerini ara
-- Dünya Kupası elemeleri ise eleme grup durumunu ara
-- Afrika elemeleri ise CAF puan durumunu ara
-
-ÇIKTI (JSON):
-{
-  "homeForm": "Son 5: G-G-B-G-M (3G 1B 1M) | 8 gol attı, 3 yedi",
-  "awayForm": "Son 5: M-K-B-G-K (1G 1B 3M) | 4 gol attı, 9 yedi",
-  "h2h": "Son 5 karşılaşma: 2-1, 0-0, 3-1, 1-2, 2-0 (Ev sahibi 3 galibiyet)",
-  "injuries": "Ev: 2 eksik oyuncu | Deplasman: 1 sakatlık var",
-  "leaguePosition": "Ev: 2. grup, 7 puan | Deplasman: 3. grup, 4 puan",
-  "confidenceScore": 65
-}
-
-KURALLAR:
-1. SADECE Google Search'ten bulduğun GERÇEKverileri kullan
-2. Bilgi yoksa "Veri bulunamadı" yaz, tahmin etme!
-3. Confidence skoru veri kalitesine göre belirle (30-100 arası)
-4. Form bilgisi mutlaka gol istatistikli olsun`;
-
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{ parts: [{ text: DATA_COLLECTION_PROMPT }] }],
-        tools: [{ googleSearch: {} }],
-        generationConfig: {
-          temperature: 0.2,
-          topK: 20,
-          topP: 0.8,
-          maxOutputTokens: 2048,
-        },
-      },
-      { timeout: 60000 }
-    );
-
-    const content = response.data.candidates[0].content.parts[0].text;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    const data = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-
-    return {
-      matchId: match.matchId,
-      teamHome: match.teamHome,
-      teamAway: match.teamAway,
-      league: match.league,
-      homeForm: data.homeForm || 'Veri bulunamadı',
-      awayForm: data.awayForm || 'Veri bulunamadı',
-      h2h: data.h2h || 'Veri bulunamadı',
-      injuries: data.injuries || 'Sakatlık bilgisi bulunamadı',
-      leaguePosition: data.leaguePosition || 'Puan durumu bilgisi yok',
-      lastUpdated: Date.now(),
-      dataSources: ['Google Search (Gemini Grounding)'],
-      confidenceScore: data.confidenceScore || 45,
-    };
-  },
+  // ❌ KALDIRILDI: Gemini fallback artık kullanılmıyor
+  // Sadece API-Football kullanılacak, başarısız olursa kredi iade edilecek
 
   async performFinalAnalysis(
     matchesWithData: Array<DetectedMatch & { cachedData: CachedMatchData }>
