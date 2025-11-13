@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { PricingPlans } from '../components/PricingPlans';
+import { BankTransferPayment } from '../components/BankTransferPayment';
 
 type TabType = 'pricing' | 'profile';
 
@@ -27,7 +27,7 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-16 md:pb-0">
       <nav className="bg-slate-800/50 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
@@ -104,8 +104,8 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-4 sm:p-8">
-          {activeTab === 'pricing' && <PricingPlans />}
+        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-3 md:p-6">
+          {activeTab === 'pricing' && <BankTransferPayment />}
           {activeTab === 'profile' && (
             <div className="text-slate-300">
               <h2 className="text-2xl font-bold text-white mb-6">Profil Bilgileri</h2>

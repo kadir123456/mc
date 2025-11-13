@@ -151,4 +151,15 @@ export const authService = {
   async resetPassword(email: string) {
     await sendPasswordResetEmail(auth, email);
   },
+
+  async createPaymentRequest(paymentData: any) {
+    const requestId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await set(ref(database, `payment_requests/${requestId}`), {
+      ...paymentData,
+      id: requestId,
+      createdAt: Date.now(),
+      status: 'pending'
+    });
+    return requestId;
+  },
 };

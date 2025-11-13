@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Menu, X, Info, Clock } from 'lucide-react';
+import { Zap, Menu, X, Info, Clock, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { matchService, Match } from '../services/matchService';
 import { geminiAnalysisService } from '../services/geminiAnalysisService';
@@ -17,9 +17,11 @@ export const Bulletin: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const maxSelections = analysisType === 'standard' ? 3 : 5;
-  const creditsRequired = analysisType === 'standard' ? 1 : 5;
+  const creditsRequired = analysisType === 'standard' ? 1 : (analysisType === 'detailed' ? 3 : 2);
 
   useEffect(() => {
     loadMatches();
@@ -35,6 +37,28 @@ export const Bulletin: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filteredMatches = useMemo(() => {
+    if (!searchQuery.trim()) return matches;
+
+    const query = searchQuery.toLowerCase();
+    return matches.filter(match =>
+      match.homeTeam.toLowerCase().includes(query) ||
+      match.awayTeam.toLowerCase().includes(query) ||
+      match.league.toLowerCase().includes(query)
+    );
+  }, [matches, searchQuery]);
+
+  const getDateDisplay = (dateStr: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    if (dateStr === today) return 'Bugün';
+    if (dateStr === tomorrow) return 'Yarın';
+
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
   };
 
   const toggleMatchSelection = (match: Match) => {
@@ -66,11 +90,11 @@ export const Bulletin: React.FC = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      `${selectedMatches.length} maç için ${creditsRequired} kredi harcanacak. Onaylıyor musunuz?`
-    );
+    setShowConfirmModal(true);
+  };
 
-    if (!confirmed) return;
+  const confirmAnalysis = async () => {
+    setShowConfirmModal(false);
 
     try {
       setProcessing(true);
@@ -130,7 +154,7 @@ export const Bulletin: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-900 pb-20">
+    <div className="min-h-screen bg-slate-900 pb-28 md:pb-20">
       <header className="bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 py-2.5">
           <div className="flex items-center justify-between">
@@ -165,6 +189,17 @@ export const Bulletin: React.FC = () => {
               </button>
             </div>
           )}
+
+          <div className="mt-2 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Takım veya lig ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-700 text-white text-sm rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none placeholder-slate-400"
+            />
+          </div>
         </div>
       </header>
 
@@ -232,18 +267,21 @@ export const Bulletin: React.FC = () => {
             <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-3"></div>
             <p className="text-sm text-slate-300">Maçlar yükleniyor...</p>
           </div>
-        ) : matches.length === 0 ? (
+        ) : filteredMatches.length === 0 ? (
           <div className="text-center py-12 bg-slate-800/30 rounded-lg border border-slate-700">
             <Clock className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-            <p className="text-slate-300 text-sm mb-1">Şu an için maç bulunmuyor</p>
+            <p className="text-slate-300 text-sm mb-1">{searchQuery ? 'Arama sonucu bulunamadı' : 'Şu an için maç bulunmuyor'}</p>
             <p className="text-slate-500 text-xs">Yakında maçlar eklenecek</p>
           </div>
         ) : (
           <div className="space-y-3">
             {Object.keys(groupedMatches).map(league => (
               <div key={league} className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
-                <div className="bg-slate-700/50 px-3 py-1.5 border-b border-slate-600">
+                <div className="bg-slate-700/50 px-3 py-1.5 border-b border-slate-600 flex items-center justify-between">
                   <h3 className="text-xs font-bold text-slate-200">{league}</h3>
+                  <span className="text-[10px] text-slate-400">
+                    {getDateDisplay(groupedMatches[league][0].date)}
+                  </span>
                 </div>
 
                 <div className="divide-y divide-slate-700">
@@ -302,11 +340,11 @@ export const Bulletin: React.FC = () => {
       </div>
 
       {selectedMatches.length === maxSelections && (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 p-3 z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 p-2 md:p-3 z-50 mb-12 md:mb-0">
           <button
             onClick={handleAnalyze}
             disabled={processing}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-3 rounded-lg font-bold text-sm transition"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-2.5 md:py-3 rounded-lg font-bold text-xs md:text-sm transition"
           >
             {processing ? (
               <div className="flex items-center justify-center gap-2">
@@ -317,6 +355,60 @@ export const Bulletin: React.FC = () => {
               `${selectedMatches.length} Maç • ${creditsRequired} Kredi ile Analiz Et`
             )}
           </button>
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border-2 border-blue-500/30 rounded-xl p-6 max-w-md w-full mx-4 animate-in zoom-in-95 duration-200">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Kredi Harcama Onayı</h3>
+              <p className="text-slate-300 text-sm">
+                {selectedMatches.length} maç için <span className="text-yellow-400 font-bold">{creditsRequired} kredi</span> harcanacak.
+              </p>
+            </div>
+
+            <div className="bg-slate-900/50 rounded-lg p-4 mb-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Seçilen Maç:</span>
+                  <span className="text-white font-medium">{selectedMatches.length} maç</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Analiz Tipi:</span>
+                  <span className="text-white font-medium">
+                    {analysisType === 'standard' ? 'Standart' : 'Detaylı'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-slate-700 pt-2">
+                  <span className="text-slate-400">Harcanan Kredi:</span>
+                  <span className="text-yellow-400 font-bold">{creditsRequired} kredi</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Kalan Kredi:</span>
+                  <span className="text-green-400 font-bold">{(user?.credits || 0) - creditsRequired} kredi</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+              >
+                İptal
+              </button>
+              <button
+                onClick={confirmAnalysis}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-bold transition"
+              >
+                Onayla
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

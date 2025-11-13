@@ -13,6 +13,7 @@ import { Privacy } from './pages/Privacy';
 import { TermsOfService } from './pages/TermsOfService';
 import { Contact } from './pages/Contact';
 import { HowToUse } from './pages/HowToUse';
+import { AdminPanel } from './pages/AdminPanel';
 import { BottomNav } from './components/BottomNav';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -44,6 +45,7 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/how-to-use" element={<HowToUse />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route
             path="/dashboard"
             element={
