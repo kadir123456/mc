@@ -8,22 +8,28 @@ const PYTR_API_URL = import.meta.env.VITE_PYTR_API_URL || 'https://api.pytr.io';
 export const packages: Package[] = [
   {
     id: 'pkg_5',
-    name: '5 Görsel Araması',
+    name: 'Başlangıç',
     searches: 5,
     price: 99,
   },
   {
-    id: 'pkg_20',
-    name: '20 Görsel Araması',
-    searches: 20,
-    price: 299,
+    id: 'pkg_12',
+    name: 'Standart',
+    searches: 12,
+    price: 199,
     popular: true,
   },
   {
-    id: 'pkg_50',
-    name: '50 Görsel Araması',
-    searches: 50,
-    price: 499,
+    id: 'pkg_30',
+    name: 'Profesyonel',
+    searches: 30,
+    price: 399,
+  },
+  {
+    id: 'pkg_100',
+    name: 'Expert',
+    searches: 100,
+    price: 999,
   },
 ];
 

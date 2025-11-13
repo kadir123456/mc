@@ -4,6 +4,8 @@ import { Home } from './pages/Home';
 import { Register } from './pages/Register';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Bulletin } from './pages/Bulletin';
+import { MyCoupons } from './pages/MyCoupons';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { About } from './pages/About';
 import { Terms } from './pages/Terms';
@@ -11,6 +13,7 @@ import { Privacy } from './pages/Privacy';
 import { TermsOfService } from './pages/TermsOfService';
 import { Contact } from './pages/Contact';
 import { HowToUse } from './pages/HowToUse';
+import { BottomNav } from './components/BottomNav';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { authUser, loading } = useAuth();
@@ -49,7 +52,24 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/bulletin"
+            element={
+              <ProtectedRoute>
+                <Bulletin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-coupons"
+            element={
+              <ProtectedRoute>
+                <MyCoupons />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
+        <BottomNav />
       </AuthProvider>
     </Router>
   );

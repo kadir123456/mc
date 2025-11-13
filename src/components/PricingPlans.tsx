@@ -29,9 +29,11 @@ export const PricingPlans: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold text-white mb-2">Kredi Satın Al</h2>
-      <p className="text-slate-400 mb-8">Her görsel analizi 1 kredi tüketir</p>
+      <p className="text-slate-400 mb-8">
+        Standart kupon (3 maç) = 1 kredi | Detaylı kupon (5 maç + ilk yarı) = 5 kredi
+      </p>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
@@ -39,7 +41,7 @@ export const PricingPlans: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {packages.map((pkg) => (
           <div
             key={pkg.id}
@@ -64,11 +66,19 @@ export const PricingPlans: React.FC = () => {
             <ul className="space-y-3 mb-8">
               <li className="flex items-start gap-3 text-slate-300">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span>{pkg.searches} görsel analizi</span>
+                <span>{pkg.searches} kredi</span>
               </li>
               <li className="flex items-start gap-3 text-slate-300">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span>Detaylı analiz raporları</span>
+                <span>{Math.floor(pkg.searches / 1)} standart kupon</span>
+              </li>
+              <li className="flex items-start gap-3 text-slate-300">
+                <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                <span>{Math.floor(pkg.searches / 5)} detaylı kupon</span>
+              </li>
+              <li className="flex items-start gap-3 text-slate-300">
+                <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                <span>Gemini AI analizi</span>
               </li>
               <li className="flex items-start gap-3 text-slate-300">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -98,20 +108,32 @@ export const PricingPlans: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-12 p-6 bg-slate-700/30 border border-slate-600 rounded-lg">
-        <h3 className="text-lg font-bold text-white mb-4">Ödeme Bilgileri</h3>
-        <p className="text-slate-300 mb-4">
-          Tüm ödemeler güvenli ödeme altyapısı ile işlenir.
-          Kredi kartı, banka transferi ve diğer ödeme yöntemlerini kabul ediyoruz.
-        </p>
-        <p className="text-slate-400 text-sm mb-3">
-          Ödeme işlemi sırasında Gizlilik Politikamız ve Kullanım Şartlarımız geçerlidir.
-        </p>
-        <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-4">
-          <p className="text-yellow-400 text-sm font-medium">
-            <strong>Önemli:</strong> Dijital ürün satışı olduğu için geri ödeme bulunmamaktadır.
-            Satın almadan önce paket içeriklerini dikkatlice inceleyiniz.
+      <div className="mt-12 space-y-6">
+        <div className="p-6 bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/30 rounded-lg">
+          <h3 className="text-lg font-bold text-white mb-4">🎁 İlk Kayıt Bonusu</h3>
+          <p className="text-slate-300 mb-2">
+            Yeni üyelerimize hoş geldin hediyesi olarak <strong className="text-blue-400">1 ÜCRETSİZ KREDİ</strong> veriyoruz!
           </p>
+          <p className="text-slate-400 text-sm">
+            Sistemi denemek için 1 standart kupon (3 maç) analizi yapabilirsiniz.
+          </p>
+        </div>
+
+        <div className="p-6 bg-slate-700/30 border border-slate-600 rounded-lg">
+          <h3 className="text-lg font-bold text-white mb-4">Ödeme Bilgileri</h3>
+          <p className="text-slate-300 mb-4">
+            Tüm ödemeler güvenli ödeme altyapısı ile işlenir.
+            Kredi kartı, banka transferi ve diğer ödeme yöntemlerini kabul ediyoruz.
+          </p>
+          <p className="text-slate-400 text-sm mb-3">
+            Ödeme işlemi sırasında Gizlilik Politikamız ve Kullanım Şartlarımız geçerlidir.
+          </p>
+          <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-4">
+            <p className="text-yellow-400 text-sm font-medium">
+              <strong>Önemli:</strong> Dijital ürün satışı olduğu için geri ödeme bulunmamaktadır.
+              Satın almadan önce paket içeriklerini dikkatlice inceleyiniz.
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Zap, ShoppingCart, LogOut, History, User as UserIcon } from 'lucide-react';
+import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { ImageUpload } from '../components/ImageUpload';
 import { PricingPlans } from '../components/PricingPlans';
-import { UserAnalyses } from '../components/UserAnalyses';
 
-type TabType = 'upload' | 'pricing' | 'history' | 'profile';
+type TabType = 'pricing' | 'profile';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('upload');
-  const [refreshHistory, setRefreshHistory] = useState(0);
+  const [activeTab, setActiveTab] = useState<TabType>('pricing');
 
   const handleLogout = async () => {
     await logout();
@@ -59,19 +56,29 @@ export const Dashboard: React.FC = () => {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <button
-            onClick={() => setActiveTab('upload')}
-            className={`p-4 rounded-lg border-2 transition ${
-              activeTab === 'upload'
-                ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
-            }`}
-          >
-            <Upload className="w-6 h-6 mx-auto mb-2" />
-            <p className="font-medium text-sm">Görsel Yükle</p>
-          </button>
+        <div className="mb-8 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-6">
+          <h2 className="text-2xl font-bold text-white mb-2">🎉 Hoş Geldiniz!</h2>
+          <p className="text-slate-300 mb-4">
+            Aikupon ile profesyonel maç analizlerine erişin. Bülten sayfasından maçları seçin ve Gemini AI ile detaylı tahmin analizleri alın.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate('/bulletin')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition flex items-center gap-2"
+            >
+              <TrendingUp className="w-5 h-5" />
+              Bültene Git
+            </button>
+            <button
+              onClick={() => navigate('/my-coupons')}
+              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+            >
+              Kuponlarım
+            </button>
+          </div>
+        </div>
 
+        <div className="grid grid-cols-2 gap-4 mb-8">
           <button
             onClick={() => setActiveTab('pricing')}
             className={`p-4 rounded-lg border-2 transition ${
@@ -82,18 +89,6 @@ export const Dashboard: React.FC = () => {
           >
             <ShoppingCart className="w-6 h-6 mx-auto mb-2" />
             <p className="font-medium text-sm">Kredi Al</p>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`p-4 rounded-lg border-2 transition ${
-              activeTab === 'history'
-                ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
-            }`}
-          >
-            <History className="w-6 h-6 mx-auto mb-2" />
-            <p className="font-medium text-sm">Geçmiş</p>
           </button>
 
           <button
@@ -110,36 +105,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-4 sm:p-8">
-          {activeTab === 'upload' && (
-            <>
-              <ImageUpload onAnalysisComplete={() => {
-                setRefreshHistory(prev => prev + 1);
-                setActiveTab('history');
-              }} />
-              <div className="mt-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Nasıl Kullanılır?
-                </h2>
-                <div className="space-y-2 text-slate-200 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0 text-xs">1</span>
-                    <p className="pt-0.5"><strong>Kupon görselinizi yükleyin:</strong>Kuponunuzun ekran görüntüsünü alın.</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0 text-xs">2</span>
-                    <p className="pt-0.5"><strong>AI analizi başlatsın:</strong> Yapay zeka kuponunuzdaki tüm maçları okuyup analiz yapar.</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-600/30 text-blue-300 rounded-full font-bold flex-shrink-0 text-xs">3</span>
-                    <p className="pt-0.5"><strong>Sonuçları inceleyin:</strong> Her maç için tahminler ve güven skorları görün.</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
           {activeTab === 'pricing' && <PricingPlans />}
-          {activeTab === 'history' && <UserAnalyses key={refreshHistory} />}
           {activeTab === 'profile' && (
             <div className="text-slate-300">
               <h2 className="text-2xl font-bold text-white mb-6">Profil Bilgileri</h2>

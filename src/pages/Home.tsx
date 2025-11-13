@@ -48,16 +48,16 @@ export const Home: React.FC = () => {
             </h1>
 
             <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Kupon görselinizi yükleyin, yapay zeka her maçı istatistiksel olarak analiz etsin.
-              Eğitim ve bilgilendirme amaçlı veri analizleri ile bilinçli kararlar alın.
+              Günlük maç bülteninden maç seçin, yapay zeka her maçı gerçek verilerle analiz etsin.
+              Profesyonel tahmin analizleri ile bilinçli kararlar alın.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Link
-                to="/register"
+                to="/bulletin"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg transition flex items-center gap-2 shadow-xl shadow-blue-600/20"
               >
-                Hemen Başla
+                Günlük Bülteni Görüntüle
                 <ChevronRight className="w-5 h-5" />
               </Link>
               <Link
@@ -97,9 +97,9 @@ export const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4">
                   <TrendingUp className="w-6 h-6 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">İstatistiksel Analiz</h3>
+                <h3 className="text-xl font-bold text-white mb-3">Gerçek Veri Analizi</h3>
                 <p className="text-slate-300">
-                  Her maç için takım formu, sakatlıklar, geçmiş karşılaşmalar ve gerçek istatistiksel veriler.
+                  Günlük güncellenen maç verileri, takım formu, lig durumu ve profesyonel tahmin analizleri.
                 </p>
               </div>
 
@@ -107,9 +107,9 @@ export const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center mb-4">
                   <BarChart3 className="w-6 h-6 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Veri Skorları</h3>
+                <h3 className="text-xl font-bold text-white mb-3">Güven Skorları</h3>
                 <p className="text-slate-300">
-                  Her analiz için 0-100 arası veri güvenilirlik puanı ve istatistiksel değerlendirmeler.
+                  Her maç analizi için 0-100 arası güven skoru, yüzde tahminleri ve profesyonel tavsiyeler.
                 </p>
               </div>
 
@@ -117,9 +117,9 @@ export const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center mb-4">
                   <Clock className="w-6 h-6 text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Hızlı Sonuç</h3>
+                <h3 className="text-xl font-bold text-white mb-3">Anlık Analiz</h3>
                 <p className="text-slate-300">
-                  Kuponunuzu yükleyin, 30 saniye içinde istatistiksel analiz alın.
+                  Maçları seçin, Gemini AI 30 saniye içinde detaylı tahmin analizi oluşturur.
                 </p>
               </div>
 
@@ -149,10 +149,10 @@ export const Home: React.FC = () => {
                   1
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Kupon Görselini Yükle</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Bültenden Maç Seç</h3>
                   <p className="text-slate-300 text-lg">
-                    Bahis sitesinden kuponunuzun ekran görüntüsünü alın veya fotoğrafını çekin.
-                    JPG, PNG veya WebP formatlarında yükleyebilirsiniz.
+                    Günlük güncellenen maç bülteninden istediğiniz maçları seçin.
+                    3 maç için 1 kredi, 5 maç + ilk yarı analizi için 5 kredi.
                   </p>
                 </div>
               </div>
@@ -162,10 +162,10 @@ export const Home: React.FC = () => {
                   2
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">AI Analizi Başlasın</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Gemini AI Analizi</h3>
                   <p className="text-slate-300 text-lg">
-                    Yapay zeka kuponunuzdaki tüm maçları okur, takımları tanır ve
-                    her maç için detaylı analiz yapar. Saniyeler içinde sonuç!
+                    Google Gemini AI seçtiğiniz maçları gerçek verilerle analiz eder.
+                    MS1, MSX, MS2, 2.5 Üst/Alt, KG ve ilk yarı tahminleri.
                   </p>
                 </div>
               </div>
@@ -175,10 +175,10 @@ export const Home: React.FC = () => {
                   3
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Sonuçları İncele</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Kuponlarımda Görüntüle</h3>
                   <p className="text-slate-300 text-lg">
-                    Her maç için istatistiksel değerlendirmeler, veri skorları ve analiz önerileri görün.
-                    Tüm analizler eğitim amaçlı kaydedilir.
+                    Detaylı analiz sonuçları "Kuponlarım" sayfasında saklanır.
+                    Yüzde tahminleri, güven skorları ve öneriler ile bilinçli kararlar alın.
                   </p>
                 </div>
               </div>
