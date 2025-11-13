@@ -8,17 +8,25 @@ export const UserAnalyses: React.FC = () => {
   const { user } = useAuth();
   const [analyses, setAnalyses] = useState<CouponAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState<CouponAnalysis | null>(null);
   const [expandedMatches, setExpandedMatches] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const loadAnalyses = async () => {
-      if (!user) return;
+      // ✅ KRITIK FIX: User yoksa işlem yapma
+      if (!user || !user.uid) {
+        setLoading(false);
+        return;
+      }
+
       try {
+        setError(null);
         const data = await analysisService.getUserAnalyses(user.uid);
         setAnalyses(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Analizler yüklenemedi:', error);
+        setError(error.message || 'Analizler yüklenirken hata oluştu');
       } finally {
         setLoading(false);
       }
@@ -31,10 +39,43 @@ export const UserAnalyses: React.FC = () => {
     setExpandedMatches((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
   };
 
+  // ✅ User yoksa loading göster
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-blue-400 mx-auto mb-4" />
+          <p className="text-slate-400">Kullanıcı bilgileri yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader className="w-8 h-8 animate-spin text-blue-400" />
+        <div className="text-center">
+          <Loader className="w-8 h-8 animate-spin text-blue-400 mx-auto mb-4" />
+          <p className="text-slate-400">Analizler yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Hata durumu
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 max-w-md mx-auto">
+          <p className="text-red-400 font-semibold mb-2">❌ Hata Oluştu</p>
+          <p className="text-slate-300 text-sm">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+          >
+            Sayfayı Yenile
+          </button>
+        </div>
       </div>
     );
   }
@@ -42,8 +83,13 @@ export const UserAnalyses: React.FC = () => {
   if (analyses.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-400 mb-4">Henüz analiz yok</p>
-        <p className="text-slate-500 text-sm">Kupon görseli yükleyerek başla</p>
+        <div className="bg-slate-700/30 border border-slate-600 rounded-lg p-8 max-w-md mx-auto">
+          <div className="text-6xl mb-4">📊</div>
+          <p className="text-white font-semibold text-lg mb-2">Henüz analiz yok</p>
+          <p className="text-slate-400 text-sm">
+            Kupon görseli yükleyerek ilk analizinizi başlatın
+          </p>
+        </div>
       </div>
     );
   }
@@ -133,7 +179,7 @@ export const UserAnalyses: React.FC = () => {
               <div>
                 <h4 className="text-white font-medium mb-1">Gerçek Zamanlı Veri Analizi</h4>
                 <p className="text-slate-300 text-sm">
-                  Bu analiz, Google Search ile toplanan güncel verilerle yapılmıştır.
+                  Bu analiz, Sportsradar API ve Google Search ile toplanan güncel verilerle yapılmıştır.
                   Her maç için takım formu, sakatlıklar ve istatistikler gerçek zamanlı olarak toplanmıştır.
                 </p>
               </div>
@@ -173,7 +219,7 @@ export const UserAnalyses: React.FC = () => {
                       <span className={`font-medium ${confidenceColor}`}>
                         Güven: {Math.max(
                           match.predictions.ms1.confidence,
-                          match.predictions.ms2.confidence,
+                          match.predictions.ms2?.confidence || 0,
                           match.predictions.beraberlik?.confidence || 0
                         )}%
                       </span>
@@ -194,21 +240,27 @@ export const UserAnalyses: React.FC = () => {
                           Tahmin Oranları
                         </h5>
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-slate-700 rounded p-2 text-center">
-                            <p className="text-slate-400 text-xs mb-1">MS1</p>
-                            <p className="text-white font-bold">{match.predictions.ms1.odds}</p>
-                            <p className="text-xs text-slate-400">{match.predictions.ms1.confidence}%</p>
-                          </div>
-                          <div className="bg-slate-700 rounded p-2 text-center">
-                            <p className="text-slate-400 text-xs mb-1">Beraberlik</p>
-                            <p className="text-white font-bold">{match.predictions.beraberlik.odds}</p>
-                            <p className="text-xs text-slate-400">{match.predictions.beraberlik.confidence}%</p>
-                          </div>
-                          <div className="bg-slate-700 rounded p-2 text-center">
-                            <p className="text-slate-400 text-xs mb-1">MS2</p>
-                            <p className="text-white font-bold">{match.predictions.ms2.odds}</p>
-                            <p className="text-xs text-slate-400">{match.predictions.ms2.confidence}%</p>
-                          </div>
+                          {match.predictions.ms1 && (
+                            <div className="bg-slate-700 rounded p-2 text-center">
+                              <p className="text-slate-400 text-xs mb-1">MS1</p>
+                              <p className="text-white font-bold">{match.predictions.ms1.odds}</p>
+                              <p className="text-xs text-slate-400">{match.predictions.ms1.confidence}%</p>
+                            </div>
+                          )}
+                          {match.predictions.beraberlik && (
+                            <div className="bg-slate-700 rounded p-2 text-center">
+                              <p className="text-slate-400 text-xs mb-1">Beraberlik</p>
+                              <p className="text-white font-bold">{match.predictions.beraberlik.odds}</p>
+                              <p className="text-xs text-slate-400">{match.predictions.beraberlik.confidence}%</p>
+                            </div>
+                          )}
+                          {match.predictions.ms2 && (
+                            <div className="bg-slate-700 rounded p-2 text-center">
+                              <p className="text-slate-400 text-xs mb-1">MS2</p>
+                              <p className="text-white font-bold">{match.predictions.ms2.odds}</p>
+                              <p className="text-xs text-slate-400">{match.predictions.ms2.confidence}%</p>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -231,14 +283,18 @@ export const UserAnalyses: React.FC = () => {
                               <p className="text-slate-400 text-xs mb-1">Kafa Kafaya (H2H)</p>
                               <p className="text-slate-200">{match.realData.h2h}</p>
                             </div>
-                            <div className="bg-slate-700/50 rounded p-2">
-                              <p className="text-slate-400 text-xs mb-1">Sakatlıklar</p>
-                              <p className="text-slate-200">{match.realData.injuries}</p>
-                            </div>
-                            <div className="bg-slate-700/50 rounded p-2">
-                              <p className="text-slate-400 text-xs mb-1">Lig Durumu</p>
-                              <p className="text-slate-200">{match.realData.leaguePosition}</p>
-                            </div>
+                            {match.realData.injuries && (
+                              <div className="bg-slate-700/50 rounded p-2">
+                                <p className="text-slate-400 text-xs mb-1">Sakatlıklar</p>
+                                <p className="text-slate-200">{match.realData.injuries}</p>
+                              </div>
+                            )}
+                            {match.realData.leaguePosition && (
+                              <div className="bg-slate-700/50 rounded p-2">
+                                <p className="text-slate-400 text-xs mb-1">Lig Durumu</p>
+                                <p className="text-slate-200">{match.realData.leaguePosition}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -256,9 +312,11 @@ export const UserAnalyses: React.FC = () => {
                             <p className="text-slate-300">
                               Kaynak Sayısı: <span className="font-bold text-cyan-400">{dataQuality.sources}</span>
                             </p>
-                            <p className="text-slate-300">
-                              Son Güncelleme: <span className="font-bold text-cyan-400">{dataQuality.lastUpdated}</span>
-                            </p>
+                            {dataQuality.lastUpdated && (
+                              <p className="text-slate-300">
+                                Son Güncelleme: <span className="font-bold text-cyan-400">{dataQuality.lastUpdated}</span>
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
@@ -269,7 +327,7 @@ export const UserAnalyses: React.FC = () => {
             })}
           </div>
 
-          {selectedAnalysis.analysis.recommendations.length > 0 && (
+          {selectedAnalysis.analysis.recommendations && selectedAnalysis.analysis.recommendations.length > 0 && (
             <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-4">
               <h3 className="text-base font-bold text-white mb-3">💡 Notlar</h3>
               <div className="space-y-2">
