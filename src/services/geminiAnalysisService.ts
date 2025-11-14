@@ -30,10 +30,19 @@ export const geminiAnalysisService = {
 
       const prompt = this.buildAnalysisPrompt(matches, matchesData, detailedAnalysis);
 
-      // ✅ Backend proxy üzerinden istek (CORS sorunu yok)
+      // ✅ Backend proxy üzerinden istek (Football API istatistikleri ile)
       const response = await axios.post(
         GEMINI_PROXY_URL,
         {
+          matches: matches.map(m => ({
+            homeTeam: m.homeTeam,
+            awayTeam: m.awayTeam,
+            league: m.league,
+            homeTeamId: m.homeTeamId || null,
+            awayTeamId: m.awayTeamId || null,
+            leagueId: m.leagueId || null,
+            fixtureId: m.fixtureId || null
+          })),
           contents: [{
             parts: [{
               text: prompt
@@ -44,21 +53,13 @@ export const geminiAnalysisService = {
             topK: 20,
             topP: 0.9,
             maxOutputTokens: 3072,
-          },
-          tools: [{
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: "MODE_DYNAMIC",
-                dynamicThreshold: 0.3
-              }
-            }
-          }]
+          }
         },
         {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 45000
+          timeout: 60000
         }
       );
 
