@@ -216,15 +216,15 @@ export const MyCoupons: React.FC = () => {
                             <div className="grid grid-cols-3 gap-2 mb-3">
                               <div className="bg-slate-800/50 rounded-lg p-2 text-center">
                                 <div className="text-xs text-slate-400 mb-1">MS1</div>
-                                <div className="text-sm font-bold text-white">%{match.prediction.home}</div>
+                                <div className="text-sm font-bold text-white">%{match.predictions.ms1}</div>
                               </div>
                               <div className="bg-slate-800/50 rounded-lg p-2 text-center">
                                 <div className="text-xs text-slate-400 mb-1">X</div>
-                                <div className="text-sm font-bold text-white">%{match.prediction.draw}</div>
+                                <div className="text-sm font-bold text-white">%{match.predictions.msX}</div>
                               </div>
                               <div className="bg-slate-800/50 rounded-lg p-2 text-center">
                                 <div className="text-xs text-slate-400 mb-1">MS2</div>
-                                <div className="text-sm font-bold text-white">%{match.prediction.away}</div>
+                                <div className="text-sm font-bold text-white">%{match.predictions.ms2}</div>
                               </div>
                             </div>
 
