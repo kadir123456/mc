@@ -6,6 +6,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Bulletin } from './pages/Bulletin';
 import { MyCoupons } from './pages/MyCoupons';
+import { ImageAnalysis } from './pages/ImageAnalysis';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { About } from './pages/About';
 import { Terms } from './pages/Terms';
