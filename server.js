@@ -38,7 +38,8 @@ app.use(express.json());
 // API credentials
 const SPORTSRADAR_API_KEY = process.env.VITE_SPORTSRADAR_API_KEY;
 const SPORTSRADAR_API_BASE = process.env.VITE_SPORTSRADAR_API_BASE_URL || 'https://api.sportradar.com';
-const FOOTBALL_API_KEY = process.env.VITE_FOOTBALL_API_KEY;
+const FOOTBALL_API_KEY = process.env.VITE_FOOTBALL_API_KEY || process.env.VITE_API_FOOTBALL_KEY;
+const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY;
 
 let lastMatchFetch = 0;
 const FETCH_INTERVAL = 60 * 60 * 1000;
@@ -83,6 +84,49 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 🆕 API-Football Proxy Endpoint (CORS sorununu çözer)
+app.get('/api/football/*', async (req, res) => {
+  try {
+    const endpoint = req.params[0];
+    
+    if (!FOOTBALL_API_KEY) {
+      return res.status(500).json({ error: 'API-Football key yapılandırılmamış' });
+    }
+
+    console.log(`📡 API-Football isteği: ${endpoint}`, req.query);
+
+    const response = await axios.get(
+      `https://v3.football.api-sports.io/${endpoint}`,
+      {
+        params: req.query,
+        headers: {
+          'x-apisports-key': FOOTBALL_API_KEY,
+        },
+        timeout: 30000,
+      }
+    );
+
+    console.log(`✅ API yanıtı alındı: ${endpoint}`);
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('❌ API-Football hatası:', error.response?.data || error.message);
+    
+    if (error.response?.status === 429) {
+      return res.status(429).json({ error: 'Rate limit aşıldı' });
+    }
+    
+    if (error.response?.status === 401) {
+      return res.status(401).json({ error: 'API key geçersiz' });
+    }
+
+    res.status(500).json({ 
+      error: 'API isteği başarısız',
+      details: error.message 
+    });
+  }
+});
+
 // Sportsradar Proxy Endpoint
 app.get('/api/sportsradar-proxy', async (req, res) => {
   try {
@@ -118,6 +162,38 @@ app.get('/api/sportsradar-proxy', async (req, res) => {
       error: 'API hatası',
       details: errorData,
       endpoint: req.query.endpoint
+    });
+  }
+});
+
+// 🆕 Gemini Proxy Endpoint (CORS sorununu çözer)
+app.post('/api/gemini/analyze', async (req, res) => {
+  try {
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
+    }
+
+    console.log('🤖 Gemini analiz isteği alındı');
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      req.body,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 45000
+      }
+    );
+
+    console.log('✅ Gemini analiz tamamlandı');
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('❌ Gemini API hatası:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({ 
+      error: 'Gemini analiz hatası',
+      details: error.response?.data || error.message 
     });
   }
 });
@@ -170,13 +246,19 @@ async function fetchAndCacheMatches(forceUpdate = false) {
     const processMatches = (fixtures, date) => {
       const matches = {};
       let count = 0;
+      const now = Date.now();
 
       fixtures.forEach(fixture => {
         const status = fixture.fixture.status.short;
         const matchTime = new Date(fixture.fixture.date);
-        const now = Date.now();
 
-        if (status === 'FT' || status === 'AET' || status === 'PEN' || matchTime.getTime() < now - 3600000) {
+        // ✅ Bitmiş maçları filtrele
+        if (status === 'FT' || status === 'AET' || status === 'PEN') {
+          return;
+        }
+
+        // ✅ 1 saatten eski maçları gösterme
+        if (matchTime.getTime() < now - 3600000) {
           return;
         }
 
@@ -184,15 +266,18 @@ async function fetchAndCacheMatches(forceUpdate = false) {
           return;
         }
 
+        // ✅ Türkiye saatine çevir (UTC+3)
+        const turkeyTime = new Date(matchTime.getTime() + (3 * 60 * 60 * 1000));
+        
         matches[fixture.fixture.id] = {
           homeTeam: fixture.teams.home.name,
           awayTeam: fixture.teams.away.name,
           league: fixture.league.name,
           date: date,
-          time: matchTime.toLocaleTimeString('tr-TR', {
+          time: turkeyTime.toLocaleTimeString('tr-TR', {
             hour: '2-digit',
             minute: '2-digit',
-            timeZone: 'Europe/Istanbul'
+            hour12: false
           }),
           timestamp: matchTime.getTime(),
           status: status === 'LIVE' || status === '1H' || status === '2H' ? 'live' : 'scheduled',
@@ -227,9 +312,37 @@ async function cleanFinishedMatches() {
   if (!firebaseDb) return;
 
   try {
+    console.log('🧹 Eski maçlar temizleniyor...');
+    
+    // ✅ Dünün ve bugünün maçlarını kontrol et
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    
+    const dates = [yesterday, today];
+    let deletedCount = 0;
+
+    for (const date of dates) {
+      const snapshot = await firebaseDb.ref(`matches/${date}`).once('value');
+      
+      if (snapshot.exists()) {
+        const matchesData = snapshot.val();
+        
+        for (const fixtureId of Object.keys(matchesData)) {
+          const match = matchesData[fixtureId];
+          
+          // ✅ Bitmiş veya 6 saatten eski maçları sil
+          if (match.status === 'finished' || match.timestamp < Date.now() - 21600000) {
+            await firebaseDb.ref(`matches/${date}/${fixtureId}`).remove();
+            deletedCount++;
+          }
+        }
+      }
+    }
+
+    // ✅ Dünün tüm verilerini temizle
     await firebaseDb.ref(`matches/${yesterday}`).remove();
-    console.log(`🧹 Cleaned up matches from ${yesterday}`);
+    
+    console.log(`✅ ${deletedCount} geçmiş maç temizlendi`);
   } catch (error) {
     console.error('❌ Cleanup error:', error.message);
   }

@@ -61,11 +61,14 @@ export function translateLeague(leagueName: string): string {
 }
 
 export function formatMatchTime(timestamp: number): string {
+  // ✅ Türkiye saatine çevir (UTC+3)
   const date = new Date(timestamp);
-  return date.toLocaleTimeString('tr-TR', {
+  const turkeyTime = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+  
+  return turkeyTime.toLocaleTimeString('tr-TR', {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'Europe/Istanbul'
+    hour12: false
   });
 }
 

@@ -3,8 +3,8 @@ import { MatchSelection } from './matchService';
 import { MatchAnalysis } from './couponService';
 import sportsradarService from './sportsradarService';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+// ✅ Backend proxy kullanılacak (CORS sorununu çözer)
+const GEMINI_PROXY_URL = '/api/gemini/analyze';
 
 interface MatchData {
   fixtureId: number;
@@ -40,8 +40,9 @@ export const geminiAnalysisService = {
 
       const prompt = this.buildAnalysisPrompt(matches, matchesData, detailedAnalysis);
 
+      // ✅ Backend proxy üzerinden istek (CORS sorunu yok)
       const response = await axios.post(
-        `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+        GEMINI_PROXY_URL,
         {
           contents: [{
             parts: [{

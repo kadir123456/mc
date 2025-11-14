@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// ✅ BACKEND PROXY URL - Render.com'daki backend servisinizin URL'i
-const BACKEND_PROXY_URL = import.meta.env.VITE_BACKEND_PROXY_URL || 'http://localhost:3001';
+// ✅ Backend aynı sunucuda çalışıyor, relatif URL kullan
+const BACKEND_PROXY_URL = '';
 
 // Cache
 const requestCache = new Map<string, { data: any; timestamp: number }>();

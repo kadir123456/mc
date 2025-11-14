@@ -22,25 +22,16 @@ export interface MatchSelection {
   time: string;
 }
 
-// ✅ Türkiye saati için timezone offset
-const TURKEY_OFFSET = 3; // UTC+3
-
-// ✅ Türkiye saatine çevir
-function toTurkeyDate(timestamp: number): Date {
-  const date = new Date(timestamp);
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  return new Date(utc + (3600000 * TURKEY_OFFSET));
-}
-
-// ✅ Türkiye saatinde bugünün tarihini al
+// ✅ Türkiye saati için timezone (UTC+3)
 function getTurkeyToday(): string {
-  const now = toTurkeyDate(Date.now());
-  return now.toISOString().split('T')[0];
+  const now = new Date();
+  const turkeyTime = new Date(now.getTime() + (3 * 60 * 60 * 1000));
+  return turkeyTime.toISOString().split('T')[0];
 }
 
-// ✅ Türkiye saatinde yarının tarihini al
 function getTurkeyTomorrow(): string {
-  const tomorrow = toTurkeyDate(Date.now() + 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + (27 * 60 * 60 * 1000)); // +24 saat + 3 saat timezone
   return tomorrow.toISOString().split('T')[0];
 }
 
