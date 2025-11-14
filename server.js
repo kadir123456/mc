@@ -209,6 +209,273 @@ app.post('/api/gemini/analyze', async (req, res) => {
   }
 });
 
+// 🆕 Kupon Görseli Analiz Endpoint
+app.post('/api/analyze-coupon-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Görsel dosyası gerekli' });
+    }
+
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
+    }
+
+    console.log('🖼️  Kupon görseli alındı, boyut:', req.file.size, 'bytes');
+
+    // Convert image to base64
+    const imageBase64 = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype || 'image/jpeg';
+
+    // Step 1: OCR ile metin çıkarma (Gemini Vision API)
+    console.log('📝 OCR işlemi başlatılıyor...');
+    
+    const ocrPrompt = `Bu bahis kuponundaki tüm maç bilgilerini çıkar. 
+Her maç için şu formatta bilgi ver:
+- Ev Sahibi Takım adı
+- Deplasman Takım adı  
+- Lig/Turnuva adı (varsa)
+
+Sadece maç bilgilerini ver, diğer metinleri (oran, tarih vb.) görmezden gel.
+Her maçı ayrı satırda listele. Format: "Ev Sahibi vs Deplasman - Lig"`;
+
+    const ocrResponse = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [
+            { text: ocrPrompt },
+            {
+              inline_data: {
+                mime_type: mimeType,
+                data: imageBase64
+              }
+            }
+          ]
+        }]
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000
+      }
+    );
+
+    const ocrText = ocrResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('✅ OCR tamamlandı');
+    console.log('📄 Çıkarılan metin:', ocrText);
+
+    // Step 2: Maç isimlerini parse et ve temizle
+    const matches = parseMatchesFromText(ocrText);
+    console.log(`🔍 ${matches.length} maç bulundu`);
+
+    if (matches.length === 0) {
+      return res.json({
+        success: false,
+        message: 'Görselde maç bilgisi bulunamadı',
+        ocrText,
+        matches: []
+      });
+    }
+
+    // Step 3: Football API'den maçları ara ve eşleştir
+    console.log('⚽ Maçlar Football API\'den aranıyor...');
+    const matchedMatches = await findMatchesInAPI(matches);
+    console.log(`✅ ${matchedMatches.length} maç eşleştirildi`);
+
+    // Step 4: Eşleşen maçları Gemini ile analiz et
+    if (matchedMatches.length > 0) {
+      console.log('🤖 Gemini ile analiz başlatılıyor...');
+      
+      const analysisPrompt = generateAnalysisPrompt(matchedMatches);
+      
+      const analysisResponse = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          contents: [{ parts: [{ text: analysisPrompt }] }]
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 60000
+        }
+      );
+
+      const analysis = analysisResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz yapılamadı';
+      console.log('✅ Analiz tamamlandı');
+
+      return res.json({
+        success: true,
+        ocrText,
+        extractedMatches: matches,
+        matchedMatches,
+        analysis
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Maçlar çıkarıldı ama API\'de eşleştirilemedi',
+      ocrText,
+      extractedMatches: matches,
+      matchedMatches: []
+    });
+
+  } catch (error) {
+    console.error('❌ Kupon analizi hatası:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Kupon analizi başarısız',
+      details: error.message 
+    });
+  }
+});
+
+// Yardımcı fonksiyonlar
+function parseMatchesFromText(text) {
+  const matches = [];
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    // Format: "Home vs Away - League" veya "Home - Away (League)"
+    const vsMatch = line.match(/(.+?)\s+vs\.?\s+(.+?)(?:\s*-\s*(.+))?$/i);
+    const dashMatch = line.match(/(.+?)\s*-\s*(.+?)(?:\s*\((.+?)\))?$/);
+    
+    if (vsMatch) {
+      matches.push({
+        homeTeam: cleanTeamName(vsMatch[1]),
+        awayTeam: cleanTeamName(vsMatch[2]),
+        league: vsMatch[3] ? cleanLeagueName(vsMatch[3]) : null
+      });
+    } else if (dashMatch && !line.includes('€') && !line.includes('TL')) {
+      matches.push({
+        homeTeam: cleanTeamName(dashMatch[1]),
+        awayTeam: cleanTeamName(dashMatch[2]),
+        league: dashMatch[3] ? cleanLeagueName(dashMatch[3]) : null
+      });
+    }
+  }
+  
+  return matches;
+}
+
+function cleanTeamName(name) {
+  return name
+    .trim()
+    .replace(/^\d+[\.\)]\s*/, '') // Başlangıçtaki sayıları kaldır
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\sğüşöçİĞÜŞÖÇ\-]/gi, '');
+}
+
+function cleanLeagueName(name) {
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\sğüşöçİĞÜŞÖÇ\-]/gi, '');
+}
+
+async function findMatchesInAPI(extractedMatches) {
+  const matched = [];
+  
+  // Get today and tomorrow matches
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  try {
+    // Fetch matches from API
+    const todayResponse = await axios.get('https://v3.football.api-sports.io/fixtures', {
+      headers: { 'x-apisports-key': FOOTBALL_API_KEY },
+      params: { date: today },
+      timeout: 15000
+    });
+
+    const tomorrowResponse = await axios.get('https://v3.football.api-sports.io/fixtures', {
+      headers: { 'x-apisports-key': FOOTBALL_API_KEY },
+      params: { date: tomorrow },
+      timeout: 15000
+    });
+
+    const allFixtures = [
+      ...(todayResponse.data?.response || []),
+      ...(tomorrowResponse.data?.response || [])
+    ];
+
+    // Match each extracted match
+    for (const extracted of extractedMatches) {
+      const match = findBestMatch(extracted, allFixtures);
+      if (match) {
+        matched.push({
+          extracted,
+          apiMatch: {
+            fixtureId: match.fixture.id,
+            homeTeam: match.teams.home.name,
+            awayTeam: match.teams.away.name,
+            league: match.league.name,
+            date: match.fixture.date,
+            status: match.fixture.status.short
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ API eşleştirme hatası:', error.message);
+  }
+  
+  return matched;
+}
+
+function findBestMatch(extracted, fixtures) {
+  let bestMatch = null;
+  let bestScore = 0;
+  
+  for (const fixture of fixtures) {
+    const homeTeamApi = fixture.teams.home.name.toLowerCase();
+    const awayTeamApi = fixture.teams.away.name.toLowerCase();
+    const homeTeamExtracted = extracted.homeTeam.toLowerCase();
+    const awayTeamExtracted = extracted.awayTeam.toLowerCase();
+    
+    // Simple similarity check
+    const homeScore = calculateSimilarity(homeTeamExtracted, homeTeamApi);
+    const awayScore = calculateSimilarity(awayTeamExtracted, awayTeamApi);
+    const totalScore = homeScore + awayScore;
+    
+    if (totalScore > bestScore && totalScore > 1.0) { // Minimum similarity threshold
+      bestScore = totalScore;
+      bestMatch = fixture;
+    }
+  }
+  
+  return bestMatch;
+}
+
+function calculateSimilarity(str1, str2) {
+  // Simple contains check with scoring
+  if (str1 === str2) return 2.0;
+  if (str1.includes(str2) || str2.includes(str1)) return 1.5;
+  
+  // Check word overlap
+  const words1 = str1.split(/\s+/);
+  const words2 = str2.split(/\s+/);
+  const overlap = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)));
+  
+  return overlap.length * 0.5;
+}
+
+function generateAnalysisPrompt(matchedMatches) {
+  let prompt = `Aşağıdaki bahis kuponu için profesyonel analiz yap:\n\n`;
+  
+  matchedMatches.forEach((match, index) => {
+    prompt += `${index + 1}. ${match.apiMatch.homeTeam} vs ${match.apiMatch.awayTeam}\n`;
+    prompt += `   Lig: ${match.apiMatch.league}\n`;
+    prompt += `   Durum: ${match.apiMatch.status}\n\n`;
+  });
+  
+  prompt += `\nLütfen her maç için:\n`;
+  prompt += `- Genel değerlendirme\n`;
+  prompt += `- Olası sonuç tahmini\n`;
+  prompt += `- Risk analizi\n`;
+  prompt += `- Genel kupon değerlendirmesi\n\n`;
+  prompt += `Profesyonel ve detaylı bir analiz yap.`;
+  
+  return prompt;
+}
+
 // Static files (React build)
 app.use(express.static(join(__dirname, 'dist')));
 
