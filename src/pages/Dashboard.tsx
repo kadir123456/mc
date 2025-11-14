@@ -27,8 +27,8 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-16 md:pb-0">
-      <nav className="bg-slate-800/50 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-16 md:pb-8 md:pt-20">
+      <nav className="md:hidden bg-slate-800/50 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Aikupon</h1>

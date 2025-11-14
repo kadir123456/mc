@@ -15,6 +15,7 @@ import { Contact } from './pages/Contact';
 import { HowToUse } from './pages/HowToUse';
 import { AdminPanel } from './pages/AdminPanel';
 import { BottomNav } from './components/BottomNav';
+import { DesktopNav } from './components/DesktopNav';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { authUser, loading } = useAuth();
@@ -71,6 +72,7 @@ function App() {
             }
           />
         </Routes>
+        <DesktopNav />
         <BottomNav />
       </AuthProvider>
     </Router>

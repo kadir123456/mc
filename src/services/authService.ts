@@ -44,6 +44,7 @@ export const authService = {
     };
 
     await set(ref(database, `users/${userCredential.user.uid}`), userData);
+    await ipService.registerIP(userIP, userCredential.user.uid);
     return userCredential.user;
   },
 
@@ -110,6 +111,7 @@ export const authService = {
         privacyAcceptedAt: Date.now(),
       };
       await set(userRef, userData);
+      await ipService.registerIP(userIP, user.uid);
     } else {
       const userData = snapshot.val();
       if (userData.isBanned) {

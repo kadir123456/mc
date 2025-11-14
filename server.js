@@ -41,14 +41,45 @@ const SPORTSRADAR_API_BASE = process.env.VITE_SPORTSRADAR_API_BASE_URL || 'https
 const FOOTBALL_API_KEY = process.env.VITE_FOOTBALL_API_KEY;
 
 let lastMatchFetch = 0;
-const FETCH_INTERVAL = 24 * 60 * 60 * 1000;
+const FETCH_INTERVAL = 60 * 60 * 1000;
+const CLEANUP_INTERVAL = 60 * 60 * 1000;
+let dailyApiCalls = 0;
+let lastApiResetTime = Date.now();
+const MAX_DAILY_CALLS = 90;
 
-// Health check endpoint
+function resetDailyApiCallsIfNeeded() {
+  const now = Date.now();
+  const hoursSinceReset = (now - lastApiResetTime) / (60 * 60 * 1000);
+
+  if (hoursSinceReset >= 24) {
+    dailyApiCalls = 0;
+    lastApiResetTime = now;
+    console.log('🔄 Daily API call counter reset');
+  }
+}
+
+function canMakeApiCall() {
+  resetDailyApiCallsIfNeeded();
+  return dailyApiCalls < MAX_DAILY_CALLS;
+}
+
+function incrementApiCall() {
+  dailyApiCalls++;
+  console.log(`📊 API Calls Today: ${dailyApiCalls}/${MAX_DAILY_CALLS}`);
+}
+
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  resetDailyApiCallsIfNeeded();
+  res.json({
+    status: 'ok',
     timestamp: Date.now(),
-    sportsradarConfigured: !!SPORTSRADAR_API_KEY
+    sportsradarConfigured: !!SPORTSRADAR_API_KEY,
+    footballApiConfigured: !!FOOTBALL_API_KEY,
+    firebaseConnected: !!firebaseDb,
+    apiCallsToday: dailyApiCalls,
+    apiCallsRemaining: MAX_DAILY_CALLS - dailyApiCalls,
+    lastMatchFetch: lastMatchFetch > 0 ? new Date(lastMatchFetch).toISOString() : 'Never',
+    nextMatchFetch: lastMatchFetch > 0 ? new Date(lastMatchFetch + FETCH_INTERVAL).toISOString() : 'Soon'
   });
 });
 
@@ -99,9 +130,14 @@ app.get('*', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
-async function fetchAndCacheMatches() {
+async function fetchAndCacheMatches(forceUpdate = false) {
   if (!firebaseDb || !FOOTBALL_API_KEY) {
     console.log('⚠️  Match fetching disabled (Firebase or API key missing)');
+    return;
+  }
+
+  if (!forceUpdate && !canMakeApiCall()) {
+    console.log('⚠️  API call limit reached for today. Using cached data.');
     return;
   }
 
@@ -111,24 +147,25 @@ async function fetchAndCacheMatches() {
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const [todayData, tomorrowData] = await Promise.all([
-      axios.get('https://v3.football.api-sports.io/fixtures', {
-        headers: {
-          'x-rapidapi-host': 'v3.football.api-sports.io',
-          'x-rapidapi-key': FOOTBALL_API_KEY
-        },
-        params: { date: today },
-        timeout: 15000
-      }),
-      axios.get('https://v3.football.api-sports.io/fixtures', {
-        headers: {
-          'x-rapidapi-host': 'v3.football.api-sports.io',
-          'x-rapidapi-key': FOOTBALL_API_KEY
-        },
-        params: { date: tomorrow },
-        timeout: 15000
-      })
-    ]);
+    incrementApiCall();
+    const todayData = await axios.get('https://v3.football.api-sports.io/fixtures', {
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': FOOTBALL_API_KEY
+      },
+      params: { date: today },
+      timeout: 15000
+    });
+
+    incrementApiCall();
+    const tomorrowData = await axios.get('https://v3.football.api-sports.io/fixtures', {
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': FOOTBALL_API_KEY
+      },
+      params: { date: tomorrow },
+      timeout: 15000
+    });
 
     const processMatches = (fixtures, date) => {
       const matches = {};
@@ -152,7 +189,11 @@ async function fetchAndCacheMatches() {
           awayTeam: fixture.teams.away.name,
           league: fixture.league.name,
           date: date,
-          time: matchTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          time: matchTime.toLocaleTimeString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Europe/Istanbul'
+          }),
           timestamp: matchTime.getTime(),
           status: status === 'LIVE' || status === '1H' || status === '2H' ? 'live' : 'scheduled',
           lastUpdated: Date.now()
@@ -195,28 +236,43 @@ async function cleanFinishedMatches() {
 }
 
 app.get('/api/trigger-match-fetch', async (req, res) => {
-  if (Date.now() - lastMatchFetch < 3600000) {
+  const timeSinceLastFetch = Date.now() - lastMatchFetch;
+  const canFetch = timeSinceLastFetch >= FETCH_INTERVAL;
+
+  if (!canFetch && !req.query.force) {
     return res.json({
       message: 'Match data is fresh',
       lastFetch: new Date(lastMatchFetch).toISOString(),
-      nextFetch: new Date(lastMatchFetch + FETCH_INTERVAL).toISOString()
+      nextFetch: new Date(lastMatchFetch + FETCH_INTERVAL).toISOString(),
+      minutesUntilNextFetch: Math.ceil((FETCH_INTERVAL - timeSinceLastFetch) / 60000),
+      apiCallsRemaining: MAX_DAILY_CALLS - dailyApiCalls
     });
   }
 
-  await fetchAndCacheMatches();
-  res.json({ message: 'Match fetch triggered', timestamp: Date.now() });
+  await fetchAndCacheMatches(!!req.query.force);
+  res.json({
+    message: 'Match fetch triggered',
+    timestamp: Date.now(),
+    apiCallsUsed: dailyApiCalls,
+    apiCallsRemaining: MAX_DAILY_CALLS - dailyApiCalls
+  });
 });
 
 setInterval(fetchAndCacheMatches, FETCH_INTERVAL);
+
+setInterval(cleanFinishedMatches, 60 * 60 * 1000);
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Sportsradar API: ${SPORTSRADAR_API_KEY ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`⚽ Football API: ${FOOTBALL_API_KEY ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`🔥 Firebase: ${firebaseDb ? 'Connected ✅' : 'Disabled ❌'}`);
+  console.log(`⏱️  Update Interval: ${FETCH_INTERVAL / 60000} minutes`);
+  console.log(`🧹 Cleanup Interval: ${CLEANUP_INTERVAL / 60000} minutes`);
+  console.log(`📊 Daily API Limit: ${MAX_DAILY_CALLS} calls`);
 
   if (firebaseDb && FOOTBALL_API_KEY) {
     console.log('🔄 Starting initial match fetch...');
-    await fetchAndCacheMatches();
+    await fetchAndCacheMatches(true);
   }
 });

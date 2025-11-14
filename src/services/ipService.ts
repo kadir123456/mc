@@ -1,4 +1,4 @@
-import { ref, get } from 'firebase/database';
+import { ref, get, set } from 'firebase/database';
 import { database } from './firebase';
 
 export const ipService = {
@@ -17,22 +17,15 @@ export const ipService = {
     if (ip === 'unknown') return { banned: false };
 
     try {
-      const usersRef = ref(database, 'users');
-      const snapshot = await get(usersRef);
+      const bannedIPsRef = ref(database, 'bannedIPs/' + ip.replace(/\./g, '_'));
+      const snapshot = await get(bannedIPsRef);
 
-      if (!snapshot.exists()) return { banned: false };
-
-      const users = snapshot.val();
-
-      for (const userId in users) {
-        const user = users[userId];
-
-        if (user.isBanned && (user.registrationIP === ip || user.lastIP === ip)) {
-          return {
-            banned: true,
-            reason: user.bannedReason || 'Hesabınız askıya alınmıştır.'
-          };
-        }
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        return {
+          banned: true,
+          reason: data.reason || 'Bu IP adresi yasaklanmıştır.'
+        };
       }
 
       return { banned: false };
@@ -46,25 +39,29 @@ export const ipService = {
     if (ip === 'unknown') return false;
 
     try {
-      const usersRef = ref(database, 'users');
-      const snapshot = await get(usersRef);
-
-      if (!snapshot.exists()) return false;
-
-      const users = snapshot.val();
-
-      for (const userId in users) {
-        const user = users[userId];
-
-        if (user.registrationIP === ip || user.lastIP === ip) {
-          return true;
-        }
-      }
-
-      return false;
+      const ipRef = ref(database, 'registeredIPs/' + ip.replace(/\./g, '_'));
+      const snapshot = await get(ipRef);
+      return snapshot.exists();
     } catch (error) {
       console.error('IP duplikasyon kontrolü hatası:', error);
       return false;
+    }
+  },
+
+  async registerIP(ip: string, userId: string): Promise<void> {
+    if (ip === 'unknown') return;
+
+    try {
+      const ipRef = ref(database, 'registeredIPs/' + ip.replace(/\./g, '_'));
+      const snapshot = await get(ipRef);
+      if (!snapshot.exists()) {
+        await set(ipRef, {
+          userId,
+          registeredAt: Date.now()
+        });
+      }
+    } catch (error) {
+      console.error('IP kayıt hatası:', error);
     }
   }
 };

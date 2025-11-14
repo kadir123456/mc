@@ -143,25 +143,70 @@ const sportsradarService = {
     try {
       console.log(`🔍 Takım aranıyor: ${teamName}${leagueId ? ` (Lig: ${leagueId})` : ''}`);
 
-      const params: any = { search: teamName };
-      if (leagueId) params.league = leagueId;
+      const normalizedName = teamName
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/fc$/i, '')
+        .replace(/^fc\s+/i, '')
+        .trim();
 
-      const data = await this.fetchWithCache<any[]>(
-        '/teams',
-        params,
-        `team_${teamName}_${leagueId || 'global'}`
-      );
+      const searchTerms = [
+        teamName,
+        normalizedName,
+        teamName.split(' ')[0],
+        normalizedName.split(' ')[0]
+      ];
 
-      if (data && data.length > 0) {
-        const team = data[0].team;
-        console.log(`✅ Takım bulundu: ${team.name} (ID: ${team.id})`);
-        return {
-          id: team.id,
-          name: team.name,
-          code: team.code,
-          country: team.country,
-          logo: team.logo,
-        };
+      for (const searchTerm of searchTerms) {
+        if (!searchTerm || searchTerm.length < 3) continue;
+
+        const params: any = { search: searchTerm };
+        if (leagueId) params.league = leagueId;
+
+        try {
+          const data = await this.fetchWithCache<any[]>(
+            '/teams',
+            params,
+            `team_${searchTerm}_${leagueId || 'global'}`
+          );
+
+          if (data && data.length > 0) {
+            for (const item of data) {
+              const team = item.team;
+              const teamNameLower = team.name.toLowerCase();
+              const searchLower = teamName.toLowerCase();
+
+              if (
+                teamNameLower.includes(searchLower) ||
+                searchLower.includes(teamNameLower) ||
+                teamNameLower.replace(/\s+/g, '') === searchLower.replace(/\s+/g, '')
+              ) {
+                console.log(`✅ Takım bulundu: ${team.name} (ID: ${team.id})`);
+                return {
+                  id: team.id,
+                  name: team.name,
+                  code: team.code,
+                  country: team.country,
+                  logo: team.logo,
+                };
+              }
+            }
+
+            const team = data[0].team;
+            console.log(`✅ Takım bulundu (benzer): ${team.name} (ID: ${team.id})`);
+            return {
+              id: team.id,
+              name: team.name,
+              code: team.code,
+              country: team.country,
+              logo: team.logo,
+            };
+          }
+        } catch (err) {
+          console.warn(`Arama başarısız: ${searchTerm}`);
+          continue;
+        }
       }
 
       console.warn(`⚠️ Takım bulunamadı: ${teamName}`);
@@ -324,52 +369,71 @@ const sportsradarService = {
       console.log(`Deplasman: ${awayTeam}`);
       console.log(`Lig: ${league}\n`);
 
-      // Lig ID'sini bul
       const leagueId = await this.findLeagueId(league);
-      if (!leagueId) {
-        console.error(`❌ Lig bulunamadı: ${league}`);
-        throw new Error(`Lig bulunamadı: ${league}`);
+
+      let homeTeamInfo, awayTeamInfo;
+
+      if (leagueId) {
+        console.log(`\n🔍 Takımlar aranıyor (Lig ID: ${leagueId})...`);
+        [homeTeamInfo, awayTeamInfo] = await Promise.all([
+          this.findTeam(homeTeam, leagueId),
+          this.findTeam(awayTeam, leagueId),
+        ]);
       }
 
-      // Takımları bul
-      console.log(`\n🔍 Takımlar aranıyor...`);
-      const [homeTeamInfo, awayTeamInfo] = await Promise.all([
-        this.findTeam(homeTeam, leagueId),
-        this.findTeam(awayTeam, leagueId),
-      ]);
+      if (!homeTeamInfo || !awayTeamInfo) {
+        console.log(`\n🔍 Takımlar lig olmadan aranıyor...`);
+        [homeTeamInfo, awayTeamInfo] = await Promise.all([
+          this.findTeam(homeTeam),
+          this.findTeam(awayTeam),
+        ]);
+      }
 
       if (!homeTeamInfo || !awayTeamInfo) {
-        console.error(`❌ Takımlar bulunamadı`);
-        throw new Error('Takımlar bulunamadı');
+        console.warn(`⚠️ Takımlar bulunamadı, temel analiz yapılıyor`);
+        return {
+          teamHome: homeTeam,
+          teamAway: awayTeam,
+          league,
+          homeForm: 'Veri alınamadı',
+          awayForm: 'Veri alınamadı',
+          h2h: 'Veri alınamadı',
+          injuries: 'Veri alınamadı',
+          leaguePosition: 'Veri alınamadı',
+          confidenceScore: 30,
+          dataSources: ['Temel Analiz'],
+        };
       }
 
       console.log(`\n✅ Takımlar bulundu!`);
       console.log(`Ev Sahibi: ${homeTeamInfo.name} (ID: ${homeTeamInfo.id})`);
       console.log(`Deplasman: ${awayTeamInfo.name} (ID: ${awayTeamInfo.id})`);
 
-      // Paralel veri çekimi
       console.log(`\n📊 İstatistikler çekiliyor...`);
-      const [homeStanding, awayStanding, homeForm, awayForm, h2h] =
-        await Promise.all([
-          this.getTeamStanding(homeTeamInfo.id, leagueId),
-          this.getTeamStanding(awayTeamInfo.id, leagueId),
-          this.getTeamForm(homeTeamInfo.id),
-          this.getTeamForm(awayTeamInfo.id),
-          this.getH2H(homeTeamInfo.id, awayTeamInfo.id),
-        ]);
 
-      const leaguePosition = homeStanding && awayStanding
-        ? `Ev: ${homeStanding.rank}. sıra (${homeStanding.points} puan) | Deplasman: ${awayStanding.rank}. sıra (${awayStanding.points} puan)`
+      const [homeStanding, awayStanding, homeForm, awayForm, h2h] = await Promise.allSettled([
+        leagueId ? this.getTeamStanding(homeTeamInfo.id, leagueId) : Promise.resolve(null),
+        leagueId ? this.getTeamStanding(awayTeamInfo.id, leagueId) : Promise.resolve(null),
+        this.getTeamForm(homeTeamInfo.id),
+        this.getTeamForm(awayTeamInfo.id),
+        this.getH2H(homeTeamInfo.id, awayTeamInfo.id),
+      ]);
+
+      const homeStandingData = homeStanding.status === 'fulfilled' ? homeStanding.value : null;
+      const awayStandingData = awayStanding.status === 'fulfilled' ? awayStanding.value : null;
+      const homeFormData = homeForm.status === 'fulfilled' ? homeForm.value : 'Veri yok';
+      const awayFormData = awayForm.status === 'fulfilled' ? awayForm.value : 'Veri yok';
+      const h2hData = h2h.status === 'fulfilled' ? h2h.value : 'H2H verisi yok';
+
+      const leaguePosition = homeStandingData && awayStandingData
+        ? `Ev: ${homeStandingData.rank}. sıra (${homeStandingData.points} puan) | Deplasman: ${awayStandingData.rank}. sıra (${awayStandingData.points} puan)`
         : 'Puan durumu yok';
 
-      const injuries = 'Sakatlık verisi opsiyonel';
-
-      // Confidence hesapla
-      let confidence = 50; // Base
-      if (homeStanding && awayStanding) confidence += 15;
-      if (homeForm !== 'Veri yok') confidence += 15;
-      if (awayForm !== 'Veri yok') confidence += 10;
-      if (h2h !== 'H2H verisi yok') confidence += 10;
+      let confidence = 50;
+      if (homeStandingData && awayStandingData) confidence += 15;
+      if (homeFormData !== 'Veri yok' && homeFormData !== 'Veri alınamadı') confidence += 15;
+      if (awayFormData !== 'Veri yok' && awayFormData !== 'Veri alınamadı') confidence += 10;
+      if (h2hData !== 'H2H verisi yok' && h2hData !== 'Veri alınamadı') confidence += 10;
 
       console.log(`\n✅ === ANALİZ TAMAMLANDI ===`);
       console.log(`Güven Skoru: ${confidence}%`);
@@ -379,10 +443,10 @@ const sportsradarService = {
         teamHome: homeTeamInfo.name,
         teamAway: awayTeamInfo.name,
         league,
-        homeForm,
-        awayForm,
-        h2h,
-        injuries,
+        homeForm: homeFormData,
+        awayForm: awayFormData,
+        h2h: h2hData,
+        injuries: 'Sakatlık verisi opsiyonel',
         leaguePosition,
         confidenceScore: confidence,
         dataSources: ['API-Football'],
@@ -390,7 +454,19 @@ const sportsradarService = {
     } catch (error: any) {
       console.error('\n❌ === ANALİZ BAŞARISIZ ===');
       console.error(`Hata: ${error.message}\n`);
-      throw error;
+
+      return {
+        teamHome: homeTeam,
+        teamAway: awayTeam,
+        league,
+        homeForm: 'Hata',
+        awayForm: 'Hata',
+        h2h: 'Hata',
+        injuries: 'Hata',
+        leaguePosition: 'Hata',
+        confidenceScore: 25,
+        dataSources: ['Hata'],
+      };
     }
   },
 
