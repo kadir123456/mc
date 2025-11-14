@@ -21,18 +21,11 @@ export const geminiAnalysisService = {
     detailedAnalysis: boolean = false
   ): Promise<MatchAnalysis[]> {
     try {
-      console.log('🔍 API\'den gerçek maç verileri çekiliyor...');
+      console.log('🔍 Gemini AI analizi başlatılıyor...');
 
-      const matchDataPromises = matches.map(match =>
-        sportsradarService.getMatchData(match.homeTeam, match.awayTeam, match.league)
-          .catch(err => {
-            console.error(`⚠️ ${match.homeTeam} vs ${match.awayTeam} verisi alınamadı:`, err.message);
-            return null;
-          })
-      );
-
-      const matchesData = await Promise.all(matchDataPromises);
-      console.log('✅ API verileri alındı!');
+      // Sportsradar API devre dışı (API key yok)
+      // Football API'den zaten maç bilgileri var
+      const matchesData = matches.map(() => null);
 
       const prompt = this.buildAnalysisPrompt(matches, matchesData, detailedAnalysis);
 
