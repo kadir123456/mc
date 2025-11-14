@@ -35,7 +35,7 @@ export const geminiAnalysisService = {
         GEMINI_PROXY_URL,
         {
           userId: (window as any).currentUserId || null,
-          creditsToDeduct: detailed ? 5 : 1,
+          creditsToDeduct: detailedAnalysis ? 5 : 1,
           matches: matches.map(m => ({
             homeTeam: m.homeTeam,
             awayTeam: m.awayTeam,
