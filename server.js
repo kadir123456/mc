@@ -268,6 +268,25 @@ app.post('/api/gemini/analyze', async (req, res) => {
         }
       );
 
+      // ✅ Analiz başarılı, kredi düşür
+      if (userId && creditsToDeduct && firebaseAdmin) {
+        try {
+          const userRef = firebaseAdmin.database().ref(`users/${userId}`);
+          const userSnapshot = await userRef.once('value');
+          const userData = userSnapshot.val();
+          
+          if (userData && userData.credits >= creditsToDeduct) {
+            await userRef.update({
+              credits: userData.credits - creditsToDeduct
+            });
+            console.log(`💳 Kredi düşürüldü: ${userId} → ${creditsToDeduct} kredi`);
+          }
+        } catch (creditError) {
+          console.error('⚠️ Kredi düşürme hatası:', creditError.message);
+          // Hata olsa bile analiz sonucunu döndür
+        }
+      }
+
       return res.json(response.data);
     }
 
