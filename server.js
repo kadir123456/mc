@@ -187,7 +187,7 @@ app.post('/api/gemini/analyze', async (req, res) => {
     console.log('🤖 Gemini analiz isteği alındı');
 
     // Eğer matches bilgisi varsa, Football API'den istatistikleri çek
-    const { matches, contents } = req.body;
+    const { matches, contents, userId, creditsToDeduct } = req.body;
     
     if (matches && matches.length > 0) {
       console.log(`⚽ ${matches.length} maç için Football API istatistikleri çekiliyor...`);
