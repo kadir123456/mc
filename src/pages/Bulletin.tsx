@@ -11,6 +11,13 @@ import { translateLeague, formatMatchTime } from '../utils/leagueTranslations';
 export const Bulletin: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
+  
+  // Set userId globally for Gemini service
+  React.useEffect(() => {
+    if (user?.uid) {
+      (window as any).currentUserId = user.uid;
+    }
+  }, [user]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Match[]>([]);
   const [analysisType, setAnalysisType] = useState<'standard' | 'detailed'>('standard');
