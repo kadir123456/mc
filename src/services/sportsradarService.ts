@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// ✅ API-Football Resmi API (v3.9.3)
-const API_FOOTBALL_BASE_URL = import.meta.env.VITE_API_SPORTS_BASE_URL || 'https://v3.football.api-sports.io';
-const API_FOOTBALL_KEY = import.meta.env.VITE_API_SPORTS_KEY || import.meta.env.VITE_API_FOOTBALL_KEY;
+// ✅ BACKEND PROXY URL - Render.com'daki backend servisinizin URL'i
+const BACKEND_PROXY_URL = import.meta.env.VITE_BACKEND_PROXY_URL || 'http://localhost:3001';
 
 // Cache
 const requestCache = new Map<string, { data: any; timestamp: number }>();
@@ -30,7 +29,7 @@ interface MatchStats {
 }
 
 const sportsradarService = {
-  // ✅ API-FOOTBALL RESMİ İSTEK YÖNTEMİ
+  // ✅ BACKEND PROXY ÜZERİNDEN İSTEK
   async fetchWithCache<T>(endpoint: string, params: any = {}, cacheKey: string): Promise<T> {
     // Cache kontrolü
     const cached = requestCache.get(cacheKey);
@@ -39,18 +38,12 @@ const sportsradarService = {
       return cached.data;
     }
 
-    console.log(`🌐 API-Football Request: ${endpoint}`, params);
-
-    if (!API_FOOTBALL_KEY) {
-      throw new Error('API-Football key bulunamadı! .env dosyasında VITE_API_FOOTBALL_KEY tanımlayın.');
-    }
+    console.log(`🌐 Backend Proxy Request: ${endpoint}`, params);
 
     try {
-      const response = await axios.get(`${API_FOOTBALL_BASE_URL}${endpoint}`, {
+      // ✅ Backend proxy üzerinden istek
+      const response = await axios.get(`${BACKEND_PROXY_URL}/api/football/${endpoint}`, {
         params,
-        headers: {
-          'x-apisports-key': API_FOOTBALL_KEY, // ✅ DOĞRU HEADER
-        },
         timeout: 30000,
       });
 
@@ -76,17 +69,19 @@ const sportsradarService = {
         throw new Error('⚠️ API rate limit aşıldı. Lütfen bekleyin.');
       }
       if (error.response?.status === 401) {
-        throw new Error('❌ API key geçersiz! Lütfen .env dosyasını kontrol edin.');
+        throw new Error('❌ API key geçersiz!');
       }
-      console.error('❌ API-Football hatası:', error.response?.data || error.message);
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('⏱️ İstek zaman aşımına uğradı');
+      }
+      console.error('❌ API hatası:', error.response?.data || error.message);
       throw error;
     }
   },
 
-  // 1. LİG ID'Sİ BULMA
+  // ✅ LİG ID'Sİ BULMA (Düzeltildi)
   async findLeagueId(leagueName: string): Promise<number | null> {
     try {
-      // Popüler liglerin sabit ID'leri (cache için)
       const leagueMap: { [key: string]: number } = {
         'premier league': 39,
         'la liga': 140,
@@ -96,19 +91,23 @@ const sportsradarService = {
         'süper lig': 203,
         'süperlig': 203,
         'champions league': 2,
+        'uefa champions league': 2,
         'europa league': 3,
         'dünya kupası': 1,
         'world cup': 1,
         'wcq concacaf': 34,
+        'concacaf nations league': 33,
         'concacaf': 34,
         'copa america': 9,
         'african cup': 31,
         'afcon': 31,
+        'u21 avrupa şampiyonası': 848,
+        'u21 euro': 848,
+        'u19 euro': 847,
       };
 
       const normalized = leagueName.toLowerCase().trim().replace(/\s+/g, ' ');
 
-      // Önce map'ten kontrol et
       for (const [key, id] of Object.entries(leagueMap)) {
         if (normalized.includes(key) || key.includes(normalized)) {
           console.log(`✅ Lig bulundu (cache): ${leagueName} → ID: ${id}`);
@@ -116,10 +115,9 @@ const sportsradarService = {
         }
       }
 
-      // API'den ara
       console.log(`🔍 API'den lig aranıyor: ${leagueName}`);
       const data = await this.fetchWithCache<any[]>(
-        '/leagues',
+        'leagues',
         { search: leagueName, current: true },
         `league_search_${normalized}`
       );
@@ -138,7 +136,7 @@ const sportsradarService = {
     }
   },
 
-  // 2. TAKIM BULMA
+  // ✅ TAKIM BULMA (Düzeltildi - daha iyi matching)
   async findTeam(teamName: string, leagueId?: number): Promise<TeamInfo | null> {
     try {
       console.log(`🔍 Takım aranıyor: ${teamName}${leagueId ? ` (Lig: ${leagueId})` : ''}`);
@@ -149,6 +147,8 @@ const sportsradarService = {
         .trim()
         .replace(/fc$/i, '')
         .replace(/^fc\s+/i, '')
+        .replace(/\s+u21$/i, '')
+        .replace(/\s+u19$/i, '')
         .trim();
 
       const searchTerms = [
@@ -166,7 +166,7 @@ const sportsradarService = {
 
         try {
           const data = await this.fetchWithCache<any[]>(
-            '/teams',
+            'teams',
             params,
             `team_${searchTerm}_${leagueId || 'global'}`
           );
@@ -217,11 +217,11 @@ const sportsradarService = {
     }
   },
 
-  // 3. PUAN DURUMU
+  // ✅ PUAN DURUMU
   async getTeamStanding(teamId: number, leagueId: number, season: number = 2024): Promise<any> {
     try {
       const data = await this.fetchWithCache<any[]>(
-        '/standings',
+        'standings',
         { league: leagueId, season, team: teamId },
         `standings_${leagueId}_${season}_${teamId}`
       );
@@ -231,7 +231,6 @@ const sportsradarService = {
       const standings = data[0]?.league?.standings;
       if (!standings || standings.length === 0) return null;
 
-      // Takımı bul
       for (const group of standings) {
         const teamStanding = group.find((s: any) => s.team.id === teamId);
         if (teamStanding) {
@@ -247,11 +246,11 @@ const sportsradarService = {
     }
   },
 
-  // 4. TAKIM FORMU (Son 5 maç)
+  // ✅ TAKIM FORMU
   async getTeamForm(teamId: number, last: number = 5): Promise<string> {
     try {
       const data = await this.fetchWithCache<any[]>(
-        '/fixtures',
+        'fixtures',
         { team: teamId, last, status: 'FT' },
         `form_${teamId}_${last}`
       );
@@ -293,11 +292,11 @@ const sportsradarService = {
     }
   },
 
-  // 5. HEAD TO HEAD
+  // ✅ HEAD TO HEAD
   async getH2H(team1Id: number, team2Id: number): Promise<string> {
     try {
       const data = await this.fetchWithCache<any[]>(
-        '/fixtures/headtohead',
+        'fixtures/headtohead',
         { h2h: `${team1Id}-${team2Id}`, last: 5 },
         `h2h_${team1Id}_${team2Id}`
       );
@@ -331,33 +330,7 @@ const sportsradarService = {
     }
   },
 
-  // 6. SAKATILIKLAR (Opsiyonel)
-  async getInjuries(teamId: number): Promise<string> {
-    try {
-      const data = await this.fetchWithCache<any[]>(
-        '/injuries',
-        { team: teamId, season: 2024 },
-        `injuries_${teamId}`
-      );
-
-      if (!data || data.length === 0) {
-        return 'Sakatlık yok';
-      }
-
-      const injuries = data.slice(0, 3).map((inj: any) => {
-        return `${inj.player.name} (${inj.player.reason || 'Sakatlık'})`;
-      });
-
-      const result = injuries.length > 0 ? `${injuries.join(', ')}` : 'Sakatlık yok';
-      console.log(`✅ Sakatlıklar: ${result}`);
-      return result;
-    } catch (error) {
-      console.error('❌ Sakatlık hatası:', error);
-      return 'Veri alınamadı';
-    }
-  },
-
-  // 7. ANA FONKSİYON
+  // ✅ ANA FONKSİYON
   async getMatchData(
     homeTeam: string,
     awayTeam: string,
@@ -390,7 +363,7 @@ const sportsradarService = {
       }
 
       if (!homeTeamInfo || !awayTeamInfo) {
-        console.warn(`⚠️ Takımlar bulunamadı, temel analiz yapılıyor`);
+        console.warn(`⚠️ Takımlar bulunamadı`);
         return {
           teamHome: homeTeam,
           teamAway: awayTeam,
@@ -468,24 +441,6 @@ const sportsradarService = {
         dataSources: ['Hata'],
       };
     }
-  },
-
-  // Confidence hesaplama
-  calculateConfidence(
-    homeForm: string,
-    awayForm: string,
-    h2h: string,
-    homeRank: number,
-    awayRank: number
-  ): number {
-    let score = 50; // Base
-
-    if (homeForm !== 'Veri yok' && homeForm !== 'Veri alınamadı') score += 15;
-    if (awayForm !== 'Veri yok' && awayForm !== 'Veri alınamadı') score += 15;
-    if (h2h !== 'H2H verisi yok' && h2h !== 'Veri alınamadı') score += 10;
-    if (homeRank <= 10 || awayRank <= 10) score += 10;
-
-    return Math.min(score, 100);
   },
 };
 
