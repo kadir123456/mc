@@ -26,26 +26,13 @@ export const Bulletin: React.FC = () => {
 
   useEffect(() => {
     loadMatches();
-
-    const interval = setInterval(() => {
-      loadMatches();
-    }, 60000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const loadMatches = async () => {
     try {
-      if (loading) setLoading(true);
+      setLoading(true);
       const upcomingMatches = await matchService.getAllUpcomingMatches();
-
-      const filteredUpcoming = upcomingMatches.filter(match => {
-        const matchTime = match.timestamp;
-        const now = Date.now();
-        return matchTime > now - 600000;
-      });
-
-      setMatches(filteredUpcoming);
+      setMatches(upcomingMatches);
     } catch (error) {
       console.error('Maç yükleme hatası:', error);
     } finally {

@@ -170,58 +170,36 @@ async function fetchAndCacheMatches(forceUpdate = false) {
     const processMatches = (fixtures, date) => {
       const matches = {};
       let count = 0;
-      const now = Date.now();
 
-      fixtures
-        .sort((a, b) => {
-          const statusA = a.fixture.status.short;
-          const statusB = b.fixture.status.short;
-          const isLiveA = ['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P'].includes(statusA);
-          const isLiveB = ['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P'].includes(statusB);
+      fixtures.forEach(fixture => {
+        const status = fixture.fixture.status.short;
+        const matchTime = new Date(fixture.fixture.date);
+        const now = Date.now();
 
-          if (isLiveA && !isLiveB) return -1;
-          if (!isLiveA && isLiveB) return 1;
+        if (status === 'FT' || status === 'AET' || status === 'PEN' || matchTime.getTime() < now - 3600000) {
+          return;
+        }
 
-          const timeA = new Date(a.fixture.date).getTime();
-          const timeB = new Date(b.fixture.date).getTime();
-          return timeA - timeB;
-        })
-        .forEach(fixture => {
-          const status = fixture.fixture.status.short;
-          const matchTime = new Date(fixture.fixture.date);
+        if (count >= 50) {
+          return;
+        }
 
-          if (['FT', 'AET', 'PEN', 'CANC', 'ABD', 'AWD', 'WO'].includes(status)) {
-            return;
-          }
-
-          if (matchTime.getTime() < now - 7200000) {
-            return;
-          }
-
-          if (count >= 50) {
-            return;
-          }
-
-          const isLive = ['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P'].includes(status);
-          const isScheduled = ['TBD', 'NS', 'SUSP', 'INT'].includes(status) || (!isLive && matchTime.getTime() > now);
-
-          matches[fixture.fixture.id] = {
-            homeTeam: fixture.teams.home.name,
-            awayTeam: fixture.teams.away.name,
-            league: fixture.league.name,
-            date: date,
-            time: matchTime.toLocaleTimeString('tr-TR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'Europe/Istanbul'
-            }),
-            timestamp: matchTime.getTime(),
-            status: isLive ? 'live' : (isScheduled ? 'scheduled' : 'finished'),
-            lastUpdated: Date.now()
-          };
-          count++;
-        });
-
+        matches[fixture.fixture.id] = {
+          homeTeam: fixture.teams.home.name,
+          awayTeam: fixture.teams.away.name,
+          league: fixture.league.name,
+          date: date,
+          time: matchTime.toLocaleTimeString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Europe/Istanbul'
+          }),
+          timestamp: matchTime.getTime(),
+          status: status === 'LIVE' || status === '1H' || status === '2H' ? 'live' : 'scheduled',
+          lastUpdated: Date.now()
+        };
+        count++;
+      });
       return matches;
     };
 
