@@ -73,18 +73,9 @@ export const geminiAnalysisService = {
 
   buildAnalysisPrompt(matches: MatchSelection[], matchesData: any[], detailed: boolean): string {
     const matchList = matches.map((m, i) => {
-      const data = matchesData[i];
-      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} (${m.league}) - ${m.date} ${m.time}`;
-
-      if (data) {
-        info += `\n   📊 Gerçek Veriler:`;
-        info += `\n   • Ev Sahibi Form: ${data.homeForm}`;
-        info += `\n   • Deplasman Form: ${data.awayForm}`;
-        info += `\n   • Kafa Kafaya: ${data.h2h}`;
-        info += `\n   • Puan Durumu: ${data.leaguePosition}`;
-        info += `\n   • Güven: ${data.confidenceScore}%`;
-      }
-
+      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}`;
+      info += `\n   📍 Lig: ${m.league}`;
+      info += `\n   📅 Tarih/Saat: ${m.date} ${m.time}`;
       return info;
     }).join('\n\n');
 
