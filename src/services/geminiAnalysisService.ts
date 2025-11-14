@@ -81,15 +81,15 @@ export const geminiAnalysisService = {
 
     const analysisType = detailed ? 'DETAYLI' : 'STANDART';
 
-    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için API-Football'dan alınan GERÇEK verilerle ${analysisType} analiz yap.
+    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için ${analysisType} analiz yap.
 
-⚠️ ÖNEMLİ: Aşağıdaki veriler API-Football'dan gerçek zamanlı çekilmiştir. Bu verilere göre analiz yap!
+🎯 GOOGLE SEARCH KULLAN: Her maç için güncel bilgileri (form, sakatlıklar, haberler, kafa kafaya sonuçlar) Google Search ile araştır.
 
-MAÇLAR VE GERÇEK VERİLER:
+MAÇLAR:
 ${matchList}
 
 GÖREV:
-Yukarıdaki GERÇEK verileri kullanarak her maç için şu tahminleri yüzde olarak ver:
+Google Search ile güncel verileri araştırarak her maç için şu tahminleri yüzde olarak ver:
 1. MS1 (Ev sahibi kazanır): %X
 2. MSX (Beraberlik): %X
 3. MS2 (Deplasman kazanır): %X
