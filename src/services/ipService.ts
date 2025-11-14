@@ -24,19 +24,7 @@ export const ipService = {
   },
 
   async registerIP(ip: string, userId: string): Promise<void> {
-    if (ip === 'unknown') return;
-
-    try {
-      const ipRef = ref(database, 'registeredIPs/' + ip.replace(/\./g, '_'));
-      const snapshot = await get(ipRef);
-      if (!snapshot.exists()) {
-        await set(ipRef, {
-          userId,
-          registeredAt: Date.now()
-        });
-      }
-    } catch (error) {
-      console.error('IP kayıt hatası:', error);
-    }
+    // IP kayıt devre dışı (Firebase permission sorunları için)
+    return;
   }
 };
