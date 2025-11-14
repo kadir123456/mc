@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Bulletin } from './pages/Bulletin';
 import { MyCoupons } from './pages/MyCoupons';
 import { ImageAnalysis } from './pages/ImageAnalysis';
+import { Profile } from './pages/Profile';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { About } from './pages/About';
 import { Terms } from './pages/Terms';
