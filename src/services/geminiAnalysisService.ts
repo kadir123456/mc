@@ -101,13 +101,13 @@ ${detailed ? `7. İLK YARI MS1 (Ev sahibi ilk yarı önde): %X
 9. İLK YARI MS2 (Deplasman ilk yarı önde): %X` : ''}
 
 ANALİZ KRİTERLERİ:
-- Yukarıdaki API verilerini kullan (form, H2H, puan durumu)
-- Takım formunu dikkate al (G=Galibiyet, B=Beraberlik, M=Mağlubiyet)
-- Attıkları ve yedikleri gol sayısını değerlendir
-- Puan durumunu ve sıralamayı hesaba kat
-- H2H geçmişini önemse
-- Google Search ile güncel takım haberlerini kontrol et
-- Ev sahibi avantajını (genelde +10-15% şans) dahil et
+- 🔍 Google Search ile güncel takım formunu araştır
+- 📰 Son maç sonuçlarını ve haberlerini kontrol et
+- 🤕 Sakatlık ve ceza durumlarını araştır
+- ⚔️ Kafa kafaya (H2H) geçmişini incele
+- 📊 Lig sıralaması ve puan durumlarını değerlendir
+- 🏠 Ev sahibi avantajını hesaba kat (+10-15% şans)
+- ⚽ Attıkları ve yedikleri gol ortalamasını değerlendir
 
 ÇIKTI FORMATI (JSON):
 Her maç için şu yapıda JSON döndür:
