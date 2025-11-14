@@ -14,8 +14,26 @@ export const ipService = {
   },
 
   async checkIPBanned(ip: string): Promise<{ banned: boolean; reason?: string }> {
-    // IP ban kontrolü devre dışı (Firebase permission sorunları için)
-    return { banned: false };
+    if (ip === 'unknown') return { banned: false };
+
+    try {
+      const bannedIPsRef = ref(database, 'bannedIPs/' + ip.replace(/\./g, '_'));
+      const snapshot = await get(bannedIPsRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        return {
+          banned: true,
+          reason: data.reason || 'Bu IP adresi yasaklanmıştır.'
+        };
+      }
+
+      return { banned: false };
+    } catch (error) {
+      console.error('IP kontrolü hatası:', error);
+      // Hata durumunda kullanıcıyı engelleme (fail-open)
+      return { banned: false };
+    }
   },
 
   async checkDuplicateIP(ip: string): Promise<boolean> {
