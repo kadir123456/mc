@@ -64,7 +64,8 @@ export const couponService = {
 
     await set(couponRef, coupon);
 
-    await this.updatePopularCoupons(matches);
+    // popularCoupons update edilmesi opsiyonel (permission hatası önlemek için kapalı)
+    // await this.updatePopularCoupons(matches);
 
     return couponId;
   },
