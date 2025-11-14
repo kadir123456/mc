@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp } from 'lucide-react';
+import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp, Image, FileText, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { BankTransferPayment } from '../components/BankTransferPayment';
 
