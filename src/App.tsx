@@ -72,6 +72,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/image-analysis"
+            element={
+              <ProtectedRoute>
+                <ImageAnalysis />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
         <DesktopNav />
         <BottomNav />
