@@ -20,10 +20,6 @@ export const geminiAnalysisService = {
     matches: MatchSelection[],
     detailedAnalysis: boolean = false
   ): Promise<MatchAnalysis[]> {
-    if (!GEMINI_API_KEY) {
-      throw new Error('Gemini API key yapılandırılmamış');
-    }
-
     try {
       console.log('🔍 API\'den gerçek maç verileri çekiliyor...');
 
