@@ -341,21 +341,65 @@ export const Bulletin: React.FC = () => {
       </div>
 
       {selectedMatches.length === maxSelections && (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 p-2 md:p-3 z-50 mb-12 md:mb-0">
-          <button
-            onClick={handleAnalyze}
-            disabled={processing}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-2.5 md:py-3 rounded-lg font-bold text-xs md:text-sm transition"
-          >
-            {processing ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Analiz Ediliyor...
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-md">
+          <div className="bg-slate-900/95 backdrop-blur-xl border-2 border-blue-500/50 rounded-2xl p-4 shadow-2xl animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">Analiz Hazır</p>
+                  <p className="text-xs text-slate-400">{selectedMatches.length} maç seçildi</p>
+                </div>
               </div>
-            ) : (
-              `${selectedMatches.length} Maç • ${creditsRequired} Kredi ile Analiz Et`
-            )}
-          </button>
+              <button
+                onClick={() => setSelectedMatches([])}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selected Matches Preview */}
+            <div className="bg-slate-800/50 rounded-xl p-3 mb-3 max-h-32 overflow-y-auto">
+              {selectedMatches.map((match, index) => (
+                <div key={match.fixtureId} className="flex items-center gap-2 text-xs text-slate-300 mb-1.5 last:mb-0">
+                  <span className="text-blue-400 font-bold">{index + 1}.</span>
+                  <span className="truncate">{match.homeTeam} vs {match.awayTeam}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Credit Info */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-2 mb-3">
+              <span className="text-xs text-slate-300">Kredi Kullanımı:</span>
+              <div className="flex items-center gap-1">
+                <Zap className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-bold text-yellow-400">{creditsRequired} Kredi</span>
+              </div>
+            </div>
+
+            {/* Analyze Button */}
+            <button
+              onClick={handleAnalyze}
+              disabled={processing}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-3.5 rounded-xl font-bold text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              {processing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Analiz Ediliyor...
+                </div>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 inline-block mr-2" />
+                  Analiz Et
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
