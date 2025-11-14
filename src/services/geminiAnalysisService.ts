@@ -5,6 +5,7 @@ import sportsradarService from './sportsradarService';
 
 // ✅ Backend proxy kullanılacak (CORS sorununu çözer)
 const GEMINI_PROXY_URL = '/api/gemini/analyze';
+console.log('🔧 Gemini Proxy URL:', GEMINI_PROXY_URL);
 
 interface MatchData {
   fixtureId: number;
