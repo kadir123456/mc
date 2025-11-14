@@ -5,6 +5,7 @@ import sportsradarService from './sportsradarService';
 
 // ✅ Backend proxy kullanılacak (CORS sorununu çözer)
 const GEMINI_PROXY_URL = '/api/gemini/analyze';
+console.log('🔧 Gemini Proxy URL:', GEMINI_PROXY_URL);
 
 interface MatchData {
   fixtureId: number;
@@ -21,18 +22,11 @@ export const geminiAnalysisService = {
     detailedAnalysis: boolean = false
   ): Promise<MatchAnalysis[]> {
     try {
-      console.log('🔍 API\'den gerçek maç verileri çekiliyor...');
+      console.log('🔍 Gemini AI analizi başlatılıyor...');
 
-      const matchDataPromises = matches.map(match =>
-        sportsradarService.getMatchData(match.homeTeam, match.awayTeam, match.league)
-          .catch(err => {
-            console.error(`⚠️ ${match.homeTeam} vs ${match.awayTeam} verisi alınamadı:`, err.message);
-            return null;
-          })
-      );
-
-      const matchesData = await Promise.all(matchDataPromises);
-      console.log('✅ API verileri alındı!');
+      // Sportsradar API devre dışı (API key yok)
+      // Football API'den zaten maç bilgileri var
+      const matchesData = matches.map(() => null);
 
       const prompt = this.buildAnalysisPrompt(matches, matchesData, detailedAnalysis);
 
@@ -79,32 +73,23 @@ export const geminiAnalysisService = {
 
   buildAnalysisPrompt(matches: MatchSelection[], matchesData: any[], detailed: boolean): string {
     const matchList = matches.map((m, i) => {
-      const data = matchesData[i];
-      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} (${m.league}) - ${m.date} ${m.time}`;
-
-      if (data) {
-        info += `\n   📊 Gerçek Veriler:`;
-        info += `\n   • Ev Sahibi Form: ${data.homeForm}`;
-        info += `\n   • Deplasman Form: ${data.awayForm}`;
-        info += `\n   • Kafa Kafaya: ${data.h2h}`;
-        info += `\n   • Puan Durumu: ${data.leaguePosition}`;
-        info += `\n   • Güven: ${data.confidenceScore}%`;
-      }
-
+      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}`;
+      info += `\n   📍 Lig: ${m.league}`;
+      info += `\n   📅 Tarih/Saat: ${m.date} ${m.time}`;
       return info;
     }).join('\n\n');
 
     const analysisType = detailed ? 'DETAYLI' : 'STANDART';
 
-    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için API-Football'dan alınan GERÇEK verilerle ${analysisType} analiz yap.
+    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için ${analysisType} analiz yap.
 
-⚠️ ÖNEMLİ: Aşağıdaki veriler API-Football'dan gerçek zamanlı çekilmiştir. Bu verilere göre analiz yap!
+🎯 GOOGLE SEARCH KULLAN: Her maç için güncel bilgileri (form, sakatlıklar, haberler, kafa kafaya sonuçlar) Google Search ile araştır.
 
-MAÇLAR VE GERÇEK VERİLER:
+MAÇLAR:
 ${matchList}
 
 GÖREV:
-Yukarıdaki GERÇEK verileri kullanarak her maç için şu tahminleri yüzde olarak ver:
+Google Search ile güncel verileri araştırarak her maç için şu tahminleri yüzde olarak ver:
 1. MS1 (Ev sahibi kazanır): %X
 2. MSX (Beraberlik): %X
 3. MS2 (Deplasman kazanır): %X
@@ -116,13 +101,13 @@ ${detailed ? `7. İLK YARI MS1 (Ev sahibi ilk yarı önde): %X
 9. İLK YARI MS2 (Deplasman ilk yarı önde): %X` : ''}
 
 ANALİZ KRİTERLERİ:
-- Yukarıdaki API verilerini kullan (form, H2H, puan durumu)
-- Takım formunu dikkate al (G=Galibiyet, B=Beraberlik, M=Mağlubiyet)
-- Attıkları ve yedikleri gol sayısını değerlendir
-- Puan durumunu ve sıralamayı hesaba kat
-- H2H geçmişini önemse
-- Google Search ile güncel takım haberlerini kontrol et
-- Ev sahibi avantajını (genelde +10-15% şans) dahil et
+- 🔍 Google Search ile güncel takım formunu araştır
+- 📰 Son maç sonuçlarını ve haberlerini kontrol et
+- 🤕 Sakatlık ve ceza durumlarını araştır
+- ⚔️ Kafa kafaya (H2H) geçmişini incele
+- 📊 Lig sıralaması ve puan durumlarını değerlendir
+- 🏠 Ev sahibi avantajını hesaba kat (+10-15% şans)
+- ⚽ Attıkları ve yedikleri gol ortalamasını değerlendir
 
 ÇIKTI FORMATI (JSON):
 Her maç için şu yapıda JSON döndür:
