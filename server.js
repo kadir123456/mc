@@ -177,7 +177,7 @@ app.get('/api/sportsradar-proxy', async (req, res) => {
   }
 });
 
-// 🆕 Gemini Proxy Endpoint (CORS sorununu çözer)
+// 🆕 Gelişmiş Gemini Analiz Endpoint (Football API istatistikleri ile)
 app.post('/api/gemini/analyze', async (req, res) => {
   try {
     if (!GEMINI_API_KEY) {
@@ -186,20 +186,102 @@ app.post('/api/gemini/analyze', async (req, res) => {
 
     console.log('🤖 Gemini analiz isteği alındı');
 
+    // Eğer matches bilgisi varsa, Football API'den istatistikleri çek
+    const { matches, contents } = req.body;
+    
+    if (matches && matches.length > 0) {
+      console.log(`⚽ ${matches.length} maç için Football API istatistikleri çekiliyor...`);
+      
+      // Her maç için istatistik çek
+      const enrichedMatches = await Promise.all(
+        matches.map(async (match) => {
+          try {
+            if (!FOOTBALL_API_KEY) {
+              return match;
+            }
+
+            // H2H (Head to Head) istatistikleri
+            const h2hResponse = await axios.get('https://v3.football.api-sports.io/fixtures/headtohead', {
+              headers: {
+                'x-rapidapi-host': 'v3.football.api-sports.io',
+                'x-rapidapi-key': FOOTBALL_API_KEY
+              },
+              params: {
+                h2h: `${match.homeTeamId}-${match.awayTeamId}`,
+                last: 5
+              },
+              timeout: 10000
+            });
+
+            // Takım istatistikleri
+            const statsResponse = await axios.get('https://v3.football.api-sports.io/teams/statistics', {
+              headers: {
+                'x-rapidapi-host': 'v3.football.api-sports.io',
+                'x-rapidapi-key': FOOTBALL_API_KEY
+              },
+              params: {
+                team: match.homeTeamId,
+                season: new Date().getFullYear(),
+                league: match.leagueId
+              },
+              timeout: 10000
+            });
+
+            const h2hData = h2hResponse.data?.response || [];
+            const statsData = statsResponse.data?.response || {};
+
+            return {
+              ...match,
+              h2h: h2hData.slice(0, 5).map(f => ({
+                date: f.fixture.date,
+                homeTeam: f.teams.home.name,
+                awayTeam: f.teams.away.name,
+                score: `${f.goals.home}-${f.goals.away}`
+              })),
+              stats: {
+                form: statsData.form || 'N/A',
+                wins: statsData.fixtures?.wins?.total || 0,
+                draws: statsData.fixtures?.draws?.total || 0,
+                loses: statsData.fixtures?.loses?.total || 0,
+                goalsFor: statsData.goals?.for?.total?.total || 0,
+                goalsAgainst: statsData.goals?.against?.total?.total || 0
+              }
+            };
+          } catch (err) {
+            console.error(`⚠️ ${match.homeTeam} istatistiği alınamadı:`, err.message);
+            return match;
+          }
+        })
+      );
+
+      console.log('✅ İstatistikler alındı, Gemini\'ye gönderiliyor...');
+
+      // İstatistiklerle zenginleştirilmiş prompt oluştur
+      const enrichedPrompt = buildEnrichedPrompt(enrichedMatches, contents);
+
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+        enrichedPrompt,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 60000
+        }
+      );
+
+      return res.json(response.data);
+    }
+
+    // Standart istek (matches yok)
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
       req.body,
       {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 45000
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000
       }
     );
 
-    console.log('✅ Gemini analiz tamamlandı');
     res.json(response.data);
-
   } catch (error) {
     console.error('❌ Gemini API hatası:', error.response?.data || error.message);
     res.status(error.response?.status || 500).json({ 
@@ -208,6 +290,41 @@ app.post('/api/gemini/analyze', async (req, res) => {
     });
   }
 });
+
+function buildEnrichedPrompt(matches, originalContents) {
+  const originalPrompt = originalContents?.[0]?.parts?.[0]?.text || '';
+  
+  let enrichedText = originalPrompt + '\n\n📊 GERÇEK İSTATİSTİKLER (Football API):\n\n';
+  
+  matches.forEach((match, index) => {
+    enrichedText += `${index + 1}. ${match.homeTeam} vs ${match.awayTeam}\n`;
+    
+    if (match.stats) {
+      enrichedText += `   📈 Form: ${match.stats.form}\n`;
+      enrichedText += `   ⚽ Galibiyet/Beraberlik/Mağlubiyet: ${match.stats.wins}/${match.stats.draws}/${match.stats.loses}\n`;
+      enrichedText += `   🎯 Atılan Gol: ${match.stats.goalsFor} | Yenilen: ${match.stats.goalsAgainst}\n`;
+    }
+    
+    if (match.h2h && match.h2h.length > 0) {
+      enrichedText += `   🔄 Son 5 H2H:\n`;
+      match.h2h.forEach(h => {
+        enrichedText += `      • ${h.homeTeam} ${h.score} ${h.awayTeam}\n`;
+      });
+    }
+    
+    enrichedText += '\n';
+  });
+  
+  enrichedText += '\n⚠️ Yukarıdaki GERÇEK istatistikleri kullanarak analiz yap!\n';
+  
+  return {
+    contents: [{
+      parts: [{
+        text: enrichedText
+      }]
+    }]
+  };
+}
 
 // 🆕 Kupon Görseli Analiz Endpoint
 app.post('/api/analyze-coupon-image', upload.single('image'), async (req, res) => {
