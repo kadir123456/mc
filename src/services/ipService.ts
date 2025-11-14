@@ -19,16 +19,8 @@ export const ipService = {
   },
 
   async checkDuplicateIP(ip: string): Promise<boolean> {
-    if (ip === 'unknown') return false;
-
-    try {
-      const ipRef = ref(database, 'registeredIPs/' + ip.replace(/\./g, '_'));
-      const snapshot = await get(ipRef);
-      return snapshot.exists();
-    } catch (error) {
-      console.error('IP duplikasyon kontrolü hatası:', error);
-      return false;
-    }
+    // IP duplicate kontrolü devre dışı (Firebase permission sorunları için)
+    return false;
   },
 
   async registerIP(ip: string, userId: string): Promise<void> {
