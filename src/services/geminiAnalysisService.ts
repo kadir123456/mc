@@ -49,25 +49,17 @@ export const geminiAnalysisService = {
             }]
           }],
           generationConfig: {
-            temperature: 0.1,
-            topK: 20,
-            topP: 0.9,
-            maxOutputTokens: 3072,
-          },
-          tools: [{
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: "MODE_DYNAMIC",
-                dynamicThreshold: 0.3
-              }
-            }
-          }]
+            temperature: 0.2,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          }
         },
         {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 45000
+          timeout: 30000
         }
       );
 
@@ -83,76 +75,41 @@ export const geminiAnalysisService = {
   buildAnalysisPrompt(matches: MatchSelection[], matchesData: any[], detailed: boolean): string {
     const matchList = matches.map((m, i) => {
       const data = matchesData[i];
-      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} (${m.league}) - ${m.date} ${m.time}`;
+      let info = `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}`;
 
-      if (data) {
-        info += `\n   📊 Gerçek Veriler:`;
-        info += `\n   • Ev Sahibi Form: ${data.homeForm}`;
-        info += `\n   • Deplasman Form: ${data.awayForm}`;
-        info += `\n   • Kafa Kafaya: ${data.h2h}`;
-        info += `\n   • Puan Durumu: ${data.leaguePosition}`;
-        info += `\n   • Güven: ${data.confidenceScore}%`;
+      if (data && data.homeForm && data.homeForm !== 'Veri yok') {
+        info += ` | Ev Form: ${data.homeForm.split('|')[0]} | Dep Form: ${data.awayForm.split('|')[0]}`;
       }
 
       return info;
-    }).join('\n\n');
+    }).join('\n');
 
-    const analysisType = detailed ? 'DETAYLI' : 'STANDART';
+    return `Futbol maç analizi yap. Her maç için tahmin ver (JSON formatında):
 
-    return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. Aşağıdaki ${matches.length} maç için API-Football'dan alınan GERÇEK verilerle ${analysisType} analiz yap.
-
-⚠️ ÖNEMLİ: Aşağıdaki veriler API-Football'dan gerçek zamanlı çekilmiştir. Bu verilere göre analiz yap!
-
-MAÇLAR VE GERÇEK VERİLER:
+MAÇLAR:
 ${matchList}
 
-GÖREV:
-Yukarıdaki GERÇEK verileri kullanarak her maç için şu tahminleri yüzde olarak ver:
-1. MS1 (Ev sahibi kazanır): %X
-2. MSX (Beraberlik): %X
-3. MS2 (Deplasman kazanır): %X
-4. 2.5 ÜST (Toplam gol 3+): %X
-5. 2.5 ALT (Toplam gol 0-2): %X
-6. KG VAR (Karşılıklı gol): %X
-${detailed ? `7. İLK YARI MS1 (Ev sahibi ilk yarı önde): %X
-8. İLK YARI MSX (İlk yarı beraberlik): %X
-9. İLK YARI MS2 (Deplasman ilk yarı önde): %X` : ''}
-
-ANALİZ KRİTERLERİ:
-- Yukarıdaki API verilerini kullan (form, H2H, puan durumu)
-- Takım formunu dikkate al (G=Galibiyet, B=Beraberlik, M=Mağlubiyet)
-- Attıkları ve yedikleri gol sayısını değerlendir
-- Puan durumunu ve sıralamayı hesaba kat
-- H2H geçmişini önemse
-- Google Search ile güncel takım haberlerini kontrol et
-- Ev sahibi avantajını (genelde +10-15% şans) dahil et
-
-ÇIKTI FORMATI (JSON):
-Her maç için şu yapıda JSON döndür:
-
+JSON çıktı formatı:
 {
   "match1": {
-    "ms1": "45",
-    "msX": "25",
+    "ms1": "40",
+    "msX": "30",
     "ms2": "30",
-    "over25": "65",
-    "under25": "35",
-    "btts": "55",
-    ${detailed ? '"firstHalfMs1": "40", "firstHalfMsX": "35", "firstHalfMs2": "25",' : ''}
-    "recommendation": "2.5 Üst + MS1",
-    "confidence": 75
-  },
-  ...
+    "over25": "60",
+    "under25": "40",
+    "btts": "50",
+    ${detailed ? '"firstHalfMs1": "35", "firstHalfMsX": "35", "firstHalfMs2": "30",' : ''}
+    "recommendation": "2.5 Üst",
+    "confidence": 70
+  }
 }
 
-KRITIK KURALLAR:
-1. SADECE JSON formatında yanıt ver, açıklama ekleme
-2. MS1+MSX+MS2 = 100 olmalı
-3. over25+under25 = 100 olmalı
-4. Confidence'ı API güven skoruna göre ayarla
-5. Recommendation'ı en yüksek ihtimalli seçeneklere göre yap
-6. AYNI MAÇ HER SEFERINDE AYNI SONUCU VERMELİ (tutarlılık)
-7. Gerçek verilere dayalı objektif analiz yap`;
+Kurallar:
+- MS1+MSX+MS2 = 100
+- over25+under25 = 100
+- Sadece JSON döndür
+- Form verisi varsa kullan
+- Ev sahibi avantajı ver`;
   },
 
   parseAnalysisResponse(text: string, matches: MatchSelection[]): MatchAnalysis[] {

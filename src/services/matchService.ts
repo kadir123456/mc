@@ -33,18 +33,27 @@ export const matchService = {
 
     const matchesData = snapshot.val();
     const matches: Match[] = [];
+    const now = Date.now();
 
     Object.keys(matchesData).forEach(fixtureId => {
       const match = matchesData[fixtureId];
-      if (match.status !== 'finished') {
-        matches.push({
-          fixtureId: parseInt(fixtureId),
-          ...match
-        });
-      }
+
+      if (match.status === 'finished') return;
+      if (match.timestamp < now - 600000) return;
+
+      matches.push({
+        fixtureId: parseInt(fixtureId),
+        ...match
+      });
     });
 
-    return matches.sort((a, b) => a.timestamp - b.timestamp);
+    return matches
+      .filter(m => m.status === 'scheduled' || m.status === 'live')
+      .sort((a, b) => {
+        if (a.status === 'live' && b.status !== 'live') return -1;
+        if (a.status !== 'live' && b.status === 'live') return 1;
+        return a.timestamp - b.timestamp;
+      });
   },
 
   async getTodayMatches(): Promise<Match[]> {
