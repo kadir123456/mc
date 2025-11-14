@@ -545,7 +545,7 @@ async function fetchAndCacheMatches(forceUpdate = false) {
         }
 
         // ✅ Türkiye saatine çevir (UTC+3)
-        const turkeyTime = new Date(matchTime.getTime() + (3 * 60 * 60 * 1000));
+        const turkeyTime = new Date(matchTime.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
         
         matches[fixture.fixture.id] = {
           homeTeam: fixture.teams.home.name,
@@ -558,6 +558,7 @@ async function fetchAndCacheMatches(forceUpdate = false) {
             hour12: false
           }),
           timestamp: matchTime.getTime(),
+          turkeyTimestamp: turkeyTime.getTime(),
           status: status === 'LIVE' || status === '1H' || status === '2H' ? 'live' : 'scheduled',
           lastUpdated: Date.now()
         };
