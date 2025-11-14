@@ -119,9 +119,9 @@ export const Bulletin: React.FC = () => {
         analysisType
       );
 
-      const newCredits = user.credits - creditsRequired;
-      await authService.updateCredits(user.uid, newCredits);
-      setUser({ ...user, credits: newCredits });
+      // Kredi backend'den düşürüldü, sadece local state güncelle
+      // Firebase'den yeni veriyi çekmek için refresh
+      window.location.reload();
 
       alert('Analiz tamamlandı! Kuponlarım sayfasında görebilirsiniz.');
       setSelectedMatches([]);
