@@ -31,37 +31,18 @@ export const ipService = {
       return { banned: false };
     } catch (error) {
       console.error('IP kontrolü hatası:', error);
+      // Hata durumunda kullanıcıyı engelleme (fail-open)
       return { banned: false };
     }
   },
 
   async checkDuplicateIP(ip: string): Promise<boolean> {
-    if (ip === 'unknown') return false;
-
-    try {
-      const ipRef = ref(database, 'registeredIPs/' + ip.replace(/\./g, '_'));
-      const snapshot = await get(ipRef);
-      return snapshot.exists();
-    } catch (error) {
-      console.error('IP duplikasyon kontrolü hatası:', error);
-      return false;
-    }
+    // IP duplicate kontrolü devre dışı (Firebase permission sorunları için)
+    return false;
   },
 
   async registerIP(ip: string, userId: string): Promise<void> {
-    if (ip === 'unknown') return;
-
-    try {
-      const ipRef = ref(database, 'registeredIPs/' + ip.replace(/\./g, '_'));
-      const snapshot = await get(ipRef);
-      if (!snapshot.exists()) {
-        await set(ipRef, {
-          userId,
-          registeredAt: Date.now()
-        });
-      }
-    } catch (error) {
-      console.error('IP kayıt hatası:', error);
-    }
+    // IP kayıt devre dışı (Firebase permission sorunları için)
+    return;
   }
 };

@@ -1,0 +1,262 @@
+{
+  "rules": {
+    // 👥 KULLANICI VERİLERİ
+    "users": {
+      "$userId": {
+        // Kullanıcı sadece kendi verisini okuyabilir
+        ".read": "auth != null && auth.uid === $userId",
+        
+        // Kullanıcı sadece kendi verisini yazabilir
+        ".write": "auth != null && auth.uid === $userId",
+        
+        // Veri yapısı validasyonu
+        ".validate": "newData.hasChildren(['email', 'displayName', 'credits', 'createdAt'])",
+        
+        "email": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$/i)"
+        },
+        
+        "displayName": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
+        },
+        
+        "credits": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        
+        "totalSpent": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        
+        "isAdmin": {
+          ".validate": "newData.isBoolean()"
+        },
+        
+        // Diğer özel alanlar
+        "$other": {
+          ".validate": true
+        }
+      }
+    },
+    
+    // ⚽ MAÇ VERİLERİ
+    "matches": {
+      // Herkes maçları okuyabilir (giriş yapmış olmalı)
+      ".read": "auth != null",
+      
+      // Sadece backend yazabilir (client'tan yazma yok)
+      ".write": false,
+      
+      "$date": {
+        ".validate": "newData.hasChildren()",
+        
+        "$matchId": {
+          ".validate": "newData.hasChildren(['homeTeam', 'awayTeam', 'league', 'date', 'time', 'timestamp', 'status'])",
+          
+          "homeTeam": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          
+          "awayTeam": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          
+          "league": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          
+          "date": {
+            ".validate": "newData.isString()"
+          },
+          
+          "time": {
+            ".validate": "newData.isString()"
+          },
+          
+          "timestamp": {
+            ".validate": "newData.isNumber()"
+          },
+          
+          "status": {
+            ".validate": "newData.isString() && (newData.val() === 'scheduled' || newData.val() === 'live' || newData.val() === 'finished')"
+          },
+          
+          // Diğer opsiyonel alanlar
+          "$other": {
+            ".validate": true
+          }
+        }
+      }
+    },
+    
+    // 🎫 KULLANICI KUPONLARI
+    "coupons": {
+      "$userId": {
+        // Kullanıcı sadece kendi kuponlarını görebilir
+        ".read": "auth != null && auth.uid === $userId",
+        
+        // Kullanıcı sadece kendi kuponlarını ekleyebilir
+        ".write": "auth != null && auth.uid === $userId",
+        
+        "$couponId": {
+          ".validate": "newData.hasChildren(['matches', 'analysis', 'createdAt'])",
+          
+          "matches": {
+            ".validate": "newData.hasChildren()"
+          },
+          
+          "analysis": {
+            ".validate": "newData.isString()"
+          },
+          
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          
+          "detailedAnalysis": {
+            ".validate": "newData.isBoolean()"
+          },
+          
+          "creditCost": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          
+          // Diğer kupon verileri
+          "$other": {
+            ".validate": true
+          }
+        }
+      }
+    },
+    
+    // 🚫 YASAKLI IP ADRESLERİ (Admin Only)
+    "bannedIPs": {
+      // Sadece admin okuyabilir
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      // Sadece admin yazabilir
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      "$ipAddress": {
+        ".validate": "newData.hasChildren(['reason', 'bannedAt'])",
+        
+        "reason": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        
+        "bannedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        
+        "bannedBy": {
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    
+    // 📝 KAYITLI IP ADRESLERİ (Duplicate kontrol)
+    "registeredIPs": {
+      // Sadece admin okuyabilir
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      // Sistem yazabilir (backend)
+      ".write": false,
+      
+      "$ipAddress": {
+        ".validate": "newData.hasChildren(['userId', 'registeredAt'])",
+        
+        "userId": {
+          ".validate": "newData.isString()"
+        },
+        
+        "registeredAt": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    
+    // 💳 ÖDEME İŞLEMLERİ (Log)
+    "payments": {
+      "$userId": {
+        // Kullanıcı sadece kendi ödemelerini görebilir
+        ".read": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        
+        // Sadece backend yazabilir
+        ".write": false,
+        
+        "$paymentId": {
+          ".validate": "newData.hasChildren(['amount', 'credits', 'method', 'status', 'createdAt'])",
+          
+          "amount": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          
+          "credits": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          
+          "method": {
+            ".validate": "newData.isString() && (newData.val() === 'bank_transfer' || newData.val() === 'credit_card')"
+          },
+          
+          "status": {
+            ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'completed' || newData.val() === 'failed')"
+          },
+          
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          
+          "$other": {
+            ".validate": true
+          }
+        }
+      }
+    },
+    
+    // 📊 ADMIN DASHBOARD VERİLERİ
+    "admin": {
+      // Sadece admin erişebilir
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      "$dataType": {
+        ".validate": true
+      }
+    },
+    
+    // 🔧 SİSTEM AYARLARI
+    "systemSettings": {
+      // Herkes okuyabilir (genel ayarlar)
+      ".read": true,
+      
+      // Sadece admin yazabilir
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      "$setting": {
+        ".validate": true
+      }
+    },
+    
+    // 📱 ANALİZ GEÇMİŞİ (İstatistikler için)
+    "analytics": {
+      // Herkes kendi analizlerini görebilir, admin hepsini görebilir
+      ".read": "auth != null",
+      
+      // Sadece backend yazabilir
+      ".write": false,
+      
+      "$userId": {
+        ".read": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        
+        "$analysisId": {
+          ".validate": "newData.hasChildren(['matchCount', 'analysisType', 'createdAt'])"
+        }
+      }
+    }
+  }
+}
