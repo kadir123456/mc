@@ -269,9 +269,9 @@ app.post('/api/gemini/analyze', async (req, res) => {
       );
 
       // ✅ Analiz başarılı, kredi düşür
-      if (userId && creditsToDeduct && firebaseAdmin) {
+      if (userId && creditsToDeduct && firebaseDb) {
         try {
-          const userRef = firebaseAdmin.database().ref(`users/${userId}`);
+          const userRef = firebaseDb.ref(`users/${userId}`);
           const userSnapshot = await userRef.once('value');
           const userData = userSnapshot.val();
           
