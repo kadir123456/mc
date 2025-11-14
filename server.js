@@ -665,9 +665,13 @@ async function fetchAndCacheMatches(forceUpdate = false) {
         const turkeyTime = new Date(matchTime.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
         
         matches[fixture.fixture.id] = {
+          fixtureId: fixture.fixture.id,
           homeTeam: fixture.teams.home.name,
+          homeTeamId: fixture.teams.home.id,
           awayTeam: fixture.teams.away.name,
+          awayTeamId: fixture.teams.away.id,
           league: fixture.league.name,
+          leagueId: fixture.league.id,
           date: date,
           time: turkeyTime.toLocaleTimeString('tr-TR', {
             hour: '2-digit',
