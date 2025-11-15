@@ -85,6 +85,22 @@ export const ImageAnalysis: React.FC = () => {
       return;
     }
 
+    // ✅ Kredi kontrolü (3 kredi gerekli)
+    const REQUIRED_CREDITS = 3;
+    if (user.credits < REQUIRED_CREDITS) {
+      setError(`Yetersiz kredi. Bu analiz için ${REQUIRED_CREDITS} kredi gereklidir. Lütfen kredi satın alın.`);
+      return;
+    }
+
+    // ✅ Kullanıcıya onay sor
+    const confirmed = window.confirm(
+      `Bu analiz ${REQUIRED_CREDITS} kredi harcayacaktır.\n\nMevcut krediniz: ${user.credits}\nKalan krediniz: ${user.credits - REQUIRED_CREDITS}\n\nDevam etmek istiyor musunuz?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setUploading(true);
       setError(null);
@@ -92,6 +108,9 @@ export const ImageAnalysis: React.FC = () => {
 
       const formData = new FormData();
       formData.append('image', selectedFile);
+      // ✅ User ID'yi backend'e gönder (kredi düşürmek için)
+      formData.append('userId', user.uid);
+      formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
 
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
@@ -105,6 +124,13 @@ export const ImageAnalysis: React.FC = () => {
       }
 
       setResult(data);
+      
+      // ✅ Başarılı analiz sonrası kredi güncelle
+      // Sayfayı yenile ki kullanıcı güncel kredi bakiyesini görsün
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+      
     } catch (err: any) {
       console.error('Analiz hatası:', err);
       setError(err.message || 'Bir hata oluştu');
