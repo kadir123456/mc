@@ -730,6 +730,9 @@ async function fetchAndCacheMatches(forceUpdate = false) {
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+    console.log(`🔑 Using API Key: ${FOOTBALL_API_KEY ? FOOTBALL_API_KEY.substring(0, 10) + '...' : 'MISSING!'}`);
+    console.log(`📅 Fetching matches for dates: ${today} and ${tomorrow}`);
+
     incrementApiCall();
     const todayData = await axios.get('https://v3.football.api-sports.io/fixtures', {
       headers: {
@@ -739,8 +742,15 @@ async function fetchAndCacheMatches(forceUpdate = false) {
       timeout: 15000
     });
 
-    console.log(`📊 API Response Status: ${todayData.status}`);
-    console.log(`📊 Today API Response: ${todayData.data?.response?.length || 0} fixtures`);
+    console.log(`\n📊 TODAY RESPONSE:`);
+    console.log(`   Status: ${todayData.status}`);
+    console.log(`   Headers:`, todayData.headers);
+    console.log(`   Data keys:`, Object.keys(todayData.data || {}));
+    console.log(`   Response length: ${todayData.data?.response?.length || 0}`);
+    console.log(`   Errors:`, todayData.data?.errors || 'none');
+    if (todayData.data?.response?.length > 0) {
+      console.log(`   First match:`, todayData.data.response[0].teams);
+    }
 
     incrementApiCall();
     const tomorrowData = await axios.get('https://v3.football.api-sports.io/fixtures', {
@@ -751,8 +761,10 @@ async function fetchAndCacheMatches(forceUpdate = false) {
       timeout: 15000
     });
 
-    console.log(`📊 API Response Status: ${tomorrowData.status}`);
-    console.log(`📊 Tomorrow API Response: ${tomorrowData.data?.response?.length || 0} fixtures`);
+    console.log(`\n📊 TOMORROW RESPONSE:`);
+    console.log(`   Status: ${tomorrowData.status}`);
+    console.log(`   Response length: ${tomorrowData.data?.response?.length || 0}`);
+    console.log(`   Errors:`, tomorrowData.data?.errors || 'none');
 
     const processMatches = (fixtures, date) => {
       const matches = {};
