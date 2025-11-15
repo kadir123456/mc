@@ -40,7 +40,7 @@ export const Home: React.FC = () => {
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Spor Müsabakalarıı
+              Futbol Maçlarını
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                 AI ile Analiz Edin
@@ -49,7 +49,7 @@ export const Home: React.FC = () => {
 
             <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
               Günlük maç bülteninden maç seçin, yapay zeka her maçı gerçek verilerle analiz etsin.
-              Profesyonel tahmin analizleri ile bilinçli kararlar alın.
+              Profesyonel istatistiksel değerlendirme ile bilinçli kararlar alın.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
@@ -89,7 +89,7 @@ export const Home: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-white mb-4">Neden Aikupon?</h2>
-              <p className="text-xl text-slate-300">Yapay zeka ile profesyonel analize saniyeler içinde ulaşın</p>
+              <p className="text-xl text-slate-300">Yapay zeka ile profesyonel istatistiksel analize saniyeler içinde ulaşın</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -99,7 +99,7 @@ export const Home: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Gerçek Veri Analizi</h3>
                 <p className="text-slate-300">
-                  Günlük güncellenen maç verileri, takım formu, lig durumu ve profesyonel tahmin analizleri.
+                  Günlük güncellenen maç verileri, takım formu, lig durumu ve profesyonel istatistiksel değerlendirme.
                 </p>
               </div>
 
@@ -109,7 +109,7 @@ export const Home: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Güven Skorları</h3>
                 <p className="text-slate-300">
-                  Her maç analizi için 0-100 arası güven skoru, yüzde tahminleri ve profesyonel tavsiyeler.
+                  Her maç analizi için 0-100 arası güven skoru, yüzde tahminleri ve profesyonel öneriler.
                 </p>
               </div>
 
@@ -119,7 +119,7 @@ export const Home: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Anlık Analiz</h3>
                 <p className="text-slate-300">
-                  Maçları seçin, yapay zeka 30 saniye içinde detaylı tahmin analizi oluşturur.
+                  Maçları seçin, yapay zeka 30 saniye içinde detaylı istatistiksel tahmin oluşturur.
                 </p>
               </div>
 
@@ -165,7 +165,7 @@ export const Home: React.FC = () => {
                   <h3 className="text-2xl font-bold text-white mb-2">Yapay Zeka Analizi</h3>
                   <p className="text-slate-300 text-lg">
                     Aikupon yapay zekası seçtiğiniz maçları gerçek verilerle analiz eder.
-                    MS1, MSX, MS2, 2.5 Üst/Alt, KG ve ilk yarı tahminleri.
+                    İstatistiksel tahminler, form analizi ve detaylı değerlendirmeler.
                   </p>
                 </div>
               </div>
@@ -175,10 +175,10 @@ export const Home: React.FC = () => {
                   3
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Kuponlarımda Görüntüle</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Sonuçları Görüntüle</h3>
                   <p className="text-slate-300 text-lg">
-                    Detaylı analiz sonuçları "Kuponlarım" sayfasında saklanır.
-                    Yüzde tahminleri, güven skorları ve öneriler ile bilinçli kararlar alın.
+                    Detaylı analiz sonuçları "Analizlerim" sayfasında saklanır.
+                    Yüzde tahminleri, güven skorları ve öneriler ile bilinçli değerlendirme yapın.
                   </p>
                 </div>
               </div>
@@ -201,9 +201,9 @@ export const Home: React.FC = () => {
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-12">
               <h3 className="text-lg font-bold text-yellow-400 mb-2">Önemli Uyarı</h3>
               <p className="text-slate-300 text-sm leading-relaxed">
-                Bu platform sadece eğitim ve bilgilendirme amaçlıdır. Sunulan analizler yatırım tavsiyesi niteliğinde değildir.
+                Bu platform sadece eğitim ve bilgilendirme amaçlıdır. Sunulan analizler yatırım veya finansal tavsiye niteliğinde değildir.
                 Kullanıcılar kendi kararlarından tamamen sorumludur. Sonuçlar garanti edilmez ve platform yöneticileri
-                herhangi bir kayıptan sorumlu tutulamaz.
+                herhangi bir kayıptan sorumlu tutulamaz. Platform, spor maçlarının istatistiksel değerlendirmesini sağlar.
               </p>
             </div>
 
