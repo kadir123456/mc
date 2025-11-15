@@ -34,7 +34,7 @@ export const TermsOfService: React.FC = () => {
 
           <div className="space-y-8 text-slate-300">
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">1. Kabulüm ve Sözleşme</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">1. Kabul ve Sözleşme</h2>
               <p className="leading-relaxed">
                 Aikupon platformunu ("Site", "Hizmet", "Platform") kullanarak, işbu Kullanım Şartlarını
                 ("Şartlar") kabul etmiş sayılırsınız. Bu Şartları kabul etmiyorsanız, lütfen Siteyi
@@ -49,14 +49,15 @@ export const TermsOfService: React.FC = () => {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">2. Hizmet Tanımı</h2>
               <p className="leading-relaxed">
-                Aikupon, spor müsabakalarının istatistiksel analizini yapay zeka ile gerçekleştiren
+                Aikupon, futbol maçlarının istatistiksel analizini yapay zeka ile gerçekleştiren
                 bir eğitim ve bilgilendirme platformudur. Platform:
               </p>
               <ul className="list-disc list-inside space-y-2 mt-4 ml-4">
-                <li>Sadece bilgilendirme amaçlıdır</li>
+                <li>Sadece bilgilendirme ve eğitim amaçlıdır</li>
                 <li>Yatırım veya finansal tavsiye vermez</li>
                 <li>Hiçbir sonuç garanti etmez</li>
                 <li>Eğitim amaçlı istatistiksel değerlendirmeler sunar</li>
+                <li>Spor analizi ve veri değerlendirmesi sağlar</li>
               </ul>
             </section>
 
@@ -94,7 +95,7 @@ export const TermsOfService: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">5. Tazminat (Indemnification)</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">5. Tazminat</h2>
               <p className="leading-relaxed">
                 Kullanıcı, üçüncü şahısların talepleri, davaları, zararları, kayıpları veya masrafları
                 (avukatlık ücretleri dahil) ile ilgili olarak Platform sahibini, yöneticilerini,
@@ -197,10 +198,7 @@ export const TermsOfService: React.FC = () => {
                 yasalarına göre çözümlenecektir.
               </p>
               <p className="leading-relaxed mt-4">
-                Taraflar arasındaki uyuşmazlıklarda <strong>[İstanbul] Mahkemeleri ve İcra Daireleri</strong> yetkili olacaktır.
-              </p>
-              <p className="text-sm text-yellow-400 mt-4 italic">
-                Not: Yetkili mahkeme bilgisi şirket merkezine göre güncellenmelidir.
+                Taraflar arasındaki uyuşmazlıklarda <strong>İstanbul Mahkemeleri ve İcra Daireleri</strong> yetkili olacaktır.
               </p>
             </section>
 
