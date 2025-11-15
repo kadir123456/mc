@@ -6,7 +6,7 @@ import { matchService, Match } from '../services/matchService';
 import { geminiAnalysisService } from '../services/geminiAnalysisService';
 import { couponService } from '../services/couponService';
 import { authService } from '../services/authService';
-import { translateLeague, formatMatchTime } from '../utils/leagueTranslations';
+import { translateLeague, translateTeam, formatMatchTime, getMatchStatusText, isMatchLive, isMatchFinished } from '../utils/leagueTranslations';
 
 export const Bulletin: React.FC = () => {
   const navigate = useNavigate();
