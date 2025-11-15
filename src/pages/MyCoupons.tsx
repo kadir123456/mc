@@ -54,7 +54,7 @@ export const MyCoupons: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
         <div className="text-center">
           <Ticket className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-          <p className="text-white mb-4">Kuponlarınızı görmek için giriş yapmalısınız</p>
+          <p className="text-white mb-4">Analizleri görmek için giriş yapmalısınız</p>
           <button
             onClick={() => navigate('/login')}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
@@ -71,7 +71,7 @@ export const MyCoupons: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-          <p className="text-white">Kuponlar yükleniyor...</p>
+          <p className="text-white">Analizler yükleniyor...</p>
         </div>
       </div>
     );
@@ -88,7 +88,7 @@ export const MyCoupons: React.FC = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold text-white">Kuponlarım</h1>
+          <h1 className="text-lg font-bold text-white">Analizler</h1>
           <div className="w-9"></div>
         </div>
       </header>
@@ -106,8 +106,8 @@ export const MyCoupons: React.FC = () => {
         {coupons.length === 0 ? (
           <div className="text-center py-16 bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
             <Ticket className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-300 text-lg mb-2">Henüz kuponunuz yok</p>
-            <p className="text-slate-500 mb-6">Bülten'den maç seçerek ilk kuponunuzu oluşturun</p>
+            <p className="text-slate-300 text-lg mb-2">Henüz Analiziniz yok</p>
+            <p className="text-slate-500 mb-6">Bülten'den maç seçerek ilk analizini oluşturun</p>
             <button
               onClick={() => navigate('/bulletin')}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition"
