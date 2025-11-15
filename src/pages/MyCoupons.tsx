@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Ticket, Calendar, Share2, ChevronDown, ChevronUp, Trophy, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { couponService, Coupon } from '../services/couponService';
-import { translateLeague } from '../utils/leagueTranslations';
+import { translateLeague, translateTeam } from '../utils/leagueTranslations';
 
 export const MyCoupons: React.FC = () => {
   const navigate = useNavigate();
