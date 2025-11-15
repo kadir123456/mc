@@ -296,15 +296,17 @@ export const Bulletin: React.FC = () => {
                   {groupedMatches[league].map(match => {
                     const isSelected = selectedMatches.some(m => m.fixtureId === match.fixtureId);
                     const canSelect = selectedMatches.length < maxSelections || isSelected;
+                    const matchIsLive = isMatchLive(match.status);
+                    const matchIsFinished = isMatchFinished(match.status);
 
                     return (
                       <button
                         key={match.fixtureId}
                         onClick={() => canSelect && toggleMatchSelection(match)}
-                        disabled={!canSelect}
+                        disabled={!canSelect || matchIsFinished}
                         className={`w-full text-left px-3 py-2.5 transition hover:bg-slate-700/30 ${
-                          isSelected ? 'bg-blue-600/10' : ''
-                        } ${!canSelect ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          isSelected ? 'bg-blue-600/10 border-l-2 border-blue-500' : ''
+                        } ${!canSelect || matchIsFinished ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
@@ -319,22 +321,36 @@ export const Bulletin: React.FC = () => {
                             )}
                           </div>
                           <span className="text-[10px] text-slate-500 font-medium">{formatMatchTime(match.timestamp)}</span>
+                          
+                          {/* Maç Durumu Badge */}
+                          {matchIsLive && (
+                            <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-bold animate-pulse">
+                              🔴 CANLI
+                            </span>
+                          )}
+                          {matchIsFinished && (
+                            <span className="text-[10px] bg-slate-600 text-slate-300 px-2 py-0.5 rounded-full">
+                              Bitti
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-white font-medium truncate">
-                              {match.homeTeam}
+                              {translateTeam(match.homeTeam)}
                             </div>
                             <div className="text-sm text-slate-300 truncate">
-                              {match.awayTeam}
+                              {translateTeam(match.awayTeam)}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1 ml-3">
-                            <div className="bg-slate-700/50 px-2 py-1 rounded text-[10px] text-slate-400">
-                              Analiz
-                            </div>
+                            {!matchIsFinished && (
+                              <div className="bg-blue-600/20 text-blue-400 px-2 py-1 rounded text-[10px] font-medium">
+                                Analiz Et
+                              </div>
+                            )}
                           </div>
                         </div>
                       </button>
