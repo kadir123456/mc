@@ -32,7 +32,7 @@ interface AnalysisResult {
 
 export const ImageAnalysis: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -125,11 +125,10 @@ export const ImageAnalysis: React.FC = () => {
 
       setResult(data);
       
-      // ✅ Başarılı analiz sonrası kredi güncelle
-      // Sayfayı yenile ki kullanıcı güncel kredi bakiyesini görsün
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
+      // ✅ Kredi bakiyesini güncelle (sayfa yenilemeden)
+      if (refreshUser) {
+        await refreshUser();
+      }
       
     } catch (err: any) {
       console.error('Analiz hatası:', err);
@@ -152,7 +151,7 @@ export const ImageAnalysis: React.FC = () => {
         <div className="text-center">
           <Zap className="w-16 h-16 mx-auto text-yellow-400 mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Giriş Yapın</h2>
-          <p className="text-slate-300 mb-6">Kupon analizi için giriş yapmalısınız</p>
+          <p className="text-slate-300 mb-6">Görsel analizi için giriş yapmalısınız</p>
           <button
             onClick={() => navigate('/login')}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
@@ -178,7 +177,7 @@ export const ImageAnalysis: React.FC = () => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <ImageIcon className="w-6 h-6 text-yellow-400" />
-              <h1 className="text-lg font-bold text-white">Kupon Analizi</h1>
+              <h1 className="text-lg font-bold text-white">Görsel Analizi</h1>
             </div>
             <div className="bg-slate-700/80 px-2.5 py-1.5 rounded text-xs font-medium text-yellow-400 flex items-center gap-1">
               <Zap className="w-3.5 h-3.5" />
@@ -199,10 +198,10 @@ export const ImageAnalysis: React.FC = () => {
               <ArrowLeft className="w-6 h-6" />
             </button>
             <ImageIcon className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-3xl font-bold text-white">Kupon Görseli Analizi</h1>
+            <h1 className="text-3xl font-bold text-white">Maç Görseli Analizi</h1>
           </div>
           <p className="text-slate-400 ml-14">
-            Bahis kuponunuzun ekran görüntüsünü yükleyin, AI ile detaylı analiz edelim
+            Maç listesi görselinizi yükleyin, AI ile detaylı analiz edelim
           </p>
         </div>
 
@@ -213,9 +212,9 @@ export const ImageAnalysis: React.FC = () => {
             Nasıl Çalışır?
           </h3>
           <ul className="text-sm text-slate-300 space-y-1">
-            <li>• Bahis kuponunuzun ekran görüntüsünü alın</li>
+            <li>• Maç listesi görselinizin ekran görüntüsünü alın</li>
             <li>• Görseli buraya yükleyin</li>
-            <li>• AI, kuponda yazılı maçları otomatik çıkarır</li>
+            <li>• AI, görseldeki maçları otomatik çıkarır</li>
             <li>• Maçlar API'den bulunur ve detaylı analiz yapılır</li>
           </ul>
         </div>
@@ -238,7 +237,7 @@ export const ImageAnalysis: React.FC = () => {
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Upload className="w-16 h-16 mx-auto text-slate-500 mb-4" />
-                  <p className="text-white font-medium mb-2">Kupon Görseli Yükle</p>
+                  <p className="text-white font-medium mb-2">Maç Görseli Yükle</p>
                   <p className="text-sm text-slate-400 mb-4">
                     veya sürükleyip bırakın
                   </p>
@@ -280,7 +279,7 @@ export const ImageAnalysis: React.FC = () => {
                     ) : (
                       <>
                         <Zap className="w-5 h-5" />
-                        Analiz Et
+                        Analiz Et (3 Kredi)
                       </>
                     )}
                   </button>
@@ -304,6 +303,15 @@ export const ImageAnalysis: React.FC = () => {
         {/* Results */}
         {result && (
           <div className="space-y-6 mt-6">
+            {/* Success Message */}
+            <div className="bg-green-600/10 border border-green-500/30 rounded-lg p-4 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-green-300 font-medium">Analiz Tamamlandı!</p>
+                <p className="text-sm text-green-200/80">Görsel başarıyla analiz edildi. 3 kredi hesabınızdan düşüldü.</p>
+              </div>
+            </div>
+
             {/* Preview */}
             {previewUrl && (
               <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
@@ -326,7 +334,7 @@ export const ImageAnalysis: React.FC = () => {
                   <CheckCircle className="w-5 h-5 text-green-400" />
                   Çıkarılan Metin
                 </h3>
-                <pre className="text-sm text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded">
+                <pre className="text-sm text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded max-h-64 overflow-y-auto">
                   {result.ocrText}
                 </pre>
               </div>
@@ -336,7 +344,7 @@ export const ImageAnalysis: React.FC = () => {
             {result.extractedMatches && result.extractedMatches.length > 0 && (
               <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
                 <h3 className="text-white font-semibold mb-3">
-                  Çıkarılan Maçlar ({result.extractedMatches.length})
+                  Tespit Edilen Maçlar ({result.extractedMatches.length})
                 </h3>
                 <div className="space-y-2">
                   {result.extractedMatches.map((match, idx) => (
