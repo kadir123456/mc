@@ -214,7 +214,7 @@ export const Bulletin: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 py-3">
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-3">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-white">Müsabaka seçimlerini dikkat edin Geçmiş maclar listede olabilir.saat farkı vardır.</h3>
+            <h3 className="text-sm font-bold text-white">Bültendeki maç saatleri Türkiye saatine göre farklılık gösterebilir</h3>
             <button
               onClick={() => setShowInfo(!showInfo)}
               className="text-slate-400 hover:text-white"
