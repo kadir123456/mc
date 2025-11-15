@@ -221,7 +221,7 @@ export const Profile: React.FC = () => {
         {/* App Version */}
         <div className="mt-8 text-center">
           <p className="text-xs text-slate-600">
-            Aikupon v1.0.0 • AI Destekli Bahis Analizi
+            Aikupon v1.0.0 • AI Destekli Analiz
           </p>
         </div>
       </div>
