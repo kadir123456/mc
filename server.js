@@ -783,17 +783,41 @@ async function fetchAndCacheMatches(forceUpdate = false) {
       return matches;
     };
 
+    let totalSaved = 0;
+    
     if (todayData.data?.response?.length > 0) {
+      console.log(`📊 Bugün için ${todayData.data.response.length} maç alındı`);
       const todayMatches = processMatches(todayData.data.response, today);
-      await firebaseDb.ref(`matches/${today}`).set(todayMatches);
-      console.log(`✅ Saved ${Object.keys(todayMatches).length} matches for ${today}`);
+      const todayCount = Object.keys(todayMatches).length;
+      
+      if (todayCount > 0) {
+        await firebaseDb.ref(`matches/${today}`).set(todayMatches);
+        console.log(`✅ Firebase'e kaydedildi: ${todayCount} maç (${today})`);
+        totalSaved += todayCount;
+      } else {
+        console.log(`⚠️  Bugün için uygun maç bulunamadı (hepsi bitmiş veya geçmiş)`);
+      }
+    } else {
+      console.log(`⚠️  Bugün için API'den maç gelmedi`);
     }
 
     if (tomorrowData.data?.response?.length > 0) {
+      console.log(`📊 Yarın için ${tomorrowData.data.response.length} maç alındı`);
       const tomorrowMatches = processMatches(tomorrowData.data.response, tomorrow);
-      await firebaseDb.ref(`matches/${tomorrow}`).set(tomorrowMatches);
-      console.log(`✅ Saved ${Object.keys(tomorrowMatches).length} matches for ${tomorrow}`);
+      const tomorrowCount = Object.keys(tomorrowMatches).length;
+      
+      if (tomorrowCount > 0) {
+        await firebaseDb.ref(`matches/${tomorrow}`).set(tomorrowMatches);
+        console.log(`✅ Firebase'e kaydedildi: ${tomorrowCount} maç (${tomorrow})`);
+        totalSaved += tomorrowCount;
+      } else {
+        console.log(`⚠️  Yarın için uygun maç bulunamadı`);
+      }
+    } else {
+      console.log(`⚠️  Yarın için API'den maç gelmedi`);
     }
+    
+    console.log(`\n🎉 TOPLAM KAYDEDİLEN MAÇ: ${totalSaved}`);
 
     await cleanFinishedMatches();
     lastMatchFetch = Date.now();
