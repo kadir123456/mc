@@ -87,12 +87,60 @@ app.get('/api/health', (req, res) => {
     timestamp: Date.now(),
     sportsradarConfigured: !!SPORTSRADAR_API_KEY,
     footballApiConfigured: !!FOOTBALL_API_KEY,
+    footballApiKeyPreview: FOOTBALL_API_KEY ? FOOTBALL_API_KEY.substring(0, 10) + '...' : 'MISSING',
     firebaseConnected: !!firebaseDb,
     apiCallsToday: dailyApiCalls,
     apiCallsRemaining: MAX_DAILY_CALLS - dailyApiCalls,
     lastMatchFetch: lastMatchFetch > 0 ? new Date(lastMatchFetch).toISOString() : 'Never',
     nextMatchFetch: lastMatchFetch > 0 ? new Date(lastMatchFetch + FETCH_INTERVAL).toISOString() : 'Soon'
   });
+});
+
+// 🆕 Test API Key Endpoint
+app.get('/api/test-football-api', async (req, res) => {
+  try {
+    if (!FOOTBALL_API_KEY) {
+      return res.status(500).json({ 
+        error: 'Football API Key not configured',
+        envVars: Object.keys(process.env).filter(k => k.includes('FOOTBALL') || k.includes('API'))
+      });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    console.log(`🧪 Testing Football API...`);
+    console.log(`   Key: ${FOOTBALL_API_KEY.substring(0, 10)}...`);
+    console.log(`   Date: ${today}`);
+
+    const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
+      headers: {
+        'x-apisports-key': FOOTBALL_API_KEY
+      },
+      params: { date: today },
+      timeout: 15000
+    });
+
+    res.json({
+      success: true,
+      status: response.status,
+      headers: response.headers,
+      dataKeys: Object.keys(response.data || {}),
+      fixturesCount: response.data?.response?.length || 0,
+      errors: response.data?.errors || null,
+      results: response.data?.results || 0,
+      paging: response.data?.paging || null,
+      sampleFixture: response.data?.response?.[0] || null
+    });
+
+  } catch (error) {
+    console.error('❌ Football API Test Error:', error.message);
+    res.status(500).json({
+      error: error.message,
+      response: error.response?.data || null,
+      status: error.response?.status || null,
+      headers: error.response?.headers || null
+    });
+  }
 });
 
 // 🆕 API-Football Proxy Endpoint (CORS sorununu çözer)
