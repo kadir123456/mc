@@ -547,11 +547,18 @@ function cleanLeagueName(name) {
 async function findMatchesInAPI(extractedMatches) {
   const matched = [];
   
+  if (!FOOTBALL_API_KEY) {
+    console.log('⚠️  Football API key eksik, eşleştirme yapılamıyor');
+    return matched;
+  }
+  
   // Get today and tomorrow matches
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
   try {
+    console.log(`📡 Football API'den maçlar çekiliyor (${today} ve ${tomorrow})...`);
+    
     // Fetch matches from API
     const todayResponse = await axios.get('https://v3.football.api-sports.io/fixtures', {
       headers: { 'x-apisports-key': FOOTBALL_API_KEY },
@@ -569,9 +576,12 @@ async function findMatchesInAPI(extractedMatches) {
       ...(todayResponse.data?.response || []),
       ...(tomorrowResponse.data?.response || [])
     ];
+    
+    console.log(`📊 API'den toplam ${allFixtures.length} maç alındı`);
 
     // Match each extracted match
     for (const extracted of extractedMatches) {
+      console.log(`\n🔍 Eşleştirme deneniyor: ${extracted.homeTeam} vs ${extracted.awayTeam}`);
       const match = findBestMatch(extracted, allFixtures);
       if (match) {
         matched.push({
@@ -587,8 +597,15 @@ async function findMatchesInAPI(extractedMatches) {
         });
       }
     }
+    
+    console.log(`\n✅ Toplam ${matched.length}/${extractedMatches.length} maç eşleştirildi`);
+    
   } catch (error) {
     console.error('❌ API eşleştirme hatası:', error.message);
+    if (error.response) {
+      console.error('   Status:', error.response.status);
+      console.error('   Data:', error.response.data);
+    }
   }
   
   return matched;
