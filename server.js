@@ -456,12 +456,31 @@ Her maçı ayrı satırda listele. Format: "Ev Sahibi vs Deplasman - Lig"`;
       const analysis = analysisResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz yapılamadı';
       console.log('✅ Analiz tamamlandı');
 
+      // ✅ Analiz başarılı - Kredi düşür
+      if (userId && firebaseDb) {
+        try {
+          const userRef = firebaseDb.ref(`users/${userId}`);
+          const userSnapshot = await userRef.once('value');
+          const userData = userSnapshot.val();
+          
+          if (userData) {
+            await userRef.update({
+              credits: userData.credits - creditsToDeduct
+            });
+            console.log(`💳 Görsel analiz kredi düşüldü: ${userId} → ${creditsToDeduct} kredi`);
+          }
+        } catch (creditError) {
+          console.error('⚠️ Kredi düşürme hatası:', creditError.message);
+        }
+      }
+
       return res.json({
         success: true,
         ocrText,
         extractedMatches: matches,
         matchedMatches,
-        analysis
+        analysis,
+        creditsDeducted: creditsToDeduct
       });
     }
 
