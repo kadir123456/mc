@@ -32,8 +32,9 @@ export const Terms: React.FC = () => {
             <section>
               <h2 className="text-2xl font-bold text-white mb-3">2. Hizmet Kapsamı</h2>
               <p className="text-slate-300 leading-relaxed">
-                Aikupon, spor kuponlarını analiz ederek bilgilendirme amaçlı raporlar sunar.
-                Bu analizler kesinlikle tavsiye niteliğinde değildir. Kullanıcılar kendi kararlarından
+                Aikupon, futbol maçlarını analiz ederek bilgilendirme amaçlı istatistiksel raporlar sunar.
+                Bu analizler kesinlikle yatırım veya finansal tavsiye niteliğinde değildir. 
+                Platform sadece eğitim ve bilgilendirme amaçlıdır. Kullanıcılar kendi kararlarından
                 kendileri sorumludur.
               </p>
             </section>
@@ -66,6 +67,7 @@ export const Terms: React.FC = () => {
                 Platform, analiz sonuçlarının doğruluğunu garanti etmez. Kullanıcılar, analiz
                 sonuçlarına dayalı aldıkları kararlardan tamamen kendileri sorumludur. Platform
                 yöneticileri, kullanıcıların maruz kalabileceği herhangi bir kayıptan sorumlu tutulamaz.
+                Sunulan analizler sadece eğitim ve bilgilendirme amaçlıdır.
               </p>
             </section>
 
