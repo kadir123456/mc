@@ -619,16 +619,48 @@ function findBestMatch(extracted, fixtures) {
 }
 
 function calculateSimilarity(str1, str2) {
-  // Simple contains check with scoring
-  if (str1 === str2) return 2.0;
-  if (str1.includes(str2) || str2.includes(str1)) return 1.5;
+  // Normalize strings
+  const normalize = (s) => s.toLowerCase()
+    .replace(/\./g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   
-  // Check word overlap
-  const words1 = str1.split(/\s+/);
-  const words2 = str2.split(/\s+/);
-  const overlap = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)));
+  const s1 = normalize(str1);
+  const s2 = normalize(str2);
   
-  return overlap.length * 0.5;
+  // Exact match
+  if (s1 === s2) return 3.0;
+  
+  // One contains the other
+  if (s1.includes(s2) || s2.includes(s1)) return 2.5;
+  
+  // Word-by-word overlap with better scoring
+  const words1 = s1.split(/\s+/).filter(w => w.length > 2); // Skip short words
+  const words2 = s2.split(/\s+/).filter(w => w.length > 2);
+  
+  if (words1.length === 0 || words2.length === 0) return 0;
+  
+  let matchCount = 0;
+  for (const w1 of words1) {
+    for (const w2 of words2) {
+      // Exact word match
+      if (w1 === w2) {
+        matchCount += 1.0;
+      }
+      // One word contains the other
+      else if (w1.includes(w2) || w2.includes(w1)) {
+        matchCount += 0.7;
+      }
+      // Partial match (first 3+ characters)
+      else if (w1.length >= 3 && w2.length >= 3 && 
+               (w1.substring(0, 3) === w2.substring(0, 3))) {
+        matchCount += 0.5;
+      }
+    }
+  }
+  
+  // Normalize by average word count
+  return (matchCount / ((words1.length + words2.length) / 2)) * 1.5;
 }
 
 function generateAnalysisPrompt(matchedMatches) {
