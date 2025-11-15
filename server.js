@@ -356,6 +356,25 @@ app.post('/api/analyze-coupon-image', upload.single('image'), async (req, res) =
       return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
     }
 
+    // ✅ Kullanıcı ve kredi bilgileri
+    const userId = req.body.userId;
+    const creditsToDeduct = parseInt(req.body.creditsToDeduct || '3');
+
+    // ✅ Kredi kontrolü (backend'de de kontrol)
+    if (userId && firebaseDb) {
+      const userRef = firebaseDb.ref(`users/${userId}`);
+      const userSnapshot = await userRef.once('value');
+      const userData = userSnapshot.val();
+      
+      if (!userData) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+      
+      if (userData.credits < creditsToDeduct) {
+        return res.status(402).json({ error: 'Yetersiz kredi' });
+      }
+    }
+
     console.log('🖼️  Kupon görseli alındı, boyut:', req.file.size, 'bytes');
 
     // Convert image to base64
