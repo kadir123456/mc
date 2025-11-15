@@ -73,7 +73,7 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             <p className="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">
-              AI destekli bahis analizi ile maçları inceleyin, kuponları analiz edin ve profesyonel tahminlere anında erişin.
+              AI"ile analiz edin ve profesyonel tahminlere anında erişin.
             </p>
             
             {/* Quick Actions */}
@@ -126,7 +126,7 @@ export const Dashboard: React.FC = () => {
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <p className="font-bold text-sm">Kuponlarım</p>
+                      <p className="font-bold text-sm">Tahminler</p>
                       <p className="text-xs text-slate-400">Geçmiş</p>
                     </div>
                   </div>
