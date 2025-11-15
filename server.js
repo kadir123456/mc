@@ -845,6 +845,14 @@ async function fetchAndCacheMatches(forceUpdate = false) {
 
   } catch (error) {
     console.error('❌ Match fetch error:', error.message);
+    if (error.response) {
+      console.error('   📊 Response Status:', error.response.status);
+      console.error('   📊 Response Data:', JSON.stringify(error.response.data, null, 2));
+    }
+    if (error.config) {
+      console.error('   🔧 Request URL:', error.config.url);
+      console.error('   🔧 Request Headers:', error.config.headers);
+    }
   }
 }
 
