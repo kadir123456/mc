@@ -174,81 +174,95 @@ export const MyCoupons: React.FC = () => {
                   {/* Kupon Detayı */}
                   {isExpanded && (
                     <div className="border-t border-slate-800/50 bg-slate-800/30">
-                      {/* Maçlar - Bahis Kuponu Formatı */}
-                      <div className="p-5 space-y-3">
-                        {coupon.analysis.map((match, index) => (
-                          <div
-                            key={match.fixtureId}
-                            className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-blue-500/30 transition"
-                          >
-                            {/* Maç Numarası ve Lig */}
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                  {index + 1}
+                      {/* Maçlar - Kompakt Kupon Formatı */}
+                      <div className="p-4 space-y-2">
+                        {coupon.analysis.map((match, index) => {
+                          // En yüksek tahmini bul
+                          const predictions = [
+                            { type: 'MS1 (Ev Sahibi)', value: match.predictions.ms1, key: 'ms1' },
+                            { type: 'X (Beraberlik)', value: match.predictions.msX, key: 'msX' },
+                            { type: 'MS2 (Deplasman)', value: match.predictions.ms2, key: 'ms2' }
+                          ];
+                          const bestPrediction = predictions.reduce((max, p) => p.value > max.value ? p : max);
+
+                          return (
+                            <div
+                              key={match.fixtureId}
+                              className="bg-slate-900/70 border border-slate-700/50 rounded-lg p-3 hover:border-blue-500/30 transition"
+                            >
+                              {/* Başlık: Maç No + Lig */}
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                    {index + 1}
+                                  </div>
+                                  <span className="text-xs text-blue-300 font-medium">
+                                    {translateLeague(match.league)}
+                                  </span>
                                 </div>
-                                <span className="text-xs text-blue-400 font-medium">
-                                  {translateLeague(match.league)}
+                                <span className="text-[10px] text-slate-500">
+                                  {new Date(match.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} • {match.time}
                                 </span>
                               </div>
-                              <div className="text-xs text-slate-500">
-                                {new Date(match.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} • {match.time}
-                              </div>
-                            </div>
 
-                            {/* Takımlar - Bahis Kuponu Stili */}
-                            <div className="space-y-2 mb-3">
-                              <div className="flex items-center justify-between py-2 border-b border-slate-700/50">
-                                <span className="text-white font-semibold">{match.homeTeam}</span>
-                                <div className="flex items-center gap-2">
-                                  <Trophy className="w-4 h-4 text-yellow-400" />
-                                  <span className="text-sm text-slate-400">Ev Sahibi</span>
+                              {/* Takımlar - Kompakt Görünüm */}
+                              <div className="mb-2">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <span className="text-white font-semibold">{translateTeam(match.homeTeam)}</span>
+                                  <span className="text-xs text-slate-500 px-2">vs</span>
+                                  <span className="text-white font-semibold">{translateTeam(match.awayTeam)}</span>
                                 </div>
                               </div>
-                              <div className="text-center text-xs text-slate-500 font-bold">VS</div>
-                              <div className="flex items-center justify-between py-2">
-                                <span className="text-white font-semibold">{match.awayTeam}</span>
-                                <span className="text-sm text-slate-400">Deplasman</span>
-                              </div>
-                            </div>
 
-                            {/* Tahmin ve Güven Skoru */}
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
-                                <div className="text-xs text-slate-400 mb-1">MS1</div>
-                                <div className="text-sm font-bold text-white">%{match.predictions.ms1}</div>
+                              {/* Tahmin Sonucu - Tablo Formatı */}
+                              <div className="bg-slate-800/50 rounded-lg p-2 mb-2">
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                  <div className={`${bestPrediction.key === 'ms1' ? 'bg-green-600/20 border border-green-500/30' : ''} rounded p-1.5`}>
+                                    <div className="text-[10px] text-slate-400 mb-0.5">Ev Sahibi</div>
+                                    <div className={`text-xs font-bold ${bestPrediction.key === 'ms1' ? 'text-green-400' : 'text-white'}`}>
+                                      %{match.predictions.ms1}
+                                    </div>
+                                  </div>
+                                  <div className={`${bestPrediction.key === 'msX' ? 'bg-yellow-600/20 border border-yellow-500/30' : ''} rounded p-1.5`}>
+                                    <div className="text-[10px] text-slate-400 mb-0.5">Beraberlik</div>
+                                    <div className={`text-xs font-bold ${bestPrediction.key === 'msX' ? 'text-yellow-400' : 'text-white'}`}>
+                                      %{match.predictions.msX}
+                                    </div>
+                                  </div>
+                                  <div className={`${bestPrediction.key === 'ms2' ? 'bg-blue-600/20 border border-blue-500/30' : ''} rounded p-1.5`}>
+                                    <div className="text-[10px] text-slate-400 mb-0.5">Deplasman</div>
+                                    <div className={`text-xs font-bold ${bestPrediction.key === 'ms2' ? 'text-blue-400' : 'text-white'}`}>
+                                      %{match.predictions.ms2}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
-                                <div className="text-xs text-slate-400 mb-1">X</div>
-                                <div className="text-sm font-bold text-white">%{match.predictions.msX}</div>
-                              </div>
-                              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
-                                <div className="text-xs text-slate-400 mb-1">MS2</div>
-                                <div className="text-sm font-bold text-white">%{match.predictions.ms2}</div>
-                              </div>
-                            </div>
 
-                            {/* Güven Skoru Badge */}
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-slate-400">Güven Skoru:</span>
-                              <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                match.confidence >= 70 ? 'bg-green-500/20 text-green-400' :
-                                match.confidence >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
-                                'bg-red-500/20 text-red-400'
-                              }`}>
-                                %{match.confidence}
+                              {/* AI Tavsiyesi - Kompakt */}
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-1">
+                                  <Trophy className="w-3 h-3 text-yellow-400" />
+                                  <span className="text-slate-400">AI Tavsiye:</span>
+                                  <span className="text-white font-bold">{bestPrediction.type}</span>
+                                </div>
+                                <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  match.confidence >= 70 ? 'bg-green-500/20 text-green-400' :
+                                  match.confidence >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
+                                  'bg-red-500/20 text-red-400'
+                                }`}>
+                                  Güven: %{match.confidence}
+                                </div>
                               </div>
-                            </div>
 
-                            {/* Öneri */}
-                            {match.recommendation && (
-                              <div className="mt-3 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                                <div className="text-xs text-blue-400 font-semibold mb-1">AI Önerisi:</div>
-                                <p className="text-sm text-slate-300">{match.recommendation}</p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              {/* Öneri Metni - Opsiyonel */}
+                              {match.recommendation && (
+                                <div className="mt-2 bg-blue-500/5 border border-blue-500/20 rounded p-2">
+                                  <p className="text-xs text-slate-300 leading-relaxed">{match.recommendation}</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Genel Analiz */}
