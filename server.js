@@ -733,22 +733,26 @@ async function fetchAndCacheMatches(forceUpdate = false) {
     incrementApiCall();
     const todayData = await axios.get('https://v3.football.api-sports.io/fixtures', {
       headers: {
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-        'x-rapidapi-key': FOOTBALL_API_KEY
+        'x-apisports-key': FOOTBALL_API_KEY
       },
       params: { date: today },
       timeout: 15000
     });
 
+    console.log(`📊 API Response Status: ${todayData.status}`);
+    console.log(`📊 Today API Response: ${todayData.data?.response?.length || 0} fixtures`);
+
     incrementApiCall();
     const tomorrowData = await axios.get('https://v3.football.api-sports.io/fixtures', {
       headers: {
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-        'x-rapidapi-key': FOOTBALL_API_KEY
+        'x-apisports-key': FOOTBALL_API_KEY
       },
       params: { date: tomorrow },
       timeout: 15000
     });
+
+    console.log(`📊 API Response Status: ${tomorrowData.status}`);
+    console.log(`📊 Tomorrow API Response: ${tomorrowData.data?.response?.length || 0} fixtures`);
 
     const processMatches = (fixtures, date) => {
       const matches = {};
