@@ -6,9 +6,17 @@ import { useAuth } from '../context/AuthContext';
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authUser, user } = useAuth();
+  const { authUser, user, loading } = useAuth();
 
-  if (!authUser) return null;
+  // ✅ Loading durumunda hiçbir şey gösterme
+  if (loading) {
+    return null;
+  }
+
+  // ✅ Kullanıcı giriş yapmamışsa gösterme
+  if (!authUser) {
+    return null;
+  }
 
   const navItems = [
     { path: '/bulletin', icon: Home, label: 'Bülten', badge: null },
