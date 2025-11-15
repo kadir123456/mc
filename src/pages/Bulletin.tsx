@@ -123,7 +123,7 @@ export const Bulletin: React.FC = () => {
       // Firebase'den yeni veriyi çekmek için refresh
       window.location.reload();
 
-      alert('Analiz tamamlandı! Kuponlarım sayfasında görebilirsiniz.');
+      alert('Analiz tamamlandı!');
       setSelectedMatches([]);
       navigate('/my-coupons');
 
