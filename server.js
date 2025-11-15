@@ -599,20 +599,26 @@ function findBestMatch(extracted, fixtures) {
   let bestScore = 0;
   
   for (const fixture of fixtures) {
-    const homeTeamApi = fixture.teams.home.name.toLowerCase();
-    const awayTeamApi = fixture.teams.away.name.toLowerCase();
-    const homeTeamExtracted = extracted.homeTeam.toLowerCase();
-    const awayTeamExtracted = extracted.awayTeam.toLowerCase();
+    const homeTeamApi = fixture.teams.home.name;
+    const awayTeamApi = fixture.teams.away.name;
+    const homeTeamExtracted = extracted.homeTeam;
+    const awayTeamExtracted = extracted.awayTeam;
     
-    // Simple similarity check
+    // Calculate similarity scores
     const homeScore = calculateSimilarity(homeTeamExtracted, homeTeamApi);
     const awayScore = calculateSimilarity(awayTeamExtracted, awayTeamApi);
     const totalScore = homeScore + awayScore;
     
-    if (totalScore > bestScore && totalScore > 1.0) { // Minimum similarity threshold
+    // Lower threshold for better matching (was 1.0, now 0.8)
+    if (totalScore > bestScore && totalScore > 0.8) {
       bestScore = totalScore;
       bestMatch = fixture;
+      console.log(`   ✓ Eşleşme bulundu: ${homeTeamExtracted} vs ${awayTeamExtracted} → ${homeTeamApi} vs ${awayTeamApi} (Skor: ${totalScore.toFixed(2)})`);
     }
+  }
+  
+  if (!bestMatch) {
+    console.log(`   ✗ Eşleşme bulunamadı: ${extracted.homeTeam} vs ${extracted.awayTeam}`);
   }
   
   return bestMatch;
