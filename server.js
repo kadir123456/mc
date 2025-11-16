@@ -484,25 +484,42 @@ Her maçı ayrı satırda listele. Format: "Ev Sahibi vs Deplasman - Lig"`;
     const matchedMatches = await findMatchesInAPI(matches);
     console.log(`✅ ${matchedMatches.length} maç eşleştirildi`);
 
-    // Step 4: Eşleşen maçları Gemini ile analiz et
-    if (matchedMatches.length > 0) {
-      console.log('🤖 Gemini ile analiz başlatılıyor...');
-      
-      const analysisPrompt = generateAnalysisPrompt(matchedMatches);
-      
-      const analysisResponse = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          contents: [{ parts: [{ text: analysisPrompt }] }]
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 60000
-        }
-      );
+    // Step 4: Analiz tipini al
+    const analysisType = req.body.analysisType || 'macSonucu';
+    console.log(`📊 Analiz tipi: ${analysisType}`);
 
-      const analysis = analysisResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Analiz yapılamadı';
-      console.log('✅ Analiz tamamlandı');
+    // Step 5: Eşleşen maçları Gemini ile analiz et
+    if (matchedMatches.length > 0) {
+      console.log('🤖 Gemini ile tahmin başlatılıyor...');
+      
+      // Her maç için tahmin al
+      if (analysisType === 'hepsi') {
+        // Tüm analiz tipleri için tahmin
+        const allTypes = ['macSonucu', 'karsilikliGol', 'altustu', 'ilkYariSonucu', 'ilkYariMac', 'handikap'];
+        
+        for (const match of matchedMatches) {
+          const predictions = {};
+          for (const type of allTypes) {
+            predictions[type] = await getPredictionForMatch(match, type);
+          }
+          match.allPredictions = predictions;
+          match.prediction = `
+Maç Sonucu: ${predictions.macSonucu}
+KG Var: ${predictions.karsilikliGol}
+2.5: ${predictions.altustu}
+İlk Yarı: ${predictions.ilkYariSonucu}
+İY/MS: ${predictions.ilkYariMac}
+Handikap: ${predictions.handikap}
+          `.trim();
+        }
+      } else {
+        // Tek bir analiz tipi için
+        for (const match of matchedMatches) {
+          match.prediction = await getPredictionForMatch(match, analysisType);
+        }
+      }
+      
+      console.log('✅ Tahminler tamamlandı');
 
       // ✅ Analiz başarılı - Kredi düşür
       if (userId && firebaseDb) {
@@ -516,9 +533,30 @@ Her maçı ayrı satırda listele. Format: "Ev Sahibi vs Deplasman - Lig"`;
               credits: userData.credits - creditsToDeduct
             });
             console.log(`💳 Görsel analiz kredi düşüldü: ${userId} → ${creditsToDeduct} kredi`);
+            
+            // Kuponu kaydet
+            const couponId = `coupon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const couponData = {
+              id: couponId,
+              userId: userId,
+              analysisType: analysisType,
+              matches: matchedMatches.map(m => ({
+                homeTeam: m.apiMatch.homeTeam,
+                awayTeam: m.apiMatch.awayTeam,
+                league: m.apiMatch.league,
+                date: m.apiMatch.date,
+                prediction: m.prediction,
+                allPredictions: m.allPredictions || null
+              })),
+              createdAt: Date.now(),
+              timestamp: new Date().toISOString()
+            };
+            
+            await firebaseDb.ref(`coupons/${userId}/${couponId}`).set(couponData);
+            console.log(`💾 Kupon kaydedildi: ${couponId}`);
           }
         } catch (creditError) {
-          console.error('⚠️ Kredi düşürme hatası:', creditError.message);
+          console.error('⚠️ Kredi/Kupon kaydetme hatası:', creditError.message);
         }
       }
 
@@ -527,7 +565,7 @@ Her maçı ayrı satırda listele. Format: "Ev Sahibi vs Deplasman - Lig"`;
         ocrText,
         extractedMatches: matches,
         matchedMatches,
-        analysis,
+        analysisType,
         creditsDeducted: creditsToDeduct
       });
     }
@@ -734,23 +772,91 @@ function calculateSimilarity(str1, str2) {
   return (matchCount / ((words1.length + words2.length) / 2)) * 1.5;
 }
 
-function generateAnalysisPrompt(matchedMatches) {
-  let prompt = `Aşağıdaki bahis kuponu için profesyonel analiz yap:\n\n`;
+function generatePredictionPrompt(match, analysisType) {
+  const { homeTeam, awayTeam, league } = match.apiMatch;
   
-  matchedMatches.forEach((match, index) => {
-    prompt += `${index + 1}. ${match.apiMatch.homeTeam} vs ${match.apiMatch.awayTeam}\n`;
-    prompt += `   Lig: ${match.apiMatch.league}\n`;
-    prompt += `   Durum: ${match.apiMatch.status}\n\n`;
-  });
-  
-  prompt += `\nLütfen her maç için:\n`;
-  prompt += `- Genel değerlendirme\n`;
-  prompt += `- Olası sonuç tahmini\n`;
-  prompt += `- Risk analizi\n`;
-  prompt += `- Genel kupon değerlendirmesi\n\n`;
-  prompt += `Profesyonel ve detaylı bir analiz yap.`;
-  
-  return prompt;
+  const prompts = {
+    macSonucu: `${homeTeam} vs ${awayTeam} maçı için SADECE maç sonucu tahmini yap.
+Lig: ${league}
+
+SADECE şu formatlardan birini kullan:
+- "1" (Ev sahibi kazanır)
+- "X" (Beraberlik)
+- "2" (Deplasman kazanır)
+
+Uzun açıklama YAPMA, sadece tek kelime tahmin ver.`,
+
+    karsilikliGol: `${homeTeam} vs ${awayTeam} maçı için SADECE karşılıklı gol tahmini yap.
+
+SADECE şu formatlardan birini kullan:
+- "Var" (Her iki takım da gol atar)
+- "Yok" (En az bir takım gol atmaz)
+
+Uzun açıklama YAPMA, sadece tek kelime tahmin ver.`,
+
+    altustu: `${homeTeam} vs ${awayTeam} maçı için SADECE 2.5 alt/üst tahmini yap.
+
+SADECE şu formatlardan birini kullan:
+- "Üst" (3 veya daha fazla gol)
+- "Alt" (2 veya daha az gol)
+
+Uzun açıklama YAPMA, sadece tek kelime tahmin ver.`,
+
+    ilkYariSonucu: `${homeTeam} vs ${awayTeam} maçı için SADECE ilk yarı sonucu tahmini yap.
+
+SADECE şu formatlardan birini kullan:
+- "1" (Ev sahibi önde)
+- "X" (Beraberlik)
+- "2" (Deplasman önde)
+
+Uzun açıklama YAPMA, sadece tek kelime tahmin ver.`,
+
+    ilkYariMac: `${homeTeam} vs ${awayTeam} maçı için SADECE ilk yarı/maç sonucu tahmini yap.
+
+SADECE şu formatlardan birini kullan (İlkYarı/Maç):
+- "1/1" - "1/X" - "1/2"
+- "X/1" - "X/X" - "X/2"
+- "2/1" - "2/X" - "2/2"
+
+Uzun açıklama YAPMA, sadece format ver.`,
+
+    handikap: `${homeTeam} vs ${awayTeam} maçı için SADECE handikap tahmini yap.
+
+SADECE şu formatlardan birini kullan:
+- "Ev Sahibi -1" (En az 2 fark kazanır)
+- "Deplasman +1" (Kazanır, berabere veya 1 golle kaybeder)
+
+Uzun açıklama YAPMA, sadece tahmin ver.`,
+  };
+
+  return prompts[analysisType] || prompts.macSonucu;
+}
+
+async function getPredictionForMatch(match, analysisType) {
+  try {
+    if (!GEMINI_API_KEY) {
+      return 'API yapılandırılmamış';
+    }
+
+    const prompt = generatePredictionPrompt(match, analysisType);
+    
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }]
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      }
+    );
+
+    const prediction = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Tahmin yapılamadı';
+    return prediction;
+  } catch (error) {
+    console.error('Tahmin hatası:', error.message);
+    return 'Tahmin yapılamadı';
+  }
 }
 
 // Static files (React build)

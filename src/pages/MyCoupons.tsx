@@ -174,8 +174,67 @@ export const MyCoupons: React.FC = () => {
                   {/* Kupon Detayı */}
                   {isExpanded && (
                     <div className="border-t border-slate-800/50 bg-slate-800/30">
-                      {/* Maçlar - Kompakt Kupon Formatı */}
-                      <div className="p-4 space-y-2">
+                      {/* Yeni Format: Image Analysis Sonuçları */}
+                      {coupon.matches && Array.isArray(coupon.matches) && !coupon.analysis && (
+                        <div className="p-4 space-y-3">
+                          <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-3 mb-3">
+                            <p className="text-sm text-blue-300 font-medium">
+                              Analiz Tipi: {
+                                coupon.analysisType === 'macSonucu' ? 'Maç Sonucu' :
+                                coupon.analysisType === 'karsilikliGol' ? 'Karşılıklı Gol' :
+                                coupon.analysisType === 'altustu' ? '2.5 Alt/Üst' :
+                                coupon.analysisType === 'ilkYariSonucu' ? 'İlk Yarı Sonucu' :
+                                coupon.analysisType === 'ilkYariMac' ? 'İlk Yarı/Maç Sonucu' :
+                                coupon.analysisType === 'handikap' ? 'Handikap' :
+                                coupon.analysisType === 'hepsi' ? 'Tüm Tahminler' : 'Genel Analiz'
+                              }
+                            </p>
+                          </div>
+                          {coupon.matches.map((match: any, index: number) => (
+                            <div
+                              key={index}
+                              className="bg-slate-900/70 border border-slate-700/50 rounded-lg p-4 hover:border-blue-500/30 transition"
+                              data-testid={`coupon-match-${index}`}
+                            >
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                      {index + 1}
+                                    </div>
+                                    <span className="text-xs text-blue-300 font-medium">
+                                      {match.league}
+                                    </span>
+                                  </div>
+                                  <p className="text-white font-semibold text-base">
+                                    {match.homeTeam} <span className="text-slate-500 mx-2">vs</span> {match.awayTeam}
+                                  </p>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    {new Date(match.date).toLocaleDateString('tr-TR', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {match.prediction && (
+                                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-lg p-3 mt-3">
+                                  <p className="text-xs text-green-300 font-medium mb-1">Tahmin:</p>
+                                  <p className="text-white font-bold text-lg whitespace-pre-wrap">{match.prediction}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Eski Format: Standart Kuponlar */}
+                      {coupon.analysis && coupon.analysis.length > 0 && (
+                        <div className="p-4 space-y-2">
                         {coupon.analysis.map((match, index) => {
                           // En yüksek tahmini bul
                           const predictions = [
@@ -263,10 +322,11 @@ export const MyCoupons: React.FC = () => {
                             </div>
                           );
                         })}
-                      </div>
+                        </div>
+                      )}
 
-                      {/* Genel Analiz */}
-                      {coupon.analysis[0]?.analysis && (
+                      {/* Genel Analiz - Sadece eski kuponlar için */}
+                      {coupon.analysis && coupon.analysis[0]?.analysis && (
                         <div className="border-t border-slate-800/50 p-5">
                           <h4 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
                             <Trophy className="w-4 h-4 text-yellow-400" />
