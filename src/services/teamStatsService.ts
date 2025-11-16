@@ -1,8 +1,6 @@
 // src/services/teamStatsService.ts
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-
 export interface TeamForm {
   teamId: number;
   teamName: string;
@@ -62,7 +60,8 @@ export const teamStatsService = {
     try {
       console.log(`📊 Takım istatistikleri çekiliyor: Team ${teamId}, League ${leagueId}, Season ${season}`);
 
-      const response = await axios.get(`${API_BASE_URL}/api/football/teams/statistics`, {
+      // ✅ Relative path - production ve dev'de çalışır
+      const response = await axios.get(`/api/football/teams/statistics`, {
         params: {
           team: teamId,
           league: leagueId,
@@ -126,7 +125,7 @@ export const teamStatsService = {
     try {
       console.log(`🔄 H2H çekiliyor: ${homeTeamId} vs ${awayTeamId}`);
 
-      const response = await axios.get(`${API_BASE_URL}/api/football/fixtures/headtohead`, {
+      const response = await axios.get(`/api/football/fixtures/headtohead`, {
         params: {
           h2h: `${homeTeamId}-${awayTeamId}`,
           last: 10
@@ -189,7 +188,7 @@ export const teamStatsService = {
    */
   async getStandingPosition(teamId: number, leagueId: number, season: number): Promise<number> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/football/standings`, {
+      const response = await axios.get(`/api/football/standings`, {
         params: {
           league: leagueId,
           season: season
