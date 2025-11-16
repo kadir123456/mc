@@ -1,8 +1,5 @@
-// src/services/matchService.ts
-
 import { ref, get, set, remove } from 'firebase/database';
 import { database } from './firebase';
-import { normalizeTeamName } from '../utils/teamNameNormalizer'; // ✅ Yeni import
 
 export interface Match {
   fixtureId: number;
@@ -34,7 +31,7 @@ function getTurkeyToday(): string {
 
 function getTurkeyTomorrow(): string {
   const now = new Date();
-  const tomorrow = new Date(now.getTime() + (27 * 60 * 60 * 1000));
+  const tomorrow = new Date(now.getTime() + (27 * 60 * 60 * 1000)); // +24 saat + 3 saat timezone
   return tomorrow.toISOString().split('T')[0];
 }
 
@@ -54,22 +51,16 @@ export const matchService = {
     Object.keys(matchesData).forEach(fixtureId => {
       const match = matchesData[fixtureId];
       
+      // ✅ Sadece gelecekteki veya canlı maçları göster
       if (match.status !== 'finished' && match.timestamp > now - 3600000) {
         matches.push({
           fixtureId: parseInt(fixtureId),
-          // ✅ Takım isimlerini normalize et
-          homeTeam: normalizeTeamName(match.homeTeam),
-          awayTeam: normalizeTeamName(match.awayTeam),
-          league: match.league,
-          date: match.date,
-          time: match.time,
-          timestamp: match.timestamp,
-          status: match.status,
-          lastUpdated: match.lastUpdated
+          ...match
         });
       }
     });
 
+    // ✅ Zamana göre sırala (yakın maçlar önce)
     return matches.sort((a, b) => a.timestamp - b.timestamp);
   },
 
@@ -89,11 +80,13 @@ export const matchService = {
     const today = await this.getTodayMatches();
     const tomorrow = await this.getTomorrowMatches();
     
+    // ✅ Tüm maçları birleştir ve zamana göre sırala
     const allMatches = [...today, ...tomorrow];
     const now = Date.now();
     
+    // ✅ Geçmişte kalan maçları filtrele
     const upcomingMatches = allMatches.filter(match => {
-      return match.timestamp > now - 3600000;
+      return match.timestamp > now - 3600000; // Son 1 saat içindeki maçları da göster
     });
 
     return upcomingMatches.sort((a, b) => a.timestamp - b.timestamp);
@@ -107,13 +100,9 @@ export const matchService = {
       const snapshot = await get(matchRef);
 
       if (snapshot.exists()) {
-        const match = snapshot.val();
         return {
           fixtureId,
-          // ✅ Normalize et
-          homeTeam: normalizeTeamName(match.homeTeam),
-          awayTeam: normalizeTeamName(match.awayTeam),
-          ...match
+          ...snapshot.val()
         };
       }
     }
@@ -129,9 +118,6 @@ export const matchService = {
       const { fixtureId, ...matchData } = match;
       matchesData[fixtureId.toString()] = {
         ...matchData,
-        // ✅ Kaydetmeden önce normalize et
-        homeTeam: normalizeTeamName(matchData.homeTeam),
-        awayTeam: normalizeTeamName(matchData.awayTeam),
         lastUpdated: Date.now()
       };
     });
@@ -140,6 +126,7 @@ export const matchService = {
     console.log(`✅ ${matches.length} maç kaydedildi (Tarih: ${date})`);
   },
 
+  // ✅ Geçmiş maçları temizle (günde 1 kez çalıştır)
   async cleanFinishedMatches(): Promise<void> {
     console.log('🧹 Geçmiş maçlar temizleniyor...');
     
@@ -159,6 +146,7 @@ export const matchService = {
         for (const fixtureId of Object.keys(matchesData)) {
           const match = matchesData[fixtureId];
           
+          // ✅ Bitmiş veya 6 saatten eski maçları sil
           if (match.status === 'finished' || match.timestamp < Date.now() - 21600000) {
             await remove(ref(database, `matches/${date}/${fixtureId}`));
             deletedCount++;
@@ -188,9 +176,14 @@ export const matchService = {
     );
   },
 
+  // ✅ YENİ: Maçları API'den çek ve kaydet
   async fetchAndSaveTodayMatches(): Promise<void> {
     try {
       console.log('🔄 Güncel maçlar API\'den çekiliyor...');
+      
+      // Bu fonksiyonu API-Football'dan maç çekmek için kullanabilirsiniz
+      // Şimdilik placeholder
+      
       console.log('✅ Maçlar güncellendi');
     } catch (error) {
       console.error('❌ Maç güncelleme hatası:', error);
