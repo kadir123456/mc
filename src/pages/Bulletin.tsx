@@ -7,7 +7,6 @@ import { geminiAnalysisService } from '../services/geminiAnalysisService';
 import { couponService } from '../services/couponService';
 import { authService } from '../services/authService';
 import { translateLeague, translateTeam, formatMatchTime, getMatchStatusText, isMatchLive, isMatchFinished } from '../utils/leagueTranslations';
-import { MatchStatsModal } from '../components/MatchStatsModal'; // ✅ YENİ
 
 export const Bulletin: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +18,6 @@ export const Bulletin: React.FC = () => {
       (window as any).currentUserId = user.uid;
     }
   }, [user]);
-
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Match[]>([]);
   const [analysisType, setAnalysisType] = useState<'standard' | 'detailed'>('standard');
@@ -29,7 +27,6 @@ export const Bulletin: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedMatchForStats, setSelectedMatchForStats] = useState<Match | null>(null); // ✅ YENİ
 
   const maxSelections = analysisType === 'standard' ? 3 : 5;
   const creditsRequired = analysisType === 'standard' ? 1 : (analysisType === 'detailed' ? 3 : 2);
@@ -233,17 +230,6 @@ export const Bulletin: React.FC = () => {
             </div>
           )}
 
-          {/* ✅ YENİ: Kullanıcı Bilgilendirme */}
-          <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-2 mb-2">
-            <div className="flex items-center gap-2 text-xs text-blue-300">
-              <Info className="w-4 h-4 flex-shrink-0" />
-              <p>
-                <strong>İpucu:</strong> Maça tıklayın → İstatistikler & AI Analiz | 
-                <strong className="ml-1">Shift+Tıklayın</strong> → Kupon için seç
-              </p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => {
@@ -316,22 +302,11 @@ export const Bulletin: React.FC = () => {
                     return (
                       <button
                         key={match.fixtureId}
-                        onClick={(e) => {
-                          // ✅ DEĞİŞTİRİLDİ: Shift tuşu kontrolü
-                          if (matchIsFinished) return;
-                          
-                          if (e.shiftKey) {
-                            // Shift+Tıklama → Maç seçimi
-                            canSelect && toggleMatchSelection(match);
-                          } else {
-                            // Normal tıklama → İstatistik modal
-                            setSelectedMatchForStats(match);
-                          }
-                        }}
-                        disabled={matchIsFinished}
+                        onClick={() => canSelect && toggleMatchSelection(match)}
+                        disabled={!canSelect || matchIsFinished}
                         className={`w-full text-left px-3 py-2.5 transition hover:bg-slate-700/30 ${
                           isSelected ? 'bg-blue-600/10 border-l-2 border-blue-500' : ''
-                        } ${matchIsFinished ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        } ${!canSelect || matchIsFinished ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
@@ -503,14 +478,6 @@ export const Bulletin: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ✅ YENİ: İstatistik Modal */}
-      {selectedMatchForStats && (
-        <MatchStatsModal
-          match={selectedMatchForStats}
-          onClose={() => setSelectedMatchForStats(null)}
-        />
       )}
     </div>
   );
