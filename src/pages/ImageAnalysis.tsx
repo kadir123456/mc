@@ -1,33 +1,30 @@
+// src/pages/ImageAnalysis.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-interface ExtractedMatch {
+interface MatchPrediction {
   homeTeam: string;
   awayTeam: string;
-  league: string | null;
-}
-
-interface MatchedMatch {
-  extracted: ExtractedMatch;
-  apiMatch: {
-    fixtureId: number;
-    homeTeam: string;
-    awayTeam: string;
-    league: string;
-    date: string;
-    status: string;
+  league: string;
+  predictions: {
+    ms1: number;
+    msX: number;
+    ms2: number;
+    over25: number;
+    under25: number;
+  };
+  bestBet: {
+    type: string;
+    percentage: number;
   };
 }
 
 interface AnalysisResult {
   success: boolean;
   message?: string;
-  ocrText?: string;
-  extractedMatches?: ExtractedMatch[];
-  matchedMatches?: MatchedMatch[];
-  analysis?: string;
+  predictions?: MatchPrediction[];
 }
 
 export const ImageAnalysis: React.FC = () => {
@@ -59,21 +56,6 @@ export const ImageAnalysis: React.FC = () => {
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      const fakeEvent = {
-        target: { files: [file] }
-      } as any;
-      handleFileSelect(fakeEvent);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
   const handleAnalyze = async () => {
     if (!selectedFile) {
       setError('Lütfen bir görsel seçin');
@@ -85,21 +67,17 @@ export const ImageAnalysis: React.FC = () => {
       return;
     }
 
-    // ✅ Kredi kontrolü (3 kredi gerekli)
     const REQUIRED_CREDITS = 3;
     if (user.credits < REQUIRED_CREDITS) {
-      setError(`Yetersiz kredi. Bu analiz için ${REQUIRED_CREDITS} kredi gereklidir. Lütfen kredi satın alın.`);
+      setError(`Yetersiz kredi. Bu analiz için ${REQUIRED_CREDITS} kredi gereklidir.`);
       return;
     }
 
-    // ✅ Kullanıcıya onay sor
     const confirmed = window.confirm(
-      `Bu analiz ${REQUIRED_CREDITS} kredi harcayacaktır.\n\nMevcut krediniz: ${user.credits}\nKalan krediniz: ${user.credits - REQUIRED_CREDITS}\n\nDevam etmek istiyor musunuz?`
+      `Bu analiz ${REQUIRED_CREDITS} kredi harcayacaktır.\n\nMevcut: ${user.credits} | Kalan: ${user.credits - REQUIRED_CREDITS}\n\nDevam edilsin mi?`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       setUploading(true);
@@ -108,7 +86,6 @@ export const ImageAnalysis: React.FC = () => {
 
       const formData = new FormData();
       formData.append('image', selectedFile);
-      // ✅ User ID'yi backend'e gönder (kredi düşürmek için)
       formData.append('userId', user.uid);
       formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
 
@@ -120,12 +97,11 @@ export const ImageAnalysis: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Analiz başarısız oldu');
+        throw new Error(data.error || 'Analiz başarısız');
       }
 
       setResult(data);
       
-      // ✅ Kredi bakiyesini güncelle (sayfa yenilemeden)
       if (refreshUser) {
         await refreshUser();
       }
@@ -188,46 +164,11 @@ export const ImageAnalysis: React.FC = () => {
       </header>
 
       <div className="max-w-4xl mx-auto px-3 py-6 md:py-8">
-        {/* Desktop Header */}
-        <div className="hidden md:block mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-2 text-slate-400 hover:text-white transition"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <ImageIcon className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-3xl font-bold text-white">Maç Görseli Analizi</h1>
-          </div>
-          <p className="text-slate-400 ml-14">
-            Maç listesi görselinizi yükleyin, AI ile detaylı analiz edelim
-          </p>
-        </div>
-
-        {/* Info Card */}
-        <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <h3 className="text-blue-300 font-semibold mb-2 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5" />
-            Nasıl Çalışır?
-          </h3>
-          <ul className="text-sm text-slate-300 space-y-1">
-            <li>• Maç listesi görselinizin ekran görüntüsünü alın</li>
-            <li>• Görseli buraya yükleyin</li>
-            <li>• AI, görseldeki maçları otomatik çıkarır</li>
-            <li>• Maçlar API'den bulunur ve detaylı analiz yapılır</li>
-          </ul>
-        </div>
-
         {/* Upload Area */}
         {!result && (
           <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-8 text-center">
             {!previewUrl ? (
-              <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                className="cursor-pointer"
-              >
+              <div>
                 <input
                   type="file"
                   accept="image/*"
@@ -238,26 +179,21 @@ export const ImageAnalysis: React.FC = () => {
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Upload className="w-16 h-16 mx-auto text-slate-500 mb-4" />
                   <p className="text-white font-medium mb-2">Maç Görseli Yükle</p>
-                  <p className="text-sm text-slate-400 mb-4">
-                    veya sürükleyip bırakın
-                  </p>
+                  <p className="text-sm text-slate-400 mb-4">PNG, JPG (Max 10MB)</p>
                   <button
                     type="button"
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
                   >
-                    Boşluğa Tıkla
+                    Dosya Seç
                   </button>
                 </label>
-                <p className="text-xs text-slate-500 mt-4">
-                  PNG, JPG, JPEG (Max 10MB)
-                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <img
                   src={previewUrl}
                   alt="Preview"
-                  className="max-h-96 mx-auto rounded-lg border border-slate-600"
+                  className="max-h-80 mx-auto rounded-lg border border-slate-600"
                 />
                 <div className="flex gap-3 justify-center">
                   <button
@@ -300,132 +236,111 @@ export const ImageAnalysis: React.FC = () => {
           </div>
         )}
 
-        {/* Results */}
-        {result && (
-          <div className="space-y-6 mt-6">
-            {/* Success Message */}
-            <div className="bg-green-600/10 border border-green-500/30 rounded-lg p-4 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-green-300 font-medium">Analiz Tamamlandı!</p>
-                <p className="text-sm text-green-200/80">Görsel başarıyla analiz edildi. 3 kredi hesabınızdan düşüldü.</p>
-              </div>
-            </div>
-
-            {/* Preview */}
-            {previewUrl && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-blue-400" />
-                  Yüklenen Görsel
-                </h3>
-                <img
-                  src={previewUrl}
-                  alt="Analyzed"
-                  className="max-h-64 mx-auto rounded-lg border border-slate-600"
-                />
-              </div>
-            )}
-
-            {/* OCR Text */}
-            {result.ocrText && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  Çıkarılan Metin
-                </h3>
-                <pre className="text-sm text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded max-h-64 overflow-y-auto">
-                  {result.ocrText}
-                </pre>
-              </div>
-            )}
-
-            {/* Extracted Matches */}
-            {result.extractedMatches && result.extractedMatches.length > 0 && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3">
-                  Tespit Edilen Maçlar ({result.extractedMatches.length})
-                </h3>
-                <div className="space-y-2">
-                  {result.extractedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-3 rounded border border-slate-700">
-                      <p className="text-white font-medium">
-                        {match.homeTeam} <span className="text-slate-500">vs</span> {match.awayTeam}
-                      </p>
-                      {match.league && (
-                        <p className="text-sm text-slate-400 mt-1">{match.league}</p>
-                      )}
-                    </div>
-                  ))}
+        {/* ✅ SONUÇLAR - SADECE TAHMİNLER */}
+        {result && result.predictions && (
+          <div className="space-y-4 mt-6">
+            {/* Success */}
+            <div className="bg-green-600/10 border border-green-500/30 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-400" />
+                <div>
+                  <p className="text-green-300 font-bold">✅ Analiz Tamamlandı</p>
+                  <p className="text-sm text-green-200/80">{result.predictions.length} maç analiz edildi</p>
                 </div>
               </div>
-            )}
-
-            {/* Matched Matches */}
-            {result.matchedMatches && result.matchedMatches.length > 0 && (
-              <div className="bg-slate-800/50 border border-green-700/30 rounded-lg p-4">
-                <h3 className="text-green-300 font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  API'den Eşleşen Maçlar ({result.matchedMatches.length})
-                </h3>
-                <div className="space-y-3">
-                  {result.matchedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-4 rounded border border-green-700/30">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <p className="text-white font-medium text-lg">
-                            {match.apiMatch.homeTeam} <span className="text-slate-500">vs</span> {match.apiMatch.awayTeam}
-                          </p>
-                          <p className="text-sm text-blue-400 mt-1">{match.apiMatch.league}</p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {new Date(match.apiMatch.date).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                        <span className="bg-green-600/20 text-green-300 text-xs px-2 py-1 rounded">
-                          {match.apiMatch.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* AI Analysis */}
-            {result.analysis && (
-              <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg p-6">
-                <h3 className="text-blue-300 font-semibold mb-4 flex items-center gap-2 text-lg">
-                  <Zap className="w-6 h-6" />
-                  AI Analiz Sonucu
-                </h3>
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <div className="text-slate-200 whitespace-pre-wrap leading-relaxed">
-                    {result.analysis}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Message */}
-            {result.message && (
-              <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-4">
-                <p className="text-yellow-300">{result.message}</p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-3 justify-center pt-4">
               <button
                 onClick={handleReset}
-                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition"
               >
                 Yeni Analiz
               </button>
+            </div>
+
+            {/* Tahminler */}
+            {result.predictions.map((match, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden hover:border-blue-500/30 transition"
+              >
+                {/* Başlık */}
+                <div className="bg-slate-900/70 px-4 py-3 border-b border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <p className="text-white font-bold">
+                          {match.homeTeam} <span className="text-slate-500">vs</span> {match.awayTeam}
+                        </p>
+                        <p className="text-xs text-blue-400">{match.league}</p>
+                      </div>
+                    </div>
+                    {/* En İyi Tahmin */}
+                    <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 px-3 py-1.5 rounded-lg text-right">
+                      <p className="text-xs text-slate-400">Önerilen</p>
+                      <p className="text-green-400 font-bold text-sm">{match.bestBet.type}</p>
+                      <p className="text-green-300 text-xs">%{match.bestBet.percentage}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tahmin Tablosu */}
+                <div className="p-4">
+                  {/* Maç Sonucu */}
+                  <div className="mb-4">
+                    <p className="text-xs text-slate-500 mb-2 font-semibold">MAÇ SONUCU</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className={`text-center p-3 rounded-lg ${match.predictions.ms1 > 40 ? 'bg-green-600/20 border border-green-500/30' : 'bg-slate-700/50'}`}>
+                        <p className="text-[10px] text-slate-400 mb-1">EV SAHİBİ</p>
+                        <p className={`text-lg font-bold ${match.predictions.ms1 > 40 ? 'text-green-400' : 'text-white'}`}>
+                          %{match.predictions.ms1}
+                        </p>
+                      </div>
+                      <div className={`text-center p-3 rounded-lg ${match.predictions.msX > 30 ? 'bg-yellow-600/20 border border-yellow-500/30' : 'bg-slate-700/50'}`}>
+                        <p className="text-[10px] text-slate-400 mb-1">BERABERLİK</p>
+                        <p className={`text-lg font-bold ${match.predictions.msX > 30 ? 'text-yellow-400' : 'text-white'}`}>
+                          %{match.predictions.msX}
+                        </p>
+                      </div>
+                      <div className={`text-center p-3 rounded-lg ${match.predictions.ms2 > 40 ? 'bg-blue-600/20 border border-blue-500/30' : 'bg-slate-700/50'}`}>
+                        <p className="text-[10px] text-slate-400 mb-1">DEPLASMAN</p>
+                        <p className={`text-lg font-bold ${match.predictions.ms2 > 40 ? 'text-blue-400' : 'text-white'}`}>
+                          %{match.predictions.ms2}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gol Sayısı */}
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2 font-semibold">TOPLAM GOL</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className={`text-center p-3 rounded-lg ${match.predictions.under25 > 50 ? 'bg-purple-600/20 border border-purple-500/30' : 'bg-slate-700/50'}`}>
+                        <p className="text-[10px] text-slate-400 mb-1">0-2 GOL</p>
+                        <p className={`text-lg font-bold ${match.predictions.under25 > 50 ? 'text-purple-400' : 'text-white'}`}>
+                          %{match.predictions.under25}
+                        </p>
+                      </div>
+                      <div className={`text-center p-3 rounded-lg ${match.predictions.over25 > 50 ? 'bg-orange-600/20 border border-orange-500/30' : 'bg-slate-700/50'}`}>
+                        <p className="text-[10px] text-slate-400 mb-1">3+ GOL</p>
+                        <p className={`text-lg font-bold ${match.predictions.over25 > 50 ? 'text-orange-400' : 'text-white'}`}>
+                          %{match.predictions.over25}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Bottom Action */}
+            <div className="text-center pt-4">
               <button
                 onClick={() => navigate('/bulletin')}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-bold transition shadow-lg"
               >
-                Bültene Git
+                Bültene Git →
               </button>
             </div>
           </div>
