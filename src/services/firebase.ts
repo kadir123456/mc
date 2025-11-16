@@ -1,3 +1,4 @@
+// src/services/firebase.ts
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
@@ -13,11 +14,35 @@ const firebaseConfig = {
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
 };
 
-const app = initializeApp(firebaseConfig);
+// ✅ Debug: Firebase config kontrolü
+console.log('🔥 Firebase Config:', {
+  apiKey: firebaseConfig.apiKey ? '✅ Var' : '❌ Yok',
+  authDomain: firebaseConfig.authDomain ? '✅ Var' : '❌ Yok',
+  projectId: firebaseConfig.projectId ? '✅ Var' : '❌ Yok',
+  databaseURL: firebaseConfig.databaseURL ? '✅ Var' : '❌ Yok',
+});
+
+// ✅ Firebase başlat
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+  console.log('✅ Firebase başlatıldı');
+} catch (error) {
+  console.error('❌ Firebase başlatma hatası:', error);
+  throw error;
+}
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const database = getDatabase(app);
 export const storage = getStorage(app);
+
+// ✅ Google Provider ayarları
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+console.log('✅ Firebase Auth:', auth ? 'Hazır' : 'Hata');
+console.log('✅ Firebase Database:', database ? 'Hazır' : 'Hata');
 
 export default app;

@@ -42,16 +42,16 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                 <Zap className="w-4 h-4 text-yellow-400" />
                 <span className="text-sm font-bold text-yellow-400">{user.credits}</span>
               </div>
               <button
-                onClick={handleLogout}
-                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all duration-200"
+                onClick={() => navigate('/profile')}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200"
               >
-                <LogOut className="w-4 h-4" />
+                <UserIcon className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -73,7 +73,7 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             <p className="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">
-              AI destekli bahis analizi ile maçları inceleyin, kuponları analiz edin ve profesyonel tahminlere anında erişin.
+              AI"ile analiz edin ve profesyonel tahminlere anında erişin.
             </p>
             
             {/* Quick Actions */}
@@ -126,7 +126,7 @@ export const Dashboard: React.FC = () => {
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <p className="font-bold text-sm">Kuponlarım</p>
+                      <p className="font-bold text-sm">Tahminler</p>
                       <p className="text-xs text-slate-400">Geçmiş</p>
                     </div>
                   </div>

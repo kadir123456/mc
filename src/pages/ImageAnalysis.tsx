@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface ExtractedMatch {
@@ -32,7 +32,7 @@ interface AnalysisResult {
 
 export const ImageAnalysis: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -85,6 +85,20 @@ export const ImageAnalysis: React.FC = () => {
       return;
     }
 
+    const REQUIRED_CREDITS = 3;
+    if (user.credits < REQUIRED_CREDITS) {
+      setError(`Yetersiz kredi. Bu analiz için ${REQUIRED_CREDITS} kredi gereklidir. Lütfen kredi satın alın.`);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Bu analiz ${REQUIRED_CREDITS} kredi harcayacaktır.\n\nMevcut krediniz: ${user.credits}\nKalan krediniz: ${user.credits - REQUIRED_CREDITS}\n\nDevam etmek istiyor musunuz?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setUploading(true);
       setError(null);
@@ -92,6 +106,8 @@ export const ImageAnalysis: React.FC = () => {
 
       const formData = new FormData();
       formData.append('image', selectedFile);
+      formData.append('userId', user.uid);
+      formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
 
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
@@ -105,6 +121,11 @@ export const ImageAnalysis: React.FC = () => {
       }
 
       setResult(data);
+      
+      if (refreshUser) {
+        await refreshUser();
+      }
+      
     } catch (err: any) {
       console.error('Analiz hatası:', err);
       setError(err.message || 'Bir hata oluştu');
@@ -126,7 +147,7 @@ export const ImageAnalysis: React.FC = () => {
         <div className="text-center">
           <Zap className="w-16 h-16 mx-auto text-yellow-400 mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Giriş Yapın</h2>
-          <p className="text-slate-300 mb-6">Kupon analizi için giriş yapmalısınız</p>
+          <p className="text-slate-300 mb-6">Görsel analizi için giriş yapmalısınız</p>
           <button
             onClick={() => navigate('/login')}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
@@ -152,7 +173,7 @@ export const ImageAnalysis: React.FC = () => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <ImageIcon className="w-6 h-6 text-yellow-400" />
-              <h1 className="text-lg font-bold text-white">Kupon Analizi</h1>
+              <h1 className="text-lg font-bold text-white">Görsel Analizi</h1>
             </div>
             <div className="bg-slate-700/80 px-2.5 py-1.5 rounded text-xs font-medium text-yellow-400 flex items-center gap-1">
               <Zap className="w-3.5 h-3.5" />
@@ -173,10 +194,10 @@ export const ImageAnalysis: React.FC = () => {
               <ArrowLeft className="w-6 h-6" />
             </button>
             <ImageIcon className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-3xl font-bold text-white">Kupon Görseli Analizi</h1>
+            <h1 className="text-3xl font-bold text-white">Maç Görseli Analizi</h1>
           </div>
           <p className="text-slate-400 ml-14">
-            Bahis kuponunuzun ekran görüntüsünü yükleyin, AI ile detaylı analiz edelim
+            Maç listesi görselinizi yükleyin, AI ile detaylı analiz edelim
           </p>
         </div>
 
@@ -187,9 +208,9 @@ export const ImageAnalysis: React.FC = () => {
             Nasıl Çalışır?
           </h3>
           <ul className="text-sm text-slate-300 space-y-1">
-            <li>• Bahis kuponunuzun ekran görüntüsünü alın</li>
+            <li>• Maç listesi görselinizin ekran görüntüsünü alın</li>
             <li>• Görseli buraya yükleyin</li>
-            <li>• AI, kuponda yazılı maçları otomatik çıkarır</li>
+            <li>• AI, görseldeki maçları otomatik çıkarır</li>
             <li>• Maçlar API'den bulunur ve detaylı analiz yapılır</li>
           </ul>
         </div>
@@ -212,7 +233,7 @@ export const ImageAnalysis: React.FC = () => {
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Upload className="w-16 h-16 mx-auto text-slate-500 mb-4" />
-                  <p className="text-white font-medium mb-2">Kupon Görseli Yükle</p>
+                  <p className="text-white font-medium mb-2">Maç Görseli Yükle</p>
                   <p className="text-sm text-slate-400 mb-4">
                     veya sürükleyip bırakın
                   </p>
@@ -254,7 +275,7 @@ export const ImageAnalysis: React.FC = () => {
                     ) : (
                       <>
                         <Zap className="w-5 h-5" />
-                        Analiz Et
+                        Analiz Et (3 Kredi)
                       </>
                     )}
                   </button>
@@ -278,76 +299,55 @@ export const ImageAnalysis: React.FC = () => {
         {/* Results */}
         {result && (
           <div className="space-y-6 mt-6">
-            {/* Preview */}
-            {previewUrl && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-blue-400" />
-                  Yüklenen Görsel
-                </h3>
-                <img
-                  src={previewUrl}
-                  alt="Analyzed"
-                  className="max-h-64 mx-auto rounded-lg border border-slate-600"
-                />
+            {/* Success Message */}
+            <div className="bg-green-600/10 border border-green-500/30 rounded-lg p-4 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-green-300 font-medium">Analiz Tamamlandı!</p>
+                <p className="text-sm text-green-200/80">
+                  {result.matchedMatches && result.matchedMatches.length > 0 
+                    ? `${result.matchedMatches.length} maç başarıyla analiz edildi. 3 kredi kullanıldı.`
+                    : 'Analiz tamamlandı ancak eşleşen maç bulunamadı. 3 kredi kullanıldı.'}
+                </p>
               </div>
-            )}
+            </div>
 
-            {/* OCR Text */}
-            {result.ocrText && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  Çıkarılan Metin
-                </h3>
-                <pre className="text-sm text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded">
-                  {result.ocrText}
-                </pre>
-              </div>
-            )}
-
-            {/* Extracted Matches */}
-            {result.extractedMatches && result.extractedMatches.length > 0 && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3">
-                  Çıkarılan Maçlar ({result.extractedMatches.length})
-                </h3>
-                <div className="space-y-2">
-                  {result.extractedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-3 rounded border border-slate-700">
-                      <p className="text-white font-medium">
-                        {match.homeTeam} <span className="text-slate-500">vs</span> {match.awayTeam}
-                      </p>
-                      {match.league && (
-                        <p className="text-sm text-slate-400 mt-1">{match.league}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Matched Matches */}
+            {/* Matched Matches - BAŞARILI SONUÇLAR */}
             {result.matchedMatches && result.matchedMatches.length > 0 && (
-              <div className="bg-slate-800/50 border border-green-700/30 rounded-lg p-4">
-                <h3 className="text-green-300 font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  API'den Eşleşen Maçlar ({result.matchedMatches.length})
-                </h3>
-                <div className="space-y-3">
+              <div className="bg-slate-800/50 border border-green-600/30 rounded-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border-b border-green-600/30 px-5 py-4">
+                  <h3 className="text-green-300 font-bold text-lg flex items-center gap-2">
+                    <CheckCircle className="w-6 h-6" />
+                    Başarılı Eşleşmeler ({result.matchedMatches.length})
+                  </h3>
+                  <p className="text-sm text-green-200/70 mt-1">API'den bulunan ve doğrulanan maçlar</p>
+                </div>
+                <div className="p-4 space-y-3">
                   {result.matchedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-4 rounded border border-green-700/30">
-                      <div className="flex items-start justify-between gap-4">
+                    <div key={idx} className="bg-slate-900/70 rounded-lg border border-green-600/20 p-4 hover:border-green-500/40 transition">
+                      <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
-                          <p className="text-white font-medium text-lg">
-                            {match.apiMatch.homeTeam} <span className="text-slate-500">vs</span> {match.apiMatch.awayTeam}
+                          <p className="text-white font-semibold text-lg mb-1">
+                            {match.apiMatch.homeTeam} 
+                            <span className="text-slate-500 mx-2">vs</span> 
+                            {match.apiMatch.awayTeam}
                           </p>
-                          <p className="text-sm text-blue-400 mt-1">{match.apiMatch.league}</p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {new Date(match.apiMatch.date).toLocaleString('tr-TR')}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            <span className="text-sm text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded">
+                              {match.apiMatch.league}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(match.apiMatch.date).toLocaleString('tr-TR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
                         </div>
-                        <span className="bg-green-600/20 text-green-300 text-xs px-2 py-1 rounded">
+                        <span className="bg-green-600/20 text-green-300 text-xs font-medium px-3 py-1.5 rounded-full border border-green-500/30">
                           {match.apiMatch.status}
                         </span>
                       </div>
@@ -357,40 +357,104 @@ export const ImageAnalysis: React.FC = () => {
               </div>
             )}
 
+            {/* Failed Matches - BAŞARISIZ SONUÇLAR */}
+            {result.extractedMatches && result.extractedMatches.length > 0 && (
+              (() => {
+                const failedMatches = result.extractedMatches.filter(extracted => 
+                  !result.matchedMatches?.some(matched => 
+                    matched.extracted.homeTeam === extracted.homeTeam && 
+                    matched.extracted.awayTeam === extracted.awayTeam
+                  )
+                );
+                
+                return failedMatches.length > 0 ? (
+                  <div className="bg-slate-800/50 border border-orange-600/30 rounded-lg overflow-hidden">
+                    <div className="bg-gradient-to-r from-orange-600/20 to-red-600/20 border-b border-orange-600/30 px-5 py-4">
+                      <h3 className="text-orange-300 font-bold text-lg flex items-center gap-2">
+                        <AlertTriangle className="w-6 h-6" />
+                        API'de Bulunamayan Maçlar ({failedMatches.length})
+                      </h3>
+                      <p className="text-sm text-orange-200/70 mt-1">Bu maçlar API veritabanında eşleştirilemedi</p>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {failedMatches.map((match, idx) => (
+                        <div key={idx} className="bg-slate-900/70 rounded-lg border border-orange-600/20 p-4">
+                          <p className="text-white font-medium">
+                            {match.homeTeam} 
+                            <span className="text-slate-500 mx-2">vs</span> 
+                            {match.awayTeam}
+                          </p>
+                          {match.league && (
+                            <p className="text-sm text-slate-400 mt-2 bg-slate-800/50 px-2.5 py-1 rounded inline-block">
+                              {match.league}
+                            </p>
+                          )}
+                          <p className="text-xs text-orange-400 mt-3 flex items-center gap-1.5">
+                            <XCircle className="w-3.5 h-3.5" />
+                            Maç bilgileri API'de bulunamadı veya geçmiş tarihli
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()
+            )}
+
             {/* AI Analysis */}
             {result.analysis && (
-              <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg p-6">
-                <h3 className="text-blue-300 font-semibold mb-4 flex items-center gap-2 text-lg">
-                  <Zap className="w-6 h-6" />
-                  AI Analiz Sonucu
-                </h3>
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <div className="text-slate-200 whitespace-pre-wrap leading-relaxed">
-                    {result.analysis}
+              <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-blue-500/30 px-5 py-4">
+                  <h3 className="text-blue-300 font-bold text-lg flex items-center gap-2">
+                    <Zap className="w-6 h-6" />
+                    AI Analiz Raporu
+                  </h3>
+                  <p className="text-sm text-blue-200/70 mt-1">Yapay zeka destekli detaylı maç analizi</p>
+                </div>
+                <div className="p-5">
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <div className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                      {result.analysis}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Message */}
-            {result.message && (
-              <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-4">
-                <p className="text-yellow-300">{result.message}</p>
+            {/* No Matches Found Warning */}
+            {(!result.matchedMatches || result.matchedMatches.length === 0) && (
+              <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-5">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-yellow-300 font-semibold mb-1">Maç Bulunamadı</p>
+                    <p className="text-sm text-yellow-200/80">
+                      Görseldeki maçlar API veritabanında bulunamadı. Lütfen:
+                    </p>
+                    <ul className="text-sm text-yellow-200/70 mt-2 space-y-1 ml-4 list-disc">
+                      <li>Görselin net ve okunabilir olduğundan emin olun</li>
+                      <li>Maç isimlerinin doğru yazıldığını kontrol edin</li>
+                      <li>Güncel maçların bulunduğu bir görsel kullanın</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 justify-center pt-4">
+            <div className="flex gap-3 justify-center pt-4 border-t border-slate-700">
               <button
                 onClick={handleReset}
-                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition flex items-center gap-2"
               >
+                <Upload className="w-4 h-4" />
                 Yeni Analiz
               </button>
               <button
                 onClick={() => navigate('/bulletin')}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition flex items-center gap-2"
               >
+                <ImageIcon className="w-4 h-4" />
                 Bültene Git
               </button>
             </div>

@@ -1,3 +1,4 @@
+// Lig çevirileri
 export const leagueTranslations: { [key: string]: string } = {
   'World Cup': 'Dünya Kupası',
   'UEFA Champions League': 'Şampiyonlar Ligi',
@@ -56,19 +57,101 @@ export const leagueTranslations: { [key: string]: string } = {
   'UEFA Women\'s Champions League': 'UEFA Kadınlar Şampiyonlar Ligi',
 };
 
+// Takım ismi çevirileri (popüler takımlar)
+export const teamTranslations: { [key: string]: string } = {
+  // Türkiye
+  'Galatasaray': 'Galatasaray',
+  'Fenerbahce': 'Fenerbahçe',
+  'Besiktas': 'Beşiktaş',
+  'Trabzonspor': 'Trabzonspor',
+  
+  // İspanya
+  'Barcelona': 'Barselona',
+  'Real Madrid': 'Real Madrid',
+  'Atletico Madrid': 'Atletico Madrid',
+  'Athletic Bilbao': 'Athletic Bilbao',
+  'Sevilla': 'Sevilla',
+  'Valencia': 'Valensiya',
+  
+  // İngiltere
+  'Manchester United': 'Manchester United',
+  'Manchester City': 'Manchester City',
+  'Liverpool': 'Liverpool',
+  'Chelsea': 'Chelsea',
+  'Arsenal': 'Arsenal',
+  'Tottenham': 'Tottenham',
+  'Newcastle': 'Newcastle',
+  'Leicester': 'Leicester',
+  'West Ham': 'West Ham',
+  'Everton': 'Everton',
+  
+  // Almanya
+  'Bayern Munich': 'Bayern Münih',
+  'Borussia Dortmund': 'Borussia Dortmund',
+  'RB Leipzig': 'RB Leipzig',
+  'Bayer Leverkusen': 'Bayer Leverkusen',
+  
+  // İtalya
+  'Juventus': 'Juventus',
+  'Inter Milan': 'Inter',
+  'AC Milan': 'Milan',
+  'Roma': 'Roma',
+  'Napoli': 'Napoli',
+  'Lazio': 'Lazio',
+  
+  // Fransa
+  'Paris Saint Germain': 'Paris Saint-Germain',
+  'PSG': 'PSG',
+  'Marseille': 'Marsilya',
+  'Lyon': 'Lyon',
+  'Monaco': 'Monaco',
+  
+  // Avusturya
+  'R. Wien': 'Rapid Viyana',
+  'Rapid Wien': 'Rapid Viyana',
+  'SV Austria Salzburg': 'Salzburg',
+  'Sturm Graz': 'Sturm Graz',
+  
+  // Kısaltmalar
+  'FC': '',
+  'CF': '',
+  'SK': '',
+  'SV': '',
+  '(Amt.)': '',
+  '(Amt)': '',
+};
+
 export function translateLeague(leagueName: string): string {
   return leagueTranslations[leagueName] || leagueName;
 }
 
-export function formatMatchTime(timestamp: number): string {
-  // ✅ Türkiye saatine çevir (UTC+3)
-  const date = new Date(timestamp);
-  const turkeyTime = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+// Takım ismini Türkçe'ye çevir
+export function translateTeam(teamName: string): string {
+  // Tam eşleşme kontrolü
+  if (teamTranslations[teamName]) {
+    return teamTranslations[teamName];
+  }
   
-  return turkeyTime.toLocaleTimeString('tr-TR', {
+  // Kısaltmaları temizle
+  let cleanName = teamName;
+  Object.keys(teamTranslations).forEach(key => {
+    if (key.startsWith('(') || ['FC', 'CF', 'SK', 'SV'].includes(key)) {
+      cleanName = cleanName.replace(key, '').trim();
+    }
+  });
+  
+  return cleanName;
+}
+
+export function formatMatchTime(timestamp: number): string {
+  // ✅ Timestamp zaten UTC, direkt Türkiye saatine çevir
+  const date = new Date(timestamp);
+  
+  return date.toLocaleTimeString('tr-TR', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: 'Europe/Istanbul' // Türkiye saati (UTC+3)
   });
 }
 
@@ -85,4 +168,33 @@ export function formatMatchDate(dateStr: string): string {
     month: 'long',
     weekday: 'long'
   });
+}
+
+// Maç durumu metni
+export function getMatchStatusText(status: string): string {
+  const statusMap: { [key: string]: string } = {
+    'scheduled': 'Oynanacak',
+    'live': '🔴 CANLI',
+    'finished': 'Bitti',
+    'postponed': 'Ertelendi',
+    'cancelled': 'İptal',
+    '1H': '🔴 İlk Yarı',
+    '2H': '🔴 İkinci Yarı',
+    'HT': 'Devre Arası',
+    'FT': 'Maç Bitti',
+    'AET': 'Uzatmalar Bitti',
+    'PEN': 'Penaltılar',
+  };
+  
+  return statusMap[status] || status;
+}
+
+// Canlı maç kontrolü
+export function isMatchLive(status: string): boolean {
+  return ['live', '1H', '2H', 'HT', 'ET', 'P'].includes(status);
+}
+
+// Maç bitmiş mi kontrolü
+export function isMatchFinished(status: string): boolean {
+  return ['FT', 'AET', 'PEN', 'finished'].includes(status);
 }

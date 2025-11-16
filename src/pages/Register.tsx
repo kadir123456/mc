@@ -45,9 +45,14 @@ export const Register: React.FC = () => {
         throw new Error('Kullanım şartlarını kabul etmelisiniz');
       }
 
+      console.log('📝 Kayıt yapılıyor...');
       await authService.registerWithEmail(formData.email, formData.password, formData.displayName);
-      navigate('/dashboard');
+      
+      // ✅ Kayıt başarılı, yönlendir
+      console.log('✅ Kayıt başarılı, dashboard\'a yönlendiriliyor');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
+      console.error('❌ Kayıt hatası:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -63,9 +68,14 @@ export const Register: React.FC = () => {
         throw new Error('Kullanım şartlarını kabul etmelisiniz');
       }
 
+      console.log('📝 Google ile kayıt yapılıyor...');
       await authService.loginWithGoogle();
-      navigate('/dashboard');
+      
+      // ✅ Kayıt başarılı, yönlendir
+      console.log('✅ Google kayıt başarılı, dashboard\'a yönlendiriliyor');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
+      console.error('❌ Google kayıt hatası:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -176,9 +186,16 @@ export const Register: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium py-2 rounded-lg transition duration-200"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium py-2 rounded-lg transition duration-200 flex items-center justify-center gap-2"
             >
-              {loading ? 'Kayıt Yapılıyor...' : 'Kayıt Ol'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Kayıt Yapılıyor...
+                </>
+              ) : (
+                'Kayıt Ol'
+              )}
             </button>
           </form>
 
@@ -196,8 +213,17 @@ export const Register: React.FC = () => {
             disabled={loading || !formData.agreeTerms}
             className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-600 text-white font-medium py-2 rounded-lg transition duration-200 mb-6"
           >
-            <Chrome className="w-5 h-5" />
-            Google ile Kayıt Ol
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Yükleniyor...
+              </>
+            ) : (
+              <>
+                <Chrome className="w-5 h-5" />
+                Google ile Kayıt Ol
+              </>
+            )}
           </button>
 
           <p className="text-center text-slate-400 text-sm">

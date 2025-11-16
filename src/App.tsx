@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Bulletin } from './pages/Bulletin';
 import { MyCoupons } from './pages/MyCoupons';
 import { ImageAnalysis } from './pages/ImageAnalysis';
+import { Profile } from './pages/Profile';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { About } from './pages/About';
 import { Terms } from './pages/Terms';
@@ -24,12 +25,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Yükleniyor...</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <p className="text-white text-lg">Yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
-  return authUser ? <>{children}</> : <Navigate to="/login" />;
+  if (!authUser) {
+    console.log('❌ Kullanıcı giriş yapmamış, login\'e yönlendiriliyor');
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 function App() {
@@ -77,6 +86,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ImageAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

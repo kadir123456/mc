@@ -17,14 +17,14 @@ export const About: React.FC = () => {
 
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 mb-8">
             <p className="text-slate-300 text-lg leading-relaxed mb-6">
-              Aikupon, spor kuponlarınızı detaylı şekilde analiz etmenize yardımcı olan modern bir platformdur.
-              Akıllı analiz teknolojisi ile kuponlarınızı değerlendirip, size en iyi önerileri sunuyoruz.
+              Aikupon, futbol maçlarını detaylı şekilde analiz etmenize yardımcı olan modern bir platformdur.
+              Akıllı analiz teknolojisi ile maç verilerini değerlendirip, size istatistiksel öneriler sunuyoruz.
             </p>
 
             <p className="text-slate-300 leading-relaxed mb-6">
               Misyonumuz, kullanıcılarımıza güvenilir, hızlı ve kullanıcı dostu bir analiz deneyimi sunmaktır.
-              Platform, yapay zeka destekli teknolojiler kullanarak kuponlarınızdaki maçları inceler ve
-              kapsamlı değerlendirmeler sunar.
+              Platform, yapay zeka destekli teknolojiler kullanarak futbol maçlarını inceler ve
+              kapsamlı istatistiksel değerlendirmeler sunar.
             </p>
           </div>
 
@@ -41,7 +41,7 @@ export const About: React.FC = () => {
               <Zap className="w-10 h-10 text-blue-400 mb-4" />
               <h3 className="text-white font-bold mb-2">Hızlı</h3>
               <p className="text-slate-400 text-sm">
-                Kuponlarınız saniyeler içinde analiz edilir ve sonuçlar anında görüntülenir.
+                Maç analizleriniz saniyeler içinde tamamlanır ve sonuçlar anında görüntülenir.
               </p>
             </div>
 

@@ -6,11 +6,20 @@ import { matchService, Match } from '../services/matchService';
 import { geminiAnalysisService } from '../services/geminiAnalysisService';
 import { couponService } from '../services/couponService';
 import { authService } from '../services/authService';
-import { translateLeague, formatMatchTime } from '../utils/leagueTranslations';
+import { translateLeague, translateTeam, formatMatchTime, getMatchStatusText, isMatchLive, isMatchFinished } from '../utils/leagueTranslations';
+import { MatchStatsModal } from '../components/MatchStatsModal'; // ✅ YENİ
 
 export const Bulletin: React.FC = () => {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
+  
+  // Set userId globally for Gemini service
+  React.useEffect(() => {
+    if (user?.uid) {
+      (window as any).currentUserId = user.uid;
+    }
+  }, [user]);
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatches, setSelectedMatches] = useState<Match[]>([]);
   const [analysisType, setAnalysisType] = useState<'standard' | 'detailed'>('standard');
@@ -20,6 +29,7 @@ export const Bulletin: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedMatchForStats, setSelectedMatchForStats] = useState<Match | null>(null); // ✅ YENİ
 
   const maxSelections = analysisType === 'standard' ? 3 : 5;
   const creditsRequired = analysisType === 'standard' ? 1 : (analysisType === 'detailed' ? 3 : 2);
@@ -112,11 +122,11 @@ export const Bulletin: React.FC = () => {
         analysisType
       );
 
-      const newCredits = user.credits - creditsRequired;
-      await authService.updateCredits(user.uid, newCredits);
-      setUser({ ...user, credits: newCredits });
+      // Kredi backend'den düşürüldü, sadece local state güncelle
+      // Firebase'den yeni veriyi çekmek için refresh
+      window.location.reload();
 
-      alert('Analiz tamamlandı! Kuponlarım sayfasında görebilirsiniz.');
+      alert('Analiz tamamlandı!');
       setSelectedMatches([]);
       navigate('/my-coupons');
 
@@ -207,7 +217,7 @@ export const Bulletin: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 py-3">
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-3">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-white">Analiz Tipi</h3>
+            <h3 className="text-sm font-bold text-white">Bültendeki maç saatleri Türkiye saatine göre farklılık gösterebilir</h3>
             <button
               onClick={() => setShowInfo(!showInfo)}
               className="text-slate-400 hover:text-white"
@@ -222,6 +232,17 @@ export const Bulletin: React.FC = () => {
               <strong className="text-purple-400">Detaylı:</strong> 5 maç + ilk yarı tahminleri (5 kredi)
             </div>
           )}
+
+          {/* ✅ YENİ: Kullanıcı Bilgilendirme */}
+          <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-2 mb-2">
+            <div className="flex items-center gap-2 text-xs text-blue-300">
+              <Info className="w-4 h-4 flex-shrink-0" />
+              <p>
+                <strong>İpucu:</strong> Maça tıklayın → İstatistikler & AI Analiz | 
+                <strong className="ml-1">Shift+Tıklayın</strong> → Kupon için seç
+              </p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -289,15 +310,28 @@ export const Bulletin: React.FC = () => {
                   {groupedMatches[league].map(match => {
                     const isSelected = selectedMatches.some(m => m.fixtureId === match.fixtureId);
                     const canSelect = selectedMatches.length < maxSelections || isSelected;
+                    const matchIsLive = isMatchLive(match.status);
+                    const matchIsFinished = isMatchFinished(match.status);
 
                     return (
                       <button
                         key={match.fixtureId}
-                        onClick={() => canSelect && toggleMatchSelection(match)}
-                        disabled={!canSelect}
+                        onClick={(e) => {
+                          // ✅ DEĞİŞTİRİLDİ: Shift tuşu kontrolü
+                          if (matchIsFinished) return;
+                          
+                          if (e.shiftKey) {
+                            // Shift+Tıklama → Maç seçimi
+                            canSelect && toggleMatchSelection(match);
+                          } else {
+                            // Normal tıklama → İstatistik modal
+                            setSelectedMatchForStats(match);
+                          }
+                        }}
+                        disabled={matchIsFinished}
                         className={`w-full text-left px-3 py-2.5 transition hover:bg-slate-700/30 ${
-                          isSelected ? 'bg-blue-600/10' : ''
-                        } ${!canSelect ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          isSelected ? 'bg-blue-600/10 border-l-2 border-blue-500' : ''
+                        } ${matchIsFinished ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <div className="flex items-center gap-2 mb-1.5">
                           <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
@@ -312,22 +346,36 @@ export const Bulletin: React.FC = () => {
                             )}
                           </div>
                           <span className="text-[10px] text-slate-500 font-medium">{formatMatchTime(match.timestamp)}</span>
+                          
+                          {/* Maç Durumu Badge */}
+                          {matchIsLive && (
+                            <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-bold animate-pulse">
+                              🔴 CANLI
+                            </span>
+                          )}
+                          {matchIsFinished && (
+                            <span className="text-[10px] bg-slate-600 text-slate-300 px-2 py-0.5 rounded-full">
+                              Bitti
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-white font-medium truncate">
-                              {match.homeTeam}
+                              {translateTeam(match.homeTeam)}
                             </div>
                             <div className="text-sm text-slate-300 truncate">
-                              {match.awayTeam}
+                              {translateTeam(match.awayTeam)}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1 ml-3">
-                            <div className="bg-slate-700/50 px-2 py-1 rounded text-[10px] text-slate-400">
-                              Analiz
-                            </div>
+                            {!matchIsFinished && (
+                              <div className="bg-blue-600/20 text-blue-400 px-2 py-1 rounded text-[10px] font-medium">
+                                Analiz Et
+                              </div>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -341,21 +389,65 @@ export const Bulletin: React.FC = () => {
       </div>
 
       {selectedMatches.length === maxSelections && (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 p-2 md:p-3 z-50 mb-12 md:mb-0">
-          <button
-            onClick={handleAnalyze}
-            disabled={processing}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-2.5 md:py-3 rounded-lg font-bold text-xs md:text-sm transition"
-          >
-            {processing ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Analiz Ediliyor...
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-md">
+          <div className="bg-slate-900/95 backdrop-blur-xl border-2 border-blue-500/50 rounded-2xl p-4 shadow-2xl animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">Analiz Hazır</p>
+                  <p className="text-xs text-slate-400">{selectedMatches.length} maç seçildi</p>
+                </div>
               </div>
-            ) : (
-              `${selectedMatches.length} Maç • ${creditsRequired} Kredi ile Analiz Et`
-            )}
-          </button>
+              <button
+                onClick={() => setSelectedMatches([])}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selected Matches Preview */}
+            <div className="bg-slate-800/50 rounded-xl p-3 mb-3 max-h-32 overflow-y-auto">
+              {selectedMatches.map((match, index) => (
+                <div key={match.fixtureId} className="flex items-center gap-2 text-xs text-slate-300 mb-1.5 last:mb-0">
+                  <span className="text-blue-400 font-bold">{index + 1}.</span>
+                  <span className="truncate">{match.homeTeam} vs {match.awayTeam}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Credit Info */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-2 mb-3">
+              <span className="text-xs text-slate-300">Kredi Kullanımı:</span>
+              <div className="flex items-center gap-1">
+                <Zap className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-bold text-yellow-400">{creditsRequired} Kredi</span>
+              </div>
+            </div>
+
+            {/* Analyze Button */}
+            <button
+              onClick={handleAnalyze}
+              disabled={processing}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-3.5 rounded-xl font-bold text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              {processing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Analiz Ediliyor...
+                </div>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 inline-block mr-2" />
+                  Analiz Et
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
@@ -411,6 +503,14 @@ export const Bulletin: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ✅ YENİ: İstatistik Modal */}
+      {selectedMatchForStats && (
+        <MatchStatsModal
+          match={selectedMatchForStats}
+          onClose={() => setSelectedMatchForStats(null)}
+        />
       )}
     </div>
   );
