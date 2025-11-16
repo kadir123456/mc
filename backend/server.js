@@ -58,6 +58,19 @@ app.get('/api/football/*', async (req, res) => {
       }
     }
 
+    // Teams statistics için özel log
+    if (endpoint.includes('teams/statistics')) {
+      console.log(`👥 Team Statistics Response:`, {
+        hasResponse: !!response.data.response,
+        responseType: typeof response.data.response,
+        responseKeys: response.data.response ? Object.keys(response.data.response) : [],
+        hasTeam: !!response.data.response?.team,
+        teamName: response.data.response?.team?.name,
+        hasForm: !!response.data.response?.form,
+        form: response.data.response?.form
+      });
+    }
+
     // Standings isteği için özel log
     if (endpoint.includes('standings')) {
       console.log(`🏆 Standings count:`, response.data.response?.length || 0);

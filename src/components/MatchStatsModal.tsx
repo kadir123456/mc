@@ -29,10 +29,38 @@ export const MatchStatsModal: React.FC<MatchStatsModalProps> = ({ match, onClose
       setError(null);
       
       console.log('📊 Takım istatistikleri yükleniyor...');
-      console.log('Home Team ID:', match.homeTeamId);
-      console.log('Away Team ID:', match.awayTeamId);
-      console.log('League ID:', match.leagueId);
-      console.log('Season:', match.season);
+      console.log('🔍 Match data:', {
+        fixtureId: match.fixtureId,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        homeTeamId: match.homeTeamId,
+        awayTeamId: match.awayTeamId,
+        leagueId: match.leagueId,
+        season: match.season,
+        hasHomeTeamId: !!match.homeTeamId,
+        hasAwayTeamId: !!match.awayTeamId,
+        hasLeagueId: !!match.leagueId,
+        hasSeason: !!match.season
+      });
+
+      // ✅ Eksik veri kontrolü
+      if (!match.homeTeamId || !match.awayTeamId) {
+        setError('Takım ID bilgisi eksik. Maç verisi güncellenmelidir.');
+        setLoading(false);
+        return;
+      }
+
+      if (!match.leagueId) {
+        setError('Lig ID bilgisi eksik. Maç verisi güncellenmelidir.');
+        setLoading(false);
+        return;
+      }
+
+      if (!match.season) {
+        setError('Sezon bilgisi eksik. Maç verisi güncellenmelidir.');
+        setLoading(false);
+        return;
+      }
 
       // Her iki takımın istatistiklerini çek
       const teamStats = await teamStatsService.getMatchTeamStats(

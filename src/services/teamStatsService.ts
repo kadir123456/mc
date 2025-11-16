@@ -1,8 +1,6 @@
 // src/services/teamStatsService.ts
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-
 export interface TeamForm {
   teamId: number;
   teamName: string;
@@ -62,7 +60,8 @@ export const teamStatsService = {
     try {
       console.log(`📊 Takım istatistikleri çekiliyor: Team ${teamId}, League ${leagueId}, Season ${season}`);
 
-      const response = await axios.get(`${API_BASE_URL}/api/football/teams/statistics`, {
+      // ✅ Relative path - production ve dev'de çalışır
+      const response = await axios.get(`/api/football/teams/statistics`, {
         params: {
           team: teamId,
           league: leagueId,
@@ -71,50 +70,82 @@ export const teamStatsService = {
         timeout: 15000
       });
 
+      console.log('🔍 RAW API Response:', response.data);
+      console.log('🔍 Response keys:', Object.keys(response.data));
+      console.log('🔍 Response.response:', response.data.response);
+
       const data = response.data.response;
 
       if (!data) {
         throw new Error('Takım istatistikleri bulunamadı');
       }
 
-      // Form string'i oluştur (son 5 maç)
+      console.log('🔍 Data structure:', {
+        hasTeam: !!data.team,
+        hasForm: !!data.form,
+        hasFixtures: !!data.fixtures,
+        hasGoals: !!data.goals,
+        dataKeys: Object.keys(data)
+      });
+
+      console.log('🔍 Data structure:', {
+        hasTeam: !!data.team,
+        hasForm: !!data.form,
+        hasFixtures: !!data.fixtures,
+        hasGoals: !!data.goals,
+        dataKeys: Object.keys(data)
+      });
+
+      // ✅ Güvenli veri çekme
+      const team = data.team || {};
       const form = data.form?.substring(0, 5) || 'N/A';
+      const fixtures = data.fixtures || {};
+      const goals = data.goals || {};
 
       // Son 5 maçı parse et
       const lastFiveMatches: MatchResult[] = [];
-      if (data.fixtures?.played?.total > 0) {
-        // Form string'inden son maçları oluştur (gerçek API'den gelebilir)
+      if (fixtures.played?.total > 0 && form !== 'N/A') {
         for (let i = 0; i < Math.min(5, form.length); i++) {
           const result = form[i] as 'W' | 'D' | 'L';
-          lastFiveMatches.push({
-            date: '', // API'den gelecek
-            opponent: '', // API'den gelecek
-            result: result,
-            score: '',
-            isHome: i % 2 === 0
-          });
+          if (result === 'W' || result === 'D' || result === 'L') {
+            lastFiveMatches.push({
+              date: '',
+              opponent: '',
+              result: result,
+              score: '',
+              isHome: i % 2 === 0
+            });
+          }
         }
       }
 
-      return {
-        teamId: data.team.id,
-        teamName: data.team.name,
-        logo: data.team.logo,
+      const teamStats: TeamForm = {
+        teamId: team.id || teamId,
+        teamName: team.name || 'Unknown Team',
+        logo: team.logo || '',
         form: form,
-        wins: data.fixtures?.wins?.total || 0,
-        draws: data.fixtures?.draws?.total || 0,
-        losses: data.fixtures?.loses?.total || 0,
-        goalsFor: data.goals?.for?.total?.total || 0,
-        goalsAgainst: data.goals?.against?.total?.total || 0,
-        goalDifference: (data.goals?.for?.total?.total || 0) - (data.goals?.against?.total?.total || 0),
-        points: (data.fixtures?.wins?.total || 0) * 3 + (data.fixtures?.draws?.total || 0),
-        position: 0, // Puan durumundan gelecek
-        played: data.fixtures?.played?.total || 0,
+        wins: fixtures.wins?.total || 0,
+        draws: fixtures.draws?.total || 0,
+        losses: fixtures.loses?.total || 0,
+        goalsFor: goals.for?.total?.total || 0,
+        goalsAgainst: goals.against?.total?.total || 0,
+        goalDifference: (goals.for?.total?.total || 0) - (goals.against?.total?.total || 0),
+        points: ((fixtures.wins?.total || 0) * 3) + (fixtures.draws?.total || 0),
+        position: 0,
+        played: fixtures.played?.total || 0,
         lastFiveMatches: lastFiveMatches
       };
 
+      console.log('✅ Parsed team stats:', teamStats);
+      return teamStats;
+
     } catch (error: any) {
       console.error('❌ Takım istatistikleri hatası:', error.message);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       throw new Error('Takım istatistikleri yüklenemedi');
     }
   },
@@ -126,7 +157,7 @@ export const teamStatsService = {
     try {
       console.log(`🔄 H2H çekiliyor: ${homeTeamId} vs ${awayTeamId}`);
 
-      const response = await axios.get(`${API_BASE_URL}/api/football/fixtures/headtohead`, {
+      const response = await axios.get(`/api/football/fixtures/headtohead`, {
         params: {
           h2h: `${homeTeamId}-${awayTeamId}`,
           last: 10
@@ -189,7 +220,7 @@ export const teamStatsService = {
    */
   async getStandingPosition(teamId: number, leagueId: number, season: number): Promise<number> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/football/standings`, {
+      const response = await axios.get(`/api/football/standings`, {
         params: {
           league: leagueId,
           season: season
