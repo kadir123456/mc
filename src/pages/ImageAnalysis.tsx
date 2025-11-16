@@ -48,6 +48,8 @@ export const ImageAnalysis: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedMarkets, setSelectedMarkets] = useState<MarketSelection[]>([]);
   const [savingCoupon, setSavingCoupon] = useState(false);
+  const [showMarketPopup, setShowMarketPopup] = useState(false);
+  const [selectedMarketType, setSelectedMarketType] = useState<string>('');
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,7 +86,19 @@ export const ImageAnalysis: React.FC = () => {
     e.preventDefault();
   };
 
-  const handleAnalyze = async () => {
+  const handleFileSelectAndShowPopup = () => {
+    if (selectedFile) {
+      setShowMarketPopup(true);
+    }
+  };
+
+  const handleMarketSelect = (market: string) => {
+    setSelectedMarketType(market);
+    setShowMarketPopup(false);
+    handleAnalyze(market);
+  };
+
+  const handleAnalyze = async (marketType?: string) => {
     if (!selectedFile) {
       setError('Lütfen bir görsel seçin');
       return;
@@ -101,14 +115,6 @@ export const ImageAnalysis: React.FC = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Bu analiz ${REQUIRED_CREDITS} kredi harcayacaktır.\n\nMevcut krediniz: ${user.credits}\nKalan krediniz: ${user.credits - REQUIRED_CREDITS}\n\nDevam etmek istiyor musunuz?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
       setUploading(true);
       setError(null);
@@ -118,6 +124,9 @@ export const ImageAnalysis: React.FC = () => {
       formData.append('image', selectedFile);
       formData.append('userId', user.uid);
       formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
+      if (marketType) {
+        formData.append('selectedMarket', marketType);
+      }
 
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
@@ -227,6 +236,52 @@ export const ImageAnalysis: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 pb-28 md:pb-8 md:pt-20">
+      {/* Market Seçim Popup */}
+      {showMarketPopup && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl max-w-md w-full border border-slate-700 shadow-2xl">
+            <div className="p-6 border-b border-slate-700">
+              <h3 className="text-xl font-bold text-white mb-2">Analiz Türü Seçin</h3>
+              <p className="text-sm text-slate-400">Hangi market için analiz yapmak istiyorsunuz?</p>
+            </div>
+            
+            <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
+              {[
+                { value: 'ms1', label: 'MS1 (Ev Sahibi Kazanır)', icon: '🏠' },
+                { value: 'ms2', label: 'MS2 (Deplasman Kazanır)', icon: '✈️' },
+                { value: 'draw', label: 'X (Beraberlik)', icon: '🤝' },
+                { value: 'over25', label: '2.5 Üst', icon: '⚽' },
+                { value: 'under25', label: '2.5 Alt', icon: '🎯' },
+                { value: 'btts', label: 'Karşılıklı Gol Var', icon: '⚔️' },
+                { value: 'bttsNo', label: 'Karşılıklı Gol Yok', icon: '🛡️' },
+                { value: 'firstHalfMs1', label: 'İlk Yarı MS1', icon: '1️⃣' },
+                { value: 'firstHalfDraw', label: 'İlk Yarı Beraberlik', icon: '🔄' },
+                { value: 'firstHalfMs2', label: 'İlk Yarı MS2', icon: '2️⃣' },
+                { value: 'all', label: 'Tüm Marketler (Detaylı)', icon: '📊' }
+              ].map((market) => (
+                <button
+                  key={market.value}
+                  onClick={() => handleMarketSelect(market.value)}
+                  className="w-full p-3 bg-slate-900/50 hover:bg-slate-700 border border-slate-700 hover:border-blue-500 rounded-lg text-left transition flex items-center gap-3"
+                >
+                  <span className="text-2xl">{market.icon}</span>
+                  <span className="text-white font-medium">{market.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-slate-700">
+              <button
+                onClick={() => setShowMarketPopup(false)}
+                className="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              >
+                İptal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="md:hidden bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 py-2.5">
@@ -329,7 +384,7 @@ export const ImageAnalysis: React.FC = () => {
                     Değiştir
                   </button>
                   <button
-                    onClick={handleAnalyze}
+                    onClick={handleFileSelectAndShowPopup}
                     disabled={uploading}
                     className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-lg font-medium transition flex items-center gap-2"
                   >
