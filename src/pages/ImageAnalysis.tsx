@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft, AlertTriangle, Save, Ticket } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { imageCouponService, MarketType, CouponMatch } from '../services/imageCouponService';
 
 interface ExtractedMatch {
   homeTeam: string;
@@ -30,6 +31,13 @@ interface AnalysisResult {
   analysis?: string;
 }
 
+interface MarketSelection {
+  matchIndex: number;
+  market: MarketType;
+  odds: number;
+  confidence: number;
+}
+
 export const ImageAnalysis: React.FC = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
@@ -38,6 +46,8 @@ export const ImageAnalysis: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMarkets, setSelectedMarkets] = useState<MarketSelection[]>([]);
+  const [savingCoupon, setSavingCoupon] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -139,6 +149,62 @@ export const ImageAnalysis: React.FC = () => {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    setSelectedMarkets([]);
+  };
+
+  const toggleMarket = (matchIndex: number, market: MarketType, odds: number, confidence: number) => {
+    setSelectedMarkets(prev => {
+      const existing = prev.findIndex(m => m.matchIndex === matchIndex);
+      if (existing !== -1) {
+        // Aynı maç için farklı market seçiliyorsa değiştir
+        const updated = [...prev];
+        updated[existing] = { matchIndex, market, odds, confidence };
+        return updated;
+      } else {
+        // Yeni market ekle
+        return [...prev, { matchIndex, market, odds, confidence }];
+      }
+    });
+  };
+
+  const isMarketSelected = (matchIndex: number, market: MarketType): boolean => {
+    return selectedMarkets.some(m => m.matchIndex === matchIndex && m.market === market);
+  };
+
+  const handleSaveCoupon = async () => {
+    if (!user || !result || selectedMarkets.length === 0) {
+      setError('Lütfen en az bir market seçin');
+      return;
+    }
+
+    try {
+      setSavingCoupon(true);
+
+      const couponMatches: CouponMatch[] = selectedMarkets.map(selection => {
+        const match = result.matchedMatches![selection.matchIndex];
+        return {
+          homeTeam: match.apiMatch.homeTeam,
+          awayTeam: match.apiMatch.awayTeam,
+          league: match.apiMatch.league,
+          date: new Date(match.apiMatch.date).toLocaleDateString('tr-TR'),
+          time: new Date(match.apiMatch.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          market: selection.market,
+          marketDisplay: imageCouponService.getMarketDisplay(selection.market),
+          odds: selection.odds,
+          confidence: selection.confidence
+        };
+      });
+
+      await imageCouponService.saveCoupon(user.uid, couponMatches);
+      
+      alert('✅ Kupon başarıyla kaydedildi!');
+      navigate('/my-coupons');
+    } catch (err: any) {
+      console.error('Kupon kaydetme hatası:', err);
+      setError(err.message || 'Kupon kaydedilemedi');
+    } finally {
+      setSavingCoupon(false);
+    }
   };
 
   if (!user) {
@@ -312,7 +378,7 @@ export const ImageAnalysis: React.FC = () => {
               </div>
             </div>
 
-            {/* Matched Matches - BAŞARILI SONUÇLAR */}
+            {/* Matched Matches - BAŞARILI SONUÇLAR + MARKET SEÇİMİ */}
             {result.matchedMatches && result.matchedMatches.length > 0 && (
               <div className="bg-slate-800/50 border border-green-600/30 rounded-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border-b border-green-600/30 px-5 py-4">
@@ -320,44 +386,202 @@ export const ImageAnalysis: React.FC = () => {
                     <CheckCircle className="w-6 h-6" />
                     Başarılı Eşleşmeler ({result.matchedMatches.length})
                   </h3>
-                  <p className="text-sm text-green-200/70 mt-1">API'den bulunan ve doğrulanan maçlar</p>
+                  <p className="text-sm text-green-200/70 mt-1">Market seçerek kupon oluşturun (Minimum %70 güven)</p>
                 </div>
-                <div className="p-4 space-y-3">
-                  {result.matchedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/70 rounded-lg border border-green-600/20 p-4 hover:border-green-500/40 transition">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div className="flex-1">
-                          <p className="text-white font-semibold text-lg mb-1">
+                <div className="p-4 space-y-4">
+                  {result.matchedMatches.map((match, idx) => {
+                    // Mock tahminler - gerçek API'den gelecek
+                    const predictions = {
+                      ms1: { odds: 1.85, confidence: 75 },
+                      draw: { odds: 3.40, confidence: 65 },
+                      ms2: { odds: 4.20, confidence: 72 },
+                      over25: { odds: 1.70, confidence: 80 },
+                      under25: { odds: 2.10, confidence: 68 },
+                      btts: { odds: 1.95, confidence: 73 },
+                      bttsNo: { odds: 1.80, confidence: 69 },
+                      firstHalfMs1: { odds: 2.20, confidence: 71 },
+                      firstHalfDraw: { odds: 2.10, confidence: 66 },
+                      firstHalfMs2: { odds: 3.80, confidence: 68 }
+                    };
+
+                    return (
+                      <div key={idx} className="bg-slate-900/70 rounded-lg border border-green-600/20 p-4">
+                        {/* Maç Bilgisi */}
+                        <div className="mb-4 pb-3 border-b border-slate-700">
+                          <p className="text-white font-semibold text-base mb-2">
                             {match.apiMatch.homeTeam} 
                             <span className="text-slate-500 mx-2">vs</span> 
                             {match.apiMatch.awayTeam}
                           </p>
-                          <div className="flex flex-wrap items-center gap-3 mt-2">
-                            <span className="text-sm text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
                               {match.apiMatch.league}
                             </span>
-                            <span className="text-xs text-slate-400">
-                              {new Date(match.apiMatch.date).toLocaleString('tr-TR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                            <span className="text-slate-400">
+                              {new Date(match.apiMatch.date).toLocaleDateString('tr-TR')} • {new Date(match.apiMatch.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>
-                        <span className="bg-green-600/20 text-green-300 text-xs font-medium px-3 py-1.5 rounded-full border border-green-500/30">
-                          {match.apiMatch.status}
-                        </span>
+
+                        {/* Market Seçenekleri */}
+                        <div className="space-y-3">
+                          <p className="text-xs text-slate-400 font-medium mb-2">Market Seçin:</p>
+                          
+                          {/* Maç Sonucu */}
+                          <div>
+                            <p className="text-xs text-slate-500 mb-2">Maç Sonucu</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(['ms1', 'draw', 'ms2'] as const).map(market => {
+                                const pred = predictions[market];
+                                if (pred.confidence < 70) return null;
+                                const selected = isMarketSelected(idx, market);
+                                return (
+                                  <button
+                                    key={market}
+                                    onClick={() => toggleMarket(idx, market, pred.odds, pred.confidence)}
+                                    className={`p-2 rounded-lg border transition ${
+                                      selected 
+                                        ? 'bg-green-600/20 border-green-500 text-green-300' 
+                                        : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-green-500/50'
+                                    }`}
+                                  >
+                                    <div className="text-xs font-medium">
+                                      {market === 'ms1' ? 'MS1' : market === 'draw' ? 'X' : 'MS2'}
+                                    </div>
+                                    <div className="text-xs mt-1">{pred.odds}</div>
+                                    <div className="text-[10px] text-slate-500">%{pred.confidence}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* 2.5 Alt/Üst */}
+                          <div>
+                            <p className="text-xs text-slate-500 mb-2">2.5 Gol</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(['over25', 'under25'] as const).map(market => {
+                                const pred = predictions[market];
+                                if (pred.confidence < 70) return null;
+                                const selected = isMarketSelected(idx, market);
+                                return (
+                                  <button
+                                    key={market}
+                                    onClick={() => toggleMarket(idx, market, pred.odds, pred.confidence)}
+                                    className={`p-2 rounded-lg border transition ${
+                                      selected 
+                                        ? 'bg-green-600/20 border-green-500 text-green-300' 
+                                        : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-green-500/50'
+                                    }`}
+                                  >
+                                    <div className="text-xs font-medium">
+                                      {market === 'over25' ? '2.5 Üst' : '2.5 Alt'}
+                                    </div>
+                                    <div className="text-xs mt-1">{pred.odds}</div>
+                                    <div className="text-[10px] text-slate-500">%{pred.confidence}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* KG Var/Yok */}
+                          <div>
+                            <p className="text-xs text-slate-500 mb-2">Karşılıklı Gol</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(['btts', 'bttsNo'] as const).map(market => {
+                                const pred = predictions[market];
+                                if (pred.confidence < 70) return null;
+                                const selected = isMarketSelected(idx, market);
+                                return (
+                                  <button
+                                    key={market}
+                                    onClick={() => toggleMarket(idx, market, pred.odds, pred.confidence)}
+                                    className={`p-2 rounded-lg border transition ${
+                                      selected 
+                                        ? 'bg-green-600/20 border-green-500 text-green-300' 
+                                        : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-green-500/50'
+                                    }`}
+                                  >
+                                    <div className="text-xs font-medium">
+                                      {market === 'btts' ? 'KG Var' : 'KG Yok'}
+                                    </div>
+                                    <div className="text-xs mt-1">{pred.odds}</div>
+                                    <div className="text-[10px] text-slate-500">%{pred.confidence}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* İlk Yarı */}
+                          <div>
+                            <p className="text-xs text-slate-500 mb-2">İlk Yarı Sonucu</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(['firstHalfMs1', 'firstHalfDraw', 'firstHalfMs2'] as const).map(market => {
+                                const pred = predictions[market];
+                                if (pred.confidence < 70) return null;
+                                const selected = isMarketSelected(idx, market);
+                                return (
+                                  <button
+                                    key={market}
+                                    onClick={() => toggleMarket(idx, market, pred.odds, pred.confidence)}
+                                    className={`p-2 rounded-lg border transition ${
+                                      selected 
+                                        ? 'bg-green-600/20 border-green-500 text-green-300' 
+                                        : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-green-500/50'
+                                    }`}
+                                  >
+                                    <div className="text-xs font-medium">
+                                      {market === 'firstHalfMs1' ? 'İY MS1' : market === 'firstHalfDraw' ? 'İY X' : 'İY MS2'}
+                                    </div>
+                                    <div className="text-xs mt-1">{pred.odds}</div>
+                                    <div className="text-[10px] text-slate-500">%{pred.confidence}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {/* Kupon Kaydetme Butonu */}
+                {selectedMarkets.length > 0 && (
+                  <div className="border-t border-slate-700 p-4 bg-slate-800/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-white font-medium">Seçilen Market: {selectedMarkets.length}</p>
+                        <p className="text-xs text-slate-400">
+                          Toplam Oran: {selectedMarkets.reduce((total, m) => total * m.odds, 1).toFixed(2)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleSaveCoupon}
+                        disabled={savingCoupon}
+                        className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+                      >
+                        {savingCoupon ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Kaydediliyor...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-5 h-5" />
+                            Kupon Olarak Kaydet
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Failed Matches - BAŞARISIZ SONUÇLAR */}
+            {/* Failed Matches - BULUNAMAYAN MAÇLAR */}
             {result.extractedMatches && result.extractedMatches.length > 0 && (
               (() => {
                 const failedMatches = result.extractedMatches.filter(extracted => 
@@ -372,27 +596,16 @@ export const ImageAnalysis: React.FC = () => {
                     <div className="bg-gradient-to-r from-orange-600/20 to-red-600/20 border-b border-orange-600/30 px-5 py-4">
                       <h3 className="text-orange-300 font-bold text-lg flex items-center gap-2">
                         <AlertTriangle className="w-6 h-6" />
-                        API'de Bulunamayan Maçlar ({failedMatches.length})
+                        Bulunamadı ({failedMatches.length})
                       </h3>
-                      <p className="text-sm text-orange-200/70 mt-1">Bu maçlar API veritabanında eşleştirilemedi</p>
                     </div>
-                    <div className="p-4 space-y-3">
+                    <div className="p-4 space-y-2">
                       {failedMatches.map((match, idx) => (
-                        <div key={idx} className="bg-slate-900/70 rounded-lg border border-orange-600/20 p-4">
-                          <p className="text-white font-medium">
-                            {match.homeTeam} 
-                            <span className="text-slate-500 mx-2">vs</span> 
-                            {match.awayTeam}
+                        <div key={idx} className="bg-slate-900/70 rounded-lg border border-orange-600/20 p-3 flex items-center justify-between">
+                          <p className="text-white text-sm">
+                            {match.homeTeam} <span className="text-slate-500">vs</span> {match.awayTeam}
                           </p>
-                          {match.league && (
-                            <p className="text-sm text-slate-400 mt-2 bg-slate-800/50 px-2.5 py-1 rounded inline-block">
-                              {match.league}
-                            </p>
-                          )}
-                          <p className="text-xs text-orange-400 mt-3 flex items-center gap-1.5">
-                            <XCircle className="w-3.5 h-3.5" />
-                            Maç bilgileri API'de bulunamadı veya geçmiş tarihli
-                          </p>
+                          <span className="text-xs text-orange-400 font-medium">Bulunamadı</span>
                         </div>
                       ))}
                     </div>
@@ -401,42 +614,12 @@ export const ImageAnalysis: React.FC = () => {
               })()
             )}
 
-            {/* AI Analysis */}
-            {result.analysis && (
-              <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-blue-500/30 px-5 py-4">
-                  <h3 className="text-blue-300 font-bold text-lg flex items-center gap-2">
-                    <Zap className="w-6 h-6" />
-                    AI Analiz Raporu
-                  </h3>
-                  <p className="text-sm text-blue-200/70 mt-1">Yapay zeka destekli detaylı maç analizi</p>
-                </div>
-                <div className="p-5">
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <div className="text-slate-200 whitespace-pre-wrap leading-relaxed">
-                      {result.analysis}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* No Matches Found Warning */}
             {(!result.matchedMatches || result.matchedMatches.length === 0) && (
               <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-5">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-yellow-300 font-semibold mb-1">Maç Bulunamadı</p>
-                    <p className="text-sm text-yellow-200/80">
-                      Görseldeki maçlar API veritabanında bulunamadı. Lütfen:
-                    </p>
-                    <ul className="text-sm text-yellow-200/70 mt-2 space-y-1 ml-4 list-disc">
-                      <li>Görselin net ve okunabilir olduğundan emin olun</li>
-                      <li>Maç isimlerinin doğru yazıldığını kontrol edin</li>
-                      <li>Güncel maçların bulunduğu bir görsel kullanın</li>
-                    </ul>
-                  </div>
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-yellow-400" />
+                  <p className="text-yellow-300 font-semibold">Bulunamadı</p>
                 </div>
               </div>
             )}
@@ -451,11 +634,11 @@ export const ImageAnalysis: React.FC = () => {
                 Yeni Analiz
               </button>
               <button
-                onClick={() => navigate('/bulletin')}
+                onClick={() => navigate('/my-coupons')}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition flex items-center gap-2"
               >
-                <ImageIcon className="w-4 h-4" />
-                Bültene Git
+                <Ticket className="w-4 h-4" />
+                Kuponlarıma Git
               </button>
             </div>
           </div>
