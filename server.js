@@ -698,7 +698,8 @@ app.post('/api/shopier/callback', async (req, res) => {
 // ============================================
 
 // OSB Endpoint - Dijital ürün teslimatı için daha güvenilir
-app.post('/api/shopier/osb', async (req, res) => {
+// Shopier multipart/form-data gönderiyor, o yüzden multer gerekli
+app.post('/api/shopier/osb', upload.none(), async (req, res) => {
   try {
     console.log('📦 Shopier OSB bildirimi alındı');
     console.log('📄 Request Body:', req.body);
