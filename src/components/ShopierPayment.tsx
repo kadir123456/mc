@@ -14,7 +14,12 @@ export const ShopierPayment: React.FC = () => {
     }
 
     try {
-      shopierService.redirectToPayment(packageId, user.uid);
+      shopierService.redirectToPayment(
+        packageId, 
+        user.uid, 
+        user.email || '', 
+        user.displayName || undefined
+      );
     } catch (error) {
       console.error('Payment redirect error:', error);
       alert('Ödeme sayfasına yönlendirilirken bir hata oluştu');

@@ -38,7 +38,7 @@ export const shopierPackages: Package[] = [
 
 export const shopierService = {
   // Shopier ödeme sayfasına yönlendir
-  redirectToPayment(packageId: string, userId: string): void {
+  redirectToPayment(packageId: string, userId: string, userEmail: string, userName?: string): void {
     const pkg = shopierPackages.find((p) => p.id === packageId);
     if (!pkg || !pkg.shopierUrl) {
       throw new Error('Paket bulunamadı');
@@ -48,6 +48,7 @@ export const shopierService = {
     const paymentData = {
       packageId,
       userId,
+      userEmail,
       credits: pkg.searches,
       price: pkg.price,
       timestamp: Date.now(),
@@ -55,8 +56,15 @@ export const shopierService = {
     
     localStorage.setItem('shopier_pending_payment', JSON.stringify(paymentData));
 
-    // Shopier sayfasına yönlendir
-    window.location.href = pkg.shopierUrl;
+    // Shopier URL'ine kullanıcı bilgilerini ekle (otomatik doldurma için)
+    const url = new URL(pkg.shopierUrl);
+    url.searchParams.append('buyer_email', userEmail);
+    if (userName) {
+      url.searchParams.append('buyer_name', userName);
+    }
+
+    // Shopier sayfasına yönlendir (buyer_email parametresi ile)
+    window.location.href = url.toString();
   },
 
   // Bekleyen ödeme bilgisini al
