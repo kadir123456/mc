@@ -241,39 +241,49 @@ async function saveMatchesToFirebase(matches, date) {
   }
 
   try {
-    const dateKey = date.replace(/-/g, '');
-    const matchesRef = firebaseDb.ref(`matches/${dateKey}`);
+    // ✅ TİRE İLE KAYDET (frontend ile uyumlu)
+    const matchesRef = firebaseDb.ref(`matches/${date}`);
     
-    // ✅ 50 SINIRI KALDIRILDI - TÜM MAÇLARI KAYDET
-    const processedMatches = matches.map(match => ({
-      id: match.fixture.id,
-      date: match.fixture.date,
-      timestamp: match.fixture.timestamp,
-      status: match.fixture.status.short,
-      league: {
-        id: match.league.id,
-        name: match.league.name,
-        country: match.league.country,
-        logo: match.league.logo
-      },
-      teams: {
-        home: {
-          id: match.teams.home.id,
-          name: match.teams.home.name,
-          logo: match.teams.home.logo
-        },
-        away: {
-          id: match.teams.away.id,
-          name: match.teams.away.name,
-          logo: match.teams.away.logo
-        }
-      },
-      goals: match.goals,
-      score: match.score
-    }));
+    // ✅ OBJECT FORMATINDA KAYDET (fixtureId key olarak)
+    const processedMatches = {};
+    let count = 0;
+    
+    matches.forEach(match => {
+      const fixtureId = match.fixture.id;
+      const matchTime = new Date(match.fixture.date);
+      const now = Date.now();
+      const status = match.fixture.status.short;
+      
+      // Bitmiş veya 1 saatten eski maçları atla
+      if (status === 'FT' || status === 'AET' || status === 'PEN' || matchTime.getTime() < now - 3600000) {
+        return;
+      }
+      
+      // 50 maç limitini uygula (API limitini korumak için)
+      if (count >= 50) {
+        return;
+      }
+      
+      processedMatches[fixtureId] = {
+        homeTeam: match.teams.home.name,
+        awayTeam: match.teams.away.name,
+        league: match.league.name,
+        date: date,
+        time: matchTime.toLocaleTimeString('tr-TR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Europe/Istanbul'
+        }),
+        timestamp: matchTime.getTime(),
+        status: status === 'LIVE' || status === '1H' || status === '2H' || status === 'HT' ? 'live' : 
+                status === 'FT' || status === 'AET' || status === 'PEN' ? 'finished' : 'scheduled',
+        lastUpdated: Date.now()
+      };
+      count++;
+    });
 
     await matchesRef.set(processedMatches);
-    console.log(`✅ Firebase'e kaydedildi: ${processedMatches.length} maç (${date})`);
+    console.log(`✅ Firebase'e kaydedildi: ${count} maç (${date})`);
   } catch (error) {
     console.error('❌ Firebase kayıt hatası:', error.message);
   }
@@ -297,19 +307,20 @@ async function cleanupOldMatches() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayKey = today.toISOString().split('T')[0].replace(/-/g, '');
+    const todayStr = today.toISOString().split('T')[0]; // Tire ile karşılaştır
 
     const allMatches = snapshot.val();
     let deletedCount = 0;
 
     for (const dateKey in allMatches) {
-      if (parseInt(dateKey) < parseInt(todayKey)) {
+      // Tire ile format karşılaştırması
+      if (dateKey < todayStr) {
         await firebaseDb.ref(`matches/${dateKey}`).remove();
         deletedCount++;
       }
     }
 
-    console.log(`✅ ${deletedCount} geçmiş maç temizlendi`);
+    console.log(`✅ ${deletedCount} geçmiş tarihli maç grubu temizlendi`);
   } catch (error) {
     console.error('❌ Temizleme hatası:', error.message);
   }
@@ -396,9 +407,8 @@ app.get('/api/matches', async (req, res) => {
 
     const { date } = req.query;
     const targetDate = date || new Date().toISOString().split('T')[0];
-    const dateKey = targetDate.replace(/-/g, '');
 
-    const matchesRef = firebaseDb.ref(`matches/${dateKey}`);
+    const matchesRef = firebaseDb.ref(`matches/${targetDate}`);
     const snapshot = await matchesRef.once('value');
 
     if (!snapshot.exists()) {
