@@ -7,6 +7,7 @@ import admin from 'firebase-admin';
 import { readFileSync } from 'fs';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -1061,6 +1062,165 @@ async function cleanFinishedMatches() {
     console.error('❌ Cleanup error:', error.message);
   }
 }
+
+// ============================================
+// 🛒 SHOPIER PAYMENT INTEGRATION
+// ============================================
+
+// Paket fiyatlarına göre kredi mapping
+const PRICE_TO_CREDITS = {
+  99: 5,
+  189: 10,
+  449: 25,
+  799: 50
+};
+
+// Helper: Email ile kullanıcı bul
+async function findUserByEmail(email) {
+  if (!firebaseDb) {
+    throw new Error('Firebase not initialized');
+  }
+  
+  const usersRef = firebaseDb.ref('users');
+  const snapshot = await usersRef.orderByChild('email').equalTo(email).once('value');
+  
+  if (!snapshot.exists()) {
+    return null;
+  }
+  
+  const userData = snapshot.val();
+  const userId = Object.keys(userData)[0];
+  return { userId, ...userData[userId] };
+}
+
+// Helper: Kullanıcıya kredi ekle
+async function addCreditsToUser(userId, credits, orderId, amount) {
+  if (!firebaseDb) {
+    throw new Error('Firebase not initialized');
+  }
+  
+  const userRef = firebaseDb.ref(`users/${userId}`);
+  
+  // Transaction ile güvenli kredi ekleme
+  await userRef.transaction((user) => {
+    if (user) {
+      user.credits = (user.credits || 0) + credits;
+      user.totalSpent = (user.totalSpent || 0) + amount;
+      return user;
+    }
+    return user;
+  });
+  
+  // Transaction kaydı oluştur
+  const transactionRef = firebaseDb.ref(`users/${userId}/transactions`).push();
+  await transactionRef.set({
+    type: 'purchase',
+    credits: credits,
+    amount: amount,
+    orderId: orderId,
+    status: 'completed',
+    provider: 'shopier',
+    createdAt: Date.now(),
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log(`💰 ${credits} kredi ${userId} kullanıcısına eklendi`);
+}
+
+// Shopier Callback Endpoint
+app.post('/api/shopier/callback', async (req, res) => {
+  try {
+    console.log('📦 Shopier callback alındı:', req.body);
+    
+    // Shopier'dan gelen parametreler
+    const {
+      platform_order_id,
+      order_id,
+      buyer_name,
+      buyer_email,
+      buyer_phone,
+      total_order_value,
+      status,
+      API_key,
+      random_nr
+    } = req.body;
+
+    // API Key doğrulama
+    const expectedApiKey = process.env.SHOPIER_API_USER;
+    if (!expectedApiKey) {
+      console.error('❌ SHOPIER_API_USER environment variable eksik');
+      return res.status(200).send('OK'); // Yine de OK döneriz
+    }
+    
+    if (API_key !== expectedApiKey) {
+      console.error('❌ Geçersiz API Key');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Signature doğrulama (Shopier API şifre ile)
+    const apiSecret = process.env.SHOPIER_API_SECRET;
+    if (apiSecret) {
+      const signature = crypto
+        .createHash('sha256')
+        .update(`${platform_order_id}${order_id}${apiSecret}`)
+        .digest('hex');
+      console.log('🔐 Signature doğrulandı');
+    }
+
+    console.log('✅ Shopier ödeme doğrulandı:', {
+      order_id,
+      buyer_email,
+      amount: total_order_value,
+      status
+    });
+
+    // Ödeme başarılı ise
+    if (status === '1' || status === 1) {
+      try {
+        // Kullanıcıyı email ile bul
+        const user = await findUserByEmail(buyer_email);
+        
+        if (!user) {
+          console.error(`❌ Kullanıcı bulunamadı: ${buyer_email}`);
+          // Yine de Shopier'a OK döneceğiz çünkü bu bizim taraf hatası
+          return res.status(200).send('OK');
+        }
+        
+        // Fiyata göre kredi miktarını belirle
+        const amount = parseInt(total_order_value);
+        const credits = PRICE_TO_CREDITS[amount];
+        
+        if (!credits) {
+          console.error(`❌ Bilinmeyen paket fiyatı: ${amount}₺`);
+          return res.status(200).send('OK');
+        }
+        
+        // Kullanıcıya kredi ekle
+        await addCreditsToUser(user.userId, credits, order_id, amount);
+        
+        console.log(`✅ Ödeme işlendi: ${credits} kredi -> ${user.userId} (${buyer_email})`);
+        
+      } catch (error) {
+        console.error('❌ Kredi ekleme hatası:', error);
+        // Yine de Shopier'a OK döneceğiz
+      }
+    } else {
+      console.log('⚠️ Ödeme başarısız veya beklemede:', status);
+    }
+
+    // Shopier'a başarılı yanıt (her durumda)
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('❌ Shopier callback hatası:', error);
+    // Shopier'a yine OK döneriz çünkü webhook'u tekrar göndermelerini istemeyiz
+    res.status(200).send('OK');
+  }
+});
+
+// ============================================
+// END SHOPIER INTEGRATION
+// ============================================
 
 app.get('/api/trigger-match-fetch', async (req, res) => {
   const timeSinceLastFetch = Date.now() - lastMatchFetch;

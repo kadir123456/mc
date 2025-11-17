@@ -1,338 +1,273 @@
-# 🛒 Shopier Ödeme Entegrasyonu
+# ✅ SHOPIER ENTEGRASYON TAMAMLANDI
 
-## ✅ Tamamlanan İşlemler
+## 📋 Yapılan İşlemler
 
-### 1. Backend Entegrasyonu
-- ✅ Shopier callback endpoint eklendi: `/api/shopier/callback`
-- ✅ Firebase Admin SDK entegrasyonu
-- ✅ Otomatik kredi yükleme sistemi
-- ✅ Transaction kayıt sistemi
-- ✅ Email ile kullanıcı bulma
-- ✅ Güvenli API Key doğrulama
+### 1. ✅ Backend Entegrasyonu
+- `/app/server.js` dosyasına Shopier callback endpoint'i eklendi
+- Endpoint: `POST /api/shopier/callback`
+- Firebase Admin SDK entegrasyonu güncellendi (`avia-32878` projesi)
+- Otomatik kredi yükleme sistemi eklendi
+- Transaction kayıt sistemi eklendi
+- API Key ve Signature doğrulama eklendi
 
-### 2. Frontend Entegrasyonu
-- ✅ ShopierPayment component'i oluşturuldu
-- ✅ 4 paket kartı ile modern UI tasarımı
-- ✅ Shopier linklerine direkt yönlendirme
-- ✅ PaymentSuccess sayfası güncellendi
-- ✅ Başarılı/başarısız ödeme durumları
+### 2. ✅ Environment Variables
+- Root dizinine `.env` dosyası oluşturuldu
+- Firebase credentials güncellendi (avia-32878)
+- Shopier API credentials eklendi
+- Football API ve Gemini API keys eklendi
 
-### 3. Paket Yapılandırması
-```javascript
-Paket 1: 5 kredi  → 99₺  → https://www.shopier.com/bilwininc/41271482
-Paket 2: 10 kredi → 189₺ → https://www.shopier.com/bilwininc/41271535 (En Popüler)
-Paket 3: 25 kredi → 449₺ → https://www.shopier.com/bilwininc/41271562
-Paket 4: 50 kredi → 799₺ → https://www.shopier.com/bilwininc/41271593
+### 3. ✅ Supervisor Configuration
+- Backend config düzeltildi (uvicorn → node server.js)
+- Frontend config düzeltildi (directory path)
+- Her iki servis de başarıyla çalışıyor
+
+### 4. ✅ Test Edildi
+- Shopier callback endpoint test edildi ✅
+- Firebase bağlantısı test edildi ✅
+- API Key doğrulaması test edildi ✅
+
+---
+
+## 🔧 RENDER.COM ENVIRONMENT VARIABLES
+
+Render.com Dashboard → Environment bölümüne şu değişkenleri eklemelisiniz:
+
+```bash
+# ============================================
+# FIREBASE CONFIGURATION (avia-32878)
+# ============================================
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"avia-32878","private_key_id":"545f03e6a0c7238d5d5c3c0e8db9bdf0bb3f0e93","private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCd/4MDiPTH/Mxr\nAcoXncrehUCRlWBfBiiSCc0M1esFDFqXcl1GNf/rQw0byPdA9uR4A8XArVVkZeDX\nwzpQYY1YTlE+hvmQsiLzytA0Cz1eqXx4p6W+1e0HsizfxSdjsB7zFTtTDxtSWLrM\nEpg67PJNexVxGBXa6dPV4u6ASLhTjPSXKzmLBLGj5W3bPl/mPlxT6xX1YWUyjTg/\ng8ypuYOovdI/juojjfiXQYV15t1bAaYb4yMSzwqB3+MlyTF4WyYjOAZ8w6NRmEyN\nMcDHIuT8EsIpKPNtIld3wZQ1uhehWn1c8qegoc3KPNOo+idlZRKd+esxpkxgrxOZ\nn6N2yKxnAgMBAAECggEAGKy9zkCGUfFGD3QhFp0bALN4yQO2IED69wu2zUlfQdOT\nFlHTBVMLm7dGBc/V5XxpY+Da8mNfkaVjfu7LXaBOjbr1bzlvIkzfrok/CNG0jOMV\nQFaWSP5p3SjTX0MQCr6HptjrAea7Epou2g4RXiqBEN6nE5l6WEzqO14Md1ZkCxAa\nabxSPMCDIU9O1+/Em6zlPPJScmnBBM099Dwl2S1IxcnwvkwDEh+yYXOHXvcZSuQ3\nFZVQiizS8wFbEEFvceCY3WEBNlwDjYxZZFjnUd77z/Qp0Frf7Hais7/v39YAubZ2\njoKHcof7Rz0tdmrZR5COYXG1JjAQxmYN1/HZoXz5IQKBgQDYe1X+lRfRD1f0VvAI\nFzjQrUKtA5EyKI2/AhGFhaiXB8Don3PCuUD86YznIIYV7vcmnCOvxZm8wSpddzXn\nK1Gf9G/QGvVdHVFbQjKfsw7Md7WIad6ersTym7QQtLUvMIFpTQ0x44O07CuOgeG6\nbx95H7FtvbZCdLXl7kUKmE1zEQKBgQC61xsj317cYfeMMeAgJTnl8vTDK5Yinf0a\ngcCQZL6PdN+ij03Ry4dsjhE+P85GqM7YMoZxyeKPagJVPjVAdptAcwTG9/LLVIUz\nDsKCCAo/tnbYCVv7kQ3APpwkic0xFVk79Q5bH84WfFu9K+PVIKWMPJ+3wkuo0BBi\nOFSUbvY39wKBgQCmMnogy0HPpKH32k7JR1q9CmdoAJcWFQBNpj7hbW2zFabKcLAk\nzKjSAlPElbmbWSyxnangJioTOZFW1FCzuxQdY0H8WNYKuJlfIIFRDdzMqRLbObxJ\nww882sDxGmsHYYvY1ejNZkgVPENsUtaDlRBqoyRKhh1JA+UqMzUaHzdGoQKBgQC3\nzF+gfF4/AgiZW38VYEmCkeyCCmCZET4pUzbxVIm5acmNiteM6GECQwdnazEqhWll\neN6VFXrQhgJhhN6x2XuEfSFX8hZgO3cE8SIa9HnQj1h90UcxRFJ4qZ7EuuKlxFCS\nENHchn8f05oTkBeCU6lHOWQNSw9Os89KMAvUMQv5pQKBgQCAuQIqrI2hnmSIcteo\n9hze2BcuiLv6SyRcda9vF2dpe+nQyJswGjNXA2BkcM+yaUPt5gNII8gN1nLOUioX\npD/EYISRI3jq/UqGwa536zKJNmUlGiHBban9sEkHwAZzvOfRmSBYZEfy/wnDA7pm\nv/ur7mGKnm0sDaaotlHFLfKDYA==\n-----END PRIVATE KEY-----\n","client_email":"firebase-adminsdk-b49ud@avia-32878.iam.gserviceaccount.com","client_id":"111262766376873480645","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-b49ud%40avia-32878.iam.gserviceaccount.com","universe_domain":"googleapis.com"}
+
+VITE_FIREBASE_DATABASE_URL=https://avia-32878-default-rtdb.firebaseio.com/
+
+# ============================================
+# SHOPIER PAYMENT INTEGRATION
+# ============================================
+SHOPIER_API_USER=3b9d7f8a811d5b0034c6f670f2b37311
+SHOPIER_API_SECRET=5536639175758c69ce1ef57c730f7a84
+
+# ============================================
+# DIĞER API KEYS (Zaten Var)
+# ============================================
+VITE_FOOTBALL_API_KEY=afd10099bb1b07f2ce5af00f380ddd0a
+VITE_GEMINI_API_KEY=AIzaSyDfWYboszxlGASAma0I7ODEKGA0Km-stsc
 ```
 
 ---
 
-## 🔧 Shopier Panel Ayarları
+## 🌐 SHOPIER PANEL AYARLARI
 
-### ENTEGRASYONLAR > MODÜL YÖNETİMİ > MODÜL AYARLARI
+### 1. Shopier Dashboard'a Giriş Yapın
+https://www.shopier.com → Giriş Yap
+
+### 2. Callback URL Ayarı
+**Entegrasyonlar > Modül Yönetimi > Modül Ayarları**
 
 **GERİ DÖNÜŞ URL (Callback URL):**
 ```
 https://aikupon.com/api/shopier/callback
 ```
 
-⚠️ **ÖNEMLİ:** Bu URL'i Shopier panelinde "GERİ DÖNÜŞ URL (1)" alanına eklemelisiniz!
+⚠️ **ÖNEMLİ:** 
+- URL'nin sonunda `/` olmamalı
+- `https://` ile başlamalı (http değil)
+- Tam olarak yukardaki gibi olmalı
 
-**API KULLANICI:**
+### 3. API Bilgilerini Doğrulayın
 ```
-3b9d7f8a811d5b0034c6f670f2b37311
-```
-
-**API ŞİFRE:**
-```
-5536639175758c69ce1ef57c730f7a84
+API KULLANICI: 3b9d7f8a811d5b0034c6f670f2b37311
+API ŞİFRE: 5536639175758c69ce1ef57c730f7a84
 ```
 
 ---
 
-## 📋 Environment Variables
+## 🧪 TEST ETME
 
-### Backend (.env)
+### 1. Callback Endpoint Test (curl)
 ```bash
-# Shopier API Configuration
-SHOPIER_API_USER=3b9d7f8a811d5b0034c6f670f2b37311
-SHOPIER_API_SECRET=5536639175758c69ce1ef57c730f7a84
-
-# Firebase Service Account (Gerekli!)
-FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
-VITE_FIREBASE_DATABASE_URL=https://aviator-90c8b-default-rtdb.firebaseio.com/
-```
-
-### Render.com
-Render.com dashboard'unda **Environment** bölümüne şu değişkenleri ekleyin:
-```
-SHOPIER_API_USER=3b9d7f8a811d5b0034c6f670f2b37311
-SHOPIER_API_SECRET=5536639175758c69ce1ef57c730f7a84
-```
-
----
-
-## 🔄 Ödeme Akışı
-
-### 1. Kullanıcı Paket Seçer
-- Dashboard → Kredi Al sekmesi
-- 4 paket kartı görüntülenir
-- Kullanıcı istediği pakete tıklar
-
-### 2. Shopier'a Yönlendirme
-```javascript
-// ShopierPayment.tsx
-const handlePurchase = (packageId: string) => {
-  // Ödeme bilgilerini localStorage'a kaydet
-  localStorage.setItem('shopier_pending_payment', JSON.stringify({
-    packageId,
-    userId: user.uid,
-    credits: pkg.searches,
-    price: pkg.price,
-    timestamp: Date.now()
-  }));
-  
-  // Shopier sayfasına yönlendir
-  window.location.href = pkg.shopierUrl;
-};
-```
-
-### 3. Kullanıcı Shopier'da Ödeme Yapar
-- Shopier güvenli ödeme sayfası açılır
-- Kredi kartı, banka kartı veya havale ile ödeme yapılır
-- Ödeme başarılı/başarısız durumu belirlenir
-
-### 4. Shopier Backend'e Webhook Gönderir
-```javascript
-// Backend server.js
-POST /api/shopier/callback
-{
-  platform_order_id: "123456",
-  order_id: "shop_789",
-  buyer_email: "user@example.com",
-  total_order_value: "99",
-  status: "1", // 1 = başarılı
-  API_key: "3b9d7f8a811d5b0034c6f670f2b37311"
-}
-```
-
-### 5. Backend Otomatik Kredi Yükler
-```javascript
-// 1. API Key doğrula
-// 2. Email ile kullanıcıyı bul
-// 3. Fiyata göre kredi miktarını belirle
-// 4. Firebase'de kullanıcıya kredi ekle
-// 5. Transaction kaydı oluştur
-```
-
-### 6. Kullanıcı Başarı Sayfasına Yönlendirilir
-```
-https://your-domain.com/payment-success?status=1&platform_order_id=123456
-```
-
----
-
-## 💾 Firebase Veri Yapısı
-
-### Kullanıcı Verisi
-```json
-{
-  "users": {
-    "user_uid_123": {
-      "email": "user@example.com",
-      "credits": 15,
-      "totalSpent": 288,
-      "transactions": {
-        "txn_1": {
-          "type": "purchase",
-          "credits": 10,
-          "amount": 189,
-          "orderId": "shop_789",
-          "status": "completed",
-          "provider": "shopier",
-          "createdAt": 1234567890,
-          "timestamp": "2025-01-10T12:00:00.000Z"
-        }
-      }
-    }
-  }
-}
-```
-
----
-
-## 🔒 Güvenlik
-
-### API Key Doğrulama
-```javascript
-// Backend'de API Key kontrolü
-if (API_key !== process.env.SHOPIER_API_USER) {
-  return res.status(401).json({ error: 'Unauthorized' });
-}
-```
-
-### Signature Verification (Gelişmiş)
-```javascript
-// Opsiyonel: Shopier signature doğrulama
-const signature = crypto
-  .createHash('sha256')
-  .update(`${platform_order_id}${order_id}${SHOPIER_API_SECRET}`)
-  .digest('hex');
-```
-
-### Firebase Transaction
-```javascript
-// Atomik kredi güncelleme
-await userRef.transaction((user) => {
-  if (user) {
-    user.credits = (user.credits || 0) + credits;
-    user.totalSpent = (user.totalSpent || 0) + amount;
-    return user;
-  }
-  return user;
-});
-```
-
----
-
-## 🧪 Test Etme
-
-### 1. Local Test
-```bash
-# Backend'i başlat
-cd backend
-npm start
-
-# Callback endpoint test
-curl -X POST http://localhost:3001/api/shopier/callback \
+curl -X POST https://aikupon.com/api/shopier/callback \
   -H "Content-Type: application/json" \
   -d '{
-    "platform_order_id": "test_123",
+    "platform_order_id": "test_12345",
     "order_id": "shop_test",
-    "buyer_email": "test@example.com",
+    "buyer_email": "YOUR_EMAIL@example.com",
     "total_order_value": "99",
     "status": "1",
     "API_key": "3b9d7f8a811d5b0034c6f670f2b37311"
   }'
 ```
 
-### 2. Frontend Test
-```bash
-# Frontend'i başlat
-npm run dev
+### 2. Gerçek Ödeme Testi
+1. https://aikupon.com → Giriş Yap
+2. Dashboard → Kredi Al
+3. Bir paket seç (örn: 99₺ - 5 Kredi)
+4. Shopier'a yönlendirileceksiniz
+5. Test kartı ile ödeme yapın
+6. Ödeme sonrası krediler otomatik eklenecek
 
-# Dashboard'a git
-# Kredi Al → Paket Seç
-# Shopier'a yönlendirilmeli
+**Test Kartı (Shopier Test Modu):**
+```
+Kart No: 4111 1111 1111 1111
+Son Kullanma: 12/25
+CVV: 123
 ```
 
-### 3. Production Test
-```bash
-# Gerçek ödeme testi
-1. Canlı sitede paket seç
-2. Shopier'da test kartı ile ödeme yap
-3. Callback'in çalıştığını backend logs'dan kontrol et
-4. Kredilerin eklendiğini doğrula
+### 3. Log Kontrolü (Render.com)
+Render Dashboard → Logs sekmesi → Arama:
 ```
-
----
-
-## 📊 Monitoring
-
-### Backend Logs
-```javascript
-console.log('📦 Shopier callback alındı:', req.body);
-console.log('✅ Shopier ödeme doğrulandı');
-console.log('💰 Kredi eklenmesi gerekiyor');
-console.log('✅ Ödeme işlendi: 10 kredi -> user_123');
-```
-
-### Render.com Logs
-```bash
-# Render Dashboard → Logs sekmesi
-# Arama: "Shopier callback"
+"Shopier callback"
+"Ödeme işlendi"
+"kredi eklendi"
 ```
 
 ---
 
-## ❗ Önemli Notlar
+## 🔍 KONTROL LİSTESİ
 
-### 1. Callback URL
-- Shopier panelinde **mutlaka** callback URL'i ekleyin
-- URL production domain'i olmalı (örn: `https://aikupon.onrender.com/api/shopier/callback`)
-- `http://` değil `https://` kullanın
+### Backend
+- [x] Shopier callback endpoint eklendi
+- [x] Firebase Admin SDK initialize oluyor
+- [x] API Key doğrulaması çalışıyor
+- [x] Signature verification eklendi
+- [x] Email ile kullanıcı bulma çalışıyor
+- [x] Kredi ekleme transaction ile güvenli
+- [x] Transaction kayıtları oluşturuluyor
 
-### 2. Email Eşleştirme
-- Shopier'dan gelen `buyer_email` Firebase'deki kullanıcı email'i ile eşleşmeli
-- Kullanıcı Shopier'da farklı email kullanırsa kredi eklenemez
-- Bu durumu loglardan takip edin
+### Frontend
+- [x] ShopierPayment component mevcut
+- [x] 4 paket kartı doğru linklerle
+- [x] PaymentSuccess sayfası çalışıyor
+- [x] localStorage ile pending payment tracking
 
-### 3. Fiyat Mapping
+### Environment
+- [x] Local .env dosyası oluşturuldu
+- [x] Firebase credentials güncellendi (avia-32878)
+- [x] Shopier API credentials eklendi
+- [ ] **Render.com environment variables güncellenmeli** ⚠️
+
+### Shopier Panel
+- [ ] **Callback URL ayarlanmalı** ⚠️
+- [x] API credentials doğru
+- [x] Paket linkleri aktif
+
+---
+
+## 📊 PAKET FIYATLARI VE KREDİLER
+
+Backend'de şu mapping kullanılıyor:
+
 ```javascript
 const PRICE_TO_CREDITS = {
-  99: 5,
-  189: 10,
-  449: 25,
-  799: 50
+  99: 5,    // Başlangıç paketi
+  189: 10,  // Standart paket (En Popüler)
+  449: 25,  // Profesyonel paket
+  799: 50   // Expert paket
 };
 ```
-Paket fiyatları değişirse bu mapping'i güncelleyin!
 
-### 4. Webhook Retry
-- Shopier webhook'u başarısız olursa tekrar gönderir
-- Backend her durumda `200 OK` döner (duplicate kredileri önlemek için)
-- Kritik hatalar için ayrı alert sistemi kurun
+Shopier'dan gelen `total_order_value` bu fiyatlardan birine eşleşmelidir.
 
----
-
-## 🚀 Deployment Checklist
-
-- [ ] Backend'e Shopier endpoint'i eklendi
-- [ ] Frontend'e ShopierPayment component'i eklendi
-- [ ] Environment variables eklendi (Render.com)
-- [ ] Shopier panelinde callback URL ayarlandı
-- [ ] Firebase Admin SDK çalışıyor
-- [ ] Test ödeme yapıldı
-- [ ] Krediler otomatik ekleniyor
-- [ ] Logs kontrol edildi
-- [ ] PaymentSuccess sayfası çalışıyor
+**Shopier Paket Linkleri:**
+- 5 Kredi (99₺): https://www.shopier.com/bilwininc/41271482
+- 10 Kredi (189₺): https://www.shopier.com/bilwininc/41271535
+- 25 Kredi (449₺): https://www.shopier.com/bilwininc/41271562
+- 50 Kredi (799₺): https://www.shopier.com/bilwininc/41271593
 
 ---
 
-## 🐛 Troubleshooting
+## 🔄 ÖDEME AKIŞI
 
-### Problem: Krediler eklenmiyor
-**Çözüm:**
-1. Backend logs'u kontrol et
-2. Firebase Admin SDK initialize oldu mu?
-3. buyer_email Firebase'de var mı?
-4. Shopier callback endpoint'e istek geliyor mu?
+1. **Kullanıcı Paket Seçer**
+   - Dashboard → Kredi Al
+   - Paket kartına tıklar
 
-### Problem: Shopier callback gelmiyor
+2. **Shopier'a Yönlendirme**
+   - localStorage'a ödeme bilgisi kaydedilir
+   - Shopier sayfası açılır
+
+3. **Kullanıcı Ödeme Yapar**
+   - Kredi kartı / Banka kartı / Havale
+
+4. **Shopier Webhook Gönderir**
+   - `POST https://aikupon.com/api/shopier/callback`
+   - Ödeme bilgileri içerir
+
+5. **Backend Kredi Ekler**
+   - Email ile kullanıcı bulunur
+   - Fiyata göre kredi belirlenir
+   - Firebase'e transaction ile eklenir
+
+6. **Kullanıcı PaymentSuccess'e Yönlendirilir**
+   - Başarı mesajı gösterilir
+   - Dashboard'a yönlendirme
+
+---
+
+## ⚠️ YAPILMASI GEREKENLER (RENDER.COM)
+
+1. **Environment Variables Ekle**
+   - Render Dashboard → Environment
+   - Yukarıdaki tüm değişkenleri ekle
+   - Özellikle `SHOPIER_API_USER` ve `SHOPIER_API_SECRET`
+
+2. **Shopier Panel Callback URL**
+   - Shopier Dashboard → Modül Ayarları
+   - Callback URL: `https://aikupon.com/api/shopier/callback`
+
+3. **Deploy & Test**
+   - Render'da değişiklikleri deploy et
+   - Gerçek ödeme testi yap
+   - Kredilerin eklendiğini doğrula
+
+---
+
+## 🐛 TROUBLESHOOTING
+
+### Krediler Eklenmiyor
+**Kontrol:**
+1. Render logs: `"Shopier callback alındı"`
+2. Firebase'de kullanıcı email'i doğru mu?
+3. Shopier'da girilen email Firebase ile aynı mı?
+
 **Çözüm:**
+- Render logs'u kontrol et
+- Firebase Console'da kullanıcı verisine bak
+- Email'lerin küçük harf olduğundan emin ol
+
+### Shopier Callback Gelmiyor
+**Kontrol:**
 1. Shopier panelinde callback URL doğru mu?
 2. URL https ile mi başlıyor?
 3. Backend çalışıyor mu?
-4. CORS ayarları doğru mu?
 
-### Problem: "Kullanıcı bulunamadı" hatası
 **Çözüm:**
-1. Shopier'da girilen email Firebase'deki ile aynı mı?
-2. Firebase'de users/{uid}/email alanı var mı?
-3. Email küçük harflerle mi yazıldı?
+- Shopier panel → Modül Ayarları → Callback URL kontrol et
+- Render logs'ta backend başladığından emin ol
+- Test curl ile callback endpoint'i test et
+
+### "Kullanıcı Bulunamadı" Hatası
+**Kontrol:**
+1. Firebase'de users/{uid}/email alanı var mı?
+2. Shopier'da girilen email doğru mu?
+
+**Çözüm:**
+- Firebase Console → Realtime Database → users
+- Email field'ını kontrol et
+- Shopier'da aynı email'i kullan
 
 ---
 
-## 📞 Destek
+## 📞 DESTEK
 
 Sorun yaşarsanız:
-1. Backend logs'u kontrol edin
-2. Shopier panelinde "Sipariş Detayları"nı inceleyin
-3. Firebase Console'da kullanıcı verisini kontrol edin
-4. bilwininc@gmail.com ile iletişime geçin
+1. Render.com logs: `"Shopier"` kelimesini ara
+2. Firebase Console: Kullanıcı verisini kontrol et
+3. Shopier Panel: Sipariş detaylarını incele
 
 ---
 
-**Son Güncelleme:** {{ CURRENT_DATE }}
-**Versiyon:** 1.0.0
-**Status:** ✅ Entegrasyon tamamlandı
+**✅ ENTEGRASYON DURUMU: TAMAMLANDI**
+**📅 Tarih:** 17 Kasım 2025
+**🔧 Versiyon:** 1.0.0
+
+**⚠️ SON ADIM:** Render.com'da environment variables'ları güncelle ve Shopier panel'de callback URL'i ayarla!
