@@ -49,8 +49,8 @@ SHOPIER_API_SECRET=5536639175758c69ce1ef57c730f7a84
 # ============================================
 # DIĞER API KEYS (Zaten Var)
 # ============================================
-VITE_FOOTBALL_API_KEY=afd10099bb1b07f2ce5af00f380ddd0a
-VITE_GEMINI_API_KEY=AIzaSyDfWYboszxlGASAma0I7ODEKGA0Km-stsc
+VITE_FOOTBALL_API_KEY=özel
+VITE_GEMINI_API_KEY=özel
 ```
 
 ---
