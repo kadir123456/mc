@@ -694,6 +694,181 @@ app.post('/api/shopier/callback', async (req, res) => {
 });
 
 // ============================================
+// 🎯 SHOPIER OSB (Otomatik Sipariş Bildirimi) ENTEGRASYONU
+// ============================================
+
+// OSB Endpoint - Dijital ürün teslimatı için daha güvenilir
+app.post('/api/shopier/osb', async (req, res) => {
+  try {
+    console.log('📦 Shopier OSB bildirimi alındı');
+    console.log('📄 Request Body:', req.body);
+    console.log('📄 Request Headers:', req.headers);
+
+    // OSB credentials
+    const OSB_USERNAME = process.env.SHOPIER_OSB_USERNAME;
+    const OSB_PASSWORD = process.env.SHOPIER_OSB_PASSWORD;
+
+    if (!OSB_USERNAME || !OSB_PASSWORD) {
+      console.error('❌ OSB credentials eksik! SHOPIER_OSB_USERNAME ve SHOPIER_OSB_PASSWORD environment variables tanımlanmalı');
+      return res.status(500).send('OSB credentials not configured');
+    }
+
+    // OSB parametrelerini al
+    const { res: encodedData, hash: receivedHash } = req.body;
+
+    if (!encodedData || !receivedHash) {
+      console.error('❌ OSB parametreleri eksik (res veya hash)');
+      return res.status(400).send('missing parameter');
+    }
+
+    // Hash doğrulaması (HMAC-SHA256)
+    const expectedHash = crypto
+      .createHmac('sha256', OSB_PASSWORD)
+      .update(encodedData + OSB_USERNAME)
+      .digest('hex');
+
+    if (receivedHash !== expectedHash) {
+      console.error('❌ OSB hash doğrulama hatası!');
+      console.error('   Beklenen:', expectedHash);
+      console.error('   Gelen:', receivedHash);
+      return res.status(401).send('Invalid hash');
+    }
+
+    console.log('✅ OSB hash doğrulandı');
+
+    // Base64 decode ve JSON parse
+    const jsonResult = Buffer.from(encodedData, 'base64').toString('utf-8');
+    const orderData = JSON.parse(jsonResult);
+
+    console.log('📊 OSB Sipariş Verisi:', orderData);
+
+    // Sipariş verileri
+    const {
+      email,
+      orderid,
+      currency, // 0: TL, 1: USD, 2: EUR
+      price,
+      buyername,
+      buyersurname,
+      productcount,
+      productid,
+      productlist,
+      chartdetails,
+      customernote,
+      istest // 0: canlı, 1: test
+    } = orderData;
+
+    // Test modu kontrolü
+    if (istest === 1 || istest === '1') {
+      console.log('⚠️ TEST MODU - Gerçek kredi eklenmeyecek');
+      console.log('   Email:', email);
+      console.log('   Fiyat:', price, currency === 0 ? 'TL' : currency === 1 ? 'USD' : 'EUR');
+      console.log('   Sipariş ID:', orderid);
+      return res.status(200).send('success');
+    }
+
+    // Sipariş ID kontrolü (tekrar işlem önleme)
+    if (firebaseDb) {
+      const orderRef = firebaseDb.ref(`processed_orders/${orderid}`);
+      const orderSnapshot = await orderRef.once('value');
+      
+      if (orderSnapshot.exists()) {
+        console.log('⚠️ Bu sipariş daha önce işlenmiş:', orderid);
+        return res.status(200).send('success');
+      }
+    }
+
+    console.log('🔍 Kullanıcı aranıyor:', email);
+
+    // Kullanıcıyı email ile bul
+    const user = await findUserByEmail(email);
+
+    if (!user) {
+      console.error(`❌ Kullanıcı bulunamadı: ${email}`);
+      console.error(`⚠️ ÖNEMLİ: Shopier'da girilen email (${email}) Firebase'de kayıtlı değil!`);
+      console.error(`💡 Çözüm: Kullanıcı aikupon.com'daki email adresi ile Shopier'da ödeme yapmalı`);
+
+      // Admin bildirim kaydı oluştur
+      if (firebaseDb) {
+        const failedPaymentRef = firebaseDb.ref('failed_osb_payments').push();
+        await failedPaymentRef.set({
+          email,
+          buyername,
+          buyersurname,
+          amount: price,
+          currency,
+          orderid,
+          productid,
+          reason: 'User not found in database',
+          timestamp: Date.now(),
+          status: 'pending_manual_review'
+        });
+        console.log('📝 Başarısız OSB ödemesi kaydedildi (manuel kontrol için)');
+      }
+
+      return res.status(200).send('success');
+    }
+
+    console.log(`✅ Kullanıcı bulundu: ${user.userId}`);
+
+    // Fiyata göre kredi miktarını belirle
+    const amount = parseInt(price);
+    const credits = PRICE_TO_CREDITS[amount];
+
+    if (!credits) {
+      console.error(`❌ Bilinmeyen paket fiyatı: ${amount}₺`);
+      console.error(`📊 Bilinen fiyatlar: ${Object.keys(PRICE_TO_CREDITS).join(', ')}`);
+      
+      // Bilinmeyen fiyat kaydı
+      if (firebaseDb) {
+        const unknownPriceRef = firebaseDb.ref('unknown_osb_prices').push();
+        await unknownPriceRef.set({
+          email,
+          amount,
+          currency,
+          orderid,
+          productid,
+          timestamp: Date.now()
+        });
+      }
+      
+      return res.status(200).send('success');
+    }
+
+    console.log(`💳 İşlenecek: ${amount}₺ → ${credits} kredi`);
+
+    // Kullanıcıya kredi ekle
+    await addCreditsToUser(user.userId, credits, orderid, amount);
+
+    // Sipariş ID'yi işlenmiş olarak kaydet
+    if (firebaseDb) {
+      const orderRef = firebaseDb.ref(`processed_orders/${orderid}`);
+      await orderRef.set({
+        userId: user.userId,
+        email,
+        credits,
+        amount,
+        timestamp: Date.now(),
+        processedAt: new Date().toISOString()
+      });
+      console.log('✅ Sipariş işlenmiş olarak kaydedildi:', orderid);
+    }
+
+    console.log(`✅ OSB ödemesi işlendi: ${credits} kredi → ${user.userId} (${email})`);
+    console.log(`🎉 BAŞARILI: Kullanıcının yeni kredi bakiyesi güncellenmiştir`);
+
+    // Shopier'a başarılı yanıt
+    res.status(200).send('success');
+
+  } catch (error) {
+    console.error('❌ Shopier OSB hatası:', error);
+    console.error('Stack:', error.stack);
+    // Shopier'a yine success döneriz çünkü bildirimi tekrar göndermelerini istemeyiz
+    res.status(200).send('success');
+  }
+});
+
+// ============================================
 // SERVER BAŞLATMA
 // ============================================
 
@@ -702,6 +877,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Sportsradar API: ${SPORTSRADAR_API_KEY ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`⚽ Football API: ${FOOTBALL_API_KEY ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`🔥 Firebase: ${firebaseDb ? 'Connected ✅' : 'Disabled ❌'}`);
+  console.log(`💳 Shopier OSB: ${process.env.SHOPIER_OSB_USERNAME ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`⏱️  Update Interval: ${FETCH_INTERVAL / 60000} minutes`);
   console.log(`🧹 Cleanup Interval: ${CLEANUP_INTERVAL / 60000} minutes`);
   console.log(`📊 Daily API Limit: ${MAX_DAILY_CALLS} calls`);
