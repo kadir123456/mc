@@ -456,6 +456,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Fiyat-Kredi Eşleştirmesi
 const PRICE_TO_CREDITS = {
+  1: 1,     // Test paketi (1₺ = 1 kredi) - Sadece test için
   99: 5,    // Başlangıç paketi
   189: 10,  // Standart paket
   449: 25,  // Profesyonel paket
