@@ -1081,16 +1081,76 @@ async function findUserByEmail(email) {
     throw new Error('Firebase not initialized');
   }
   
-  const usersRef = firebaseDb.ref('users');
-  const snapshot = await usersRef.orderByChild('email').equalTo(email).once('value');
+  // Email'i lowercase'e çevir
+  const normalizedEmail = email.toLowerCase().trim();
+  console.log(`🔍 Kullanıcı aranıyor: ${normalizedEmail}`);
   
-  if (!snapshot.exists()) {
-    return null;
+  // Önce Realtime Database'de ara
+  const usersRef = firebaseDb.ref('users');
+  const snapshot = await usersRef.orderByChild('email').equalTo(normalizedEmail).once('value');
+  
+  if (snapshot.exists()) {
+    const userData = snapshot.val();
+    const userId = Object.keys(userData)[0];
+    console.log(`✅ Kullanıcı bulundu (Database): ${userId}`);
+    return { userId, ...userData[userId] };
   }
   
-  const userData = snapshot.val();
-  const userId = Object.keys(userData)[0];
-  return { userId, ...userData[userId] };
+  // Database'de bulunamadıysa, tüm kullanıcıları kontrol et (case-insensitive)
+  console.log('🔍 Tüm kullanıcılar taranıyor (case-insensitive)...');
+  const allUsersSnapshot = await usersRef.once('value');
+  
+  if (allUsersSnapshot.exists()) {
+    const allUsers = allUsersSnapshot.val();
+    
+    for (const [userId, userData] of Object.entries(allUsers)) {
+      if (userData.email && userData.email.toLowerCase().trim() === normalizedEmail) {
+        console.log(`✅ Kullanıcı bulundu (Scan): ${userId}`);
+        return { userId, ...userData };
+      }
+    }
+  }
+  
+  // Hala bulunamadıysa, Firebase Auth'tan dene
+  try {
+    console.log('🔍 Firebase Authentication kontrol ediliyor...');
+    const userRecord = await admin.auth().getUserByEmail(email);
+    
+    if (userRecord) {
+      console.log(`✅ Kullanıcı bulundu (Auth): ${userRecord.uid}`);
+      
+      // Database'e ekleyelim (yoksa)
+      const userRef = firebaseDb.ref(`users/${userRecord.uid}`);
+      const userSnapshot = await userRef.once('value');
+      
+      if (!userSnapshot.exists()) {
+        // Kullanıcı Auth'ta var ama Database'de yok - oluşturalım
+        const newUserData = {
+          uid: userRecord.uid,
+          email: userRecord.email.toLowerCase(),
+          displayName: userRecord.displayName || '',
+          photoURL: userRecord.photoURL || '',
+          credits: 0,
+          totalSpent: 0,
+          createdAt: Date.now(),
+          lastLogin: Date.now(),
+          isBanned: false
+        };
+        
+        await userRef.set(newUserData);
+        console.log(`✅ Database'e kullanıcı eklendi: ${userRecord.uid}`);
+        
+        return { userId: userRecord.uid, ...newUserData };
+      }
+      
+      return { userId: userRecord.uid, ...userSnapshot.val() };
+    }
+  } catch (authError) {
+    console.log('⚠️ Firebase Auth araması başarısız:', authError.message);
+  }
+  
+  console.error(`❌ Kullanıcı hiçbir yerde bulunamadı: ${normalizedEmail}`);
+  return null;
 }
 
 // Helper: Kullanıcıya kredi ekle
