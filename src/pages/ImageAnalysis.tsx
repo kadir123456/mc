@@ -132,7 +132,7 @@ export const ImageAnalysis: React.FC = () => {
         analysisType: analysisType,
       });
 
-      const response = await fetch('/api/analyze-coupon-image', {
+      const response = await fetch('https://aikupon.com/api/analyze-coupon-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
