@@ -37,7 +37,7 @@ export const ShopierPayment: React.FC = () => {
           <h2 className="text-2xl md:text-3xl font-bold text-white">Kredi Paketleri</h2>
         </div>
         <p className="text-sm text-slate-400 max-w-2xl mx-auto">
-          Güvenli ödeme ile kredi satın alın ve AI destekli kupon analizi hizmetinden yararlanın
+          Ödeme Sayfasında Kayıtlı epostanızı yazın Krediler hesabınıza yüklenmeyecektir.
         </p>
       </div>
 
