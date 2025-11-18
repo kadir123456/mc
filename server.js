@@ -238,7 +238,7 @@ Lütfen bu maç için detaylı bir analiz yap ve şu formatta JSON döndür:
 // Bülten Analiz Endpoint (Frontend için)
 app.post('/api/gemini/analyze', async (req, res) => {
   try {
-    const { matches, contents, generationConfig } = req.body;
+    const { matches, contents, generationConfig, userId, creditsToDeduct } = req.body;
     
     if (!GEMINI_API_KEY) {
       console.error('❌ Gemini API key bulunamadı');
@@ -247,6 +247,24 @@ app.post('/api/gemini/analyze', async (req, res) => {
 
     if (!matches || !Array.isArray(matches)) {
       return res.status(400).json({ error: 'Geçersiz maç verisi' });
+    }
+
+    // ✅ Kredi kontrolü ve düşürme
+    if (userId && creditsToDeduct && firebaseDb) {
+      const userRef = firebaseDb.ref(`users/${userId}`);
+      const userSnapshot = await userRef.once('value');
+      const userData = userSnapshot.val();
+      
+      if (!userData || userData.credits < parseInt(creditsToDeduct)) {
+        return res.status(403).json({ error: 'Yetersiz kredi' });
+      }
+      
+      // Kredi düş
+      await userRef.update({
+        credits: userData.credits - parseInt(creditsToDeduct)
+      });
+      
+      console.log(`💰 ${creditsToDeduct} kredi düşüldü (bülten analizi): ${userId}`);
     }
 
     console.log(`🤖 Gemini analizi başlatılıyor: ${matches.length} maç`);
@@ -441,7 +459,123 @@ JSON formatında yanıt ver:
 
     console.log(`✅ Kupon analizi tamamlandı: ${analysisData.matches?.length || 0} maç`);
     
-    res.json(analysisData);
+    // ✅ Firebase'den bugün ve yarının maçlarını çek ve eşleştir
+    let matchedMatches = [];
+    let unmatchedMatches = [];
+
+    if (firebaseDb && analysisData.matches && analysisData.matches.length > 0) {
+      try {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const todayStr = today.toISOString().split('T')[0];
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        // Firebase'den maçları çek
+        const todaySnapshot = await firebaseDb.ref(`matches/${todayStr}`).once('value');
+        const tomorrowSnapshot = await firebaseDb.ref(`matches/${tomorrowStr}`).once('value');
+        
+        const todayMatches = todaySnapshot.val() || {};
+        const tomorrowMatches = tomorrowSnapshot.val() || {};
+        
+        // Tüm maçları birleştir
+        const allFirebaseMatches = { ...todayMatches, ...tomorrowMatches };
+        const firebaseMatchesArray = Object.entries(allFirebaseMatches).map(([id, match]) => ({
+          fixtureId: id,
+          ...match
+        }));
+
+        console.log(`🔍 Firebase'den ${firebaseMatchesArray.length} maç bulundu`);
+
+        // Takım isimlerini normalize et (küçük harf, boşluk temizle, Türkçe karakter)
+        const normalizeTeamName = (name) => {
+          return name
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ')
+            .replace(/ı/g, 'i')
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c');
+        };
+
+        // Benzerlik skoru hesapla (Levenshtein distance basit versiyonu)
+        const similarity = (s1, s2) => {
+          const longer = s1.length > s2.length ? s1 : s2;
+          const shorter = s1.length > s2.length ? s2 : s1;
+          
+          if (longer.length === 0) return 1.0;
+          
+          // Eğer biri diğerini içeriyorsa yüksek skor ver
+          if (longer.includes(shorter) || shorter.includes(longer)) {
+            return 0.8;
+          }
+          
+          // Basit karakter eşleşme sayısı
+          let matches = 0;
+          for (let i = 0; i < shorter.length; i++) {
+            if (longer.includes(shorter[i])) matches++;
+          }
+          
+          return matches / longer.length;
+        };
+
+        // Her Gemini maçını Firebase maçlarıyla eşleştir
+        analysisData.matches.forEach(geminiMatch => {
+          const normalizedHome = normalizeTeamName(geminiMatch.homeTeam || '');
+          const normalizedAway = normalizeTeamName(geminiMatch.awayTeam || '');
+
+          let bestMatch = null;
+          let bestScore = 0;
+
+          firebaseMatchesArray.forEach(fbMatch => {
+            const fbHome = normalizeTeamName(fbMatch.homeTeam || '');
+            const fbAway = normalizeTeamName(fbMatch.awayTeam || '');
+
+            // Her iki takım için benzerlik skoru hesapla
+            const homeScore = similarity(normalizedHome, fbHome);
+            const awayScore = similarity(normalizedAway, fbAway);
+            const totalScore = (homeScore + awayScore) / 2;
+
+            if (totalScore > bestScore && totalScore > 0.5) {
+              bestScore = totalScore;
+              bestMatch = fbMatch;
+            }
+          });
+
+          if (bestMatch) {
+            matchedMatches.push({
+              ...geminiMatch,
+              fixtureId: bestMatch.fixtureId,
+              date: bestMatch.date,
+              time: bestMatch.time,
+              league: bestMatch.league,
+              matchScore: Math.round(bestScore * 100)
+            });
+            console.log(`✅ Eşleşti: ${geminiMatch.homeTeam} vs ${geminiMatch.awayTeam} → ${bestMatch.homeTeam} vs ${bestMatch.awayTeam} (Skor: ${Math.round(bestScore * 100)}%)`);
+          } else {
+            unmatchedMatches.push(geminiMatch);
+            console.log(`❌ Eşleşmedi: ${geminiMatch.homeTeam} vs ${geminiMatch.awayTeam}`);
+          }
+        });
+
+      } catch (matchError) {
+        console.error('❌ Maç eşleştirme hatası:', matchError.message);
+      }
+    }
+
+    // Sonucu döndür
+    res.json({
+      ...analysisData,
+      matchedMatches,
+      unmatchedMatches,
+      totalMatches: analysisData.matches?.length || 0,
+      matchedCount: matchedMatches.length,
+      unmatchedCount: unmatchedMatches.length
+    });
 
   } catch (error) {
     console.error('❌ Kupon analiz hatası:', error.response?.data || error.message);
