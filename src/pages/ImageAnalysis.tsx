@@ -125,6 +125,13 @@ export const ImageAnalysis: React.FC = () => {
 
       const base64Image = await base64Promise;
 
+      console.log('📤 API isteği gönderiliyor:', {
+        imageLength: base64Image.length,
+        userId: user.uid,
+        creditsToDeduct: REQUIRED_CREDITS,
+        analysisType: analysisType,
+      });
+
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
         headers: {
@@ -138,7 +145,9 @@ export const ImageAnalysis: React.FC = () => {
         }),
       });
 
+      console.log('📥 API yanıtı alındı:', response.status);
       const data = await response.json();
+      console.log('📊 Yanıt verisi:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Analiz başarısız oldu');
