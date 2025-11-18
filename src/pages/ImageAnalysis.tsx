@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft, TrendingUp, Target } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface ExtractedMatch {
@@ -19,9 +19,6 @@ interface MatchedMatch {
     date: string;
     status: string;
   };
-  prediction?: string;
-  confidence?: number;
-  reasoning?: string;
 }
 
 interface AnalysisResult {
@@ -31,7 +28,6 @@ interface AnalysisResult {
   extractedMatches?: ExtractedMatch[];
   matchedMatches?: MatchedMatch[];
   analysis?: string;
-  analysisType?: string;
 }
 
 export const ImageAnalysis: React.FC = () => {
@@ -42,7 +38,6 @@ export const ImageAnalysis: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [analysisType, setAnalysisType] = useState<string>('macSonucu');
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,26 +106,15 @@ export const ImageAnalysis: React.FC = () => {
       setError(null);
       setResult(null);
 
-      // Görseli base64'e çevir
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-      });
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      // ✅ User ID'yi backend'e gönder (kredi düşürmek için)
+      formData.append('userId', user.uid);
+      formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
 
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64Image,
-          userId: user.uid,
-          creditsToDeduct: REQUIRED_CREDITS,
-          analysisType: analysisType,
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -234,28 +218,6 @@ export const ImageAnalysis: React.FC = () => {
             <li>• Maçlar API'den bulunur ve detaylı analiz yapılır</li>
           </ul>
         </div>
-
-        {/* Analysis Type Selection */}
-        {!result && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-6">
-            <label className="block text-white font-semibold mb-3">
-              Tahmin Türü Seçin
-            </label>
-            <select
-              value={analysisType}
-              onChange={(e) => setAnalysisType(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="macSonucu">Maç Sonucu (1/X/2)</option>
-              <option value="ilkYariSonucu">İlk Yarı Sonucu</option>
-              <option value="karsilikliGol">Karşılıklı Gol (Var/Yok)</option>
-              <option value="ilkYariMac">İlk Yarı/Maç</option>
-              <option value="handikap">Handikap</option>
-              <option value="altustu">2.5 Alt/Üst</option>
-              <option value="hepsi">Tüm Tahminler</option>
-            </select>
-          </div>
-        )}
 
         {/* Upload Area */}
         {!result && (
@@ -399,131 +361,32 @@ export const ImageAnalysis: React.FC = () => {
               </div>
             )}
 
-            {/* Kupon - AI Tahminleri */}
+            {/* Matched Matches */}
             {result.matchedMatches && result.matchedMatches.length > 0 && (
-              <div className="bg-gradient-to-br from-emerald-900/30 to-blue-900/30 border-2 border-emerald-500/40 rounded-xl p-6 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <div className="p-2 bg-emerald-500/20 rounded-lg">
-                      <Target className="w-6 h-6 text-emerald-400" />
-                    </div>
-                    AI Kupon Tahminleri
-                  </h3>
-                  <div className="bg-emerald-500/20 text-emerald-300 px-4 py-2 rounded-lg font-bold">
-                    {result.matchedMatches.length} Maç
-                  </div>
-                </div>
-
-                {/* Analiz Türü */}
-                {result.analysisType && (
-                  <div className="mb-4 text-center">
-                    <span className="inline-block bg-blue-500/20 text-blue-300 px-4 py-2 rounded-lg text-sm font-medium">
-                      {result.analysisType === 'macSonucu' && 'Maç Sonucu'}
-                      {result.analysisType === 'ilkYariSonucu' && 'İlk Yarı Sonucu'}
-                      {result.analysisType === 'karsilikliGol' && 'Karşılıklı Gol'}
-                      {result.analysisType === 'ilkYariMac' && 'İlk Yarı/Maç'}
-                      {result.analysisType === 'handikap' && 'Handikap'}
-                      {result.analysisType === 'altustu' && '2.5 Alt/Üst'}
-                      {result.analysisType === 'hepsi' && 'Tüm Tahminler'}
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-4">
+              <div className="bg-slate-800/50 border border-green-700/30 rounded-lg p-4">
+                <h3 className="text-green-300 font-semibold mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  API'den Eşleşen Maçlar ({result.matchedMatches.length})
+                </h3>
+                <div className="space-y-3">
                   {result.matchedMatches.map((match, idx) => (
-                    <div 
-                      key={idx} 
-                      className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-lg p-5 hover:border-emerald-500/50 transition-all duration-300"
-                      data-testid={`coupon-match-${idx}`}
-                    >
-                      {/* Maç Bilgisi */}
-                      <div className="flex items-start justify-between gap-4 mb-3">
+                    <div key={idx} className="bg-slate-900/50 p-4 rounded border border-green-700/30">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <p className="text-white font-bold text-lg mb-1">
-                            {match.apiMatch.homeTeam}
-                            <span className="text-slate-500 mx-2">vs</span>
-                            {match.apiMatch.awayTeam}
+                          <p className="text-white font-medium text-lg">
+                            {match.apiMatch.homeTeam} <span className="text-slate-500">vs</span> {match.apiMatch.awayTeam}
                           </p>
-                          <div className="flex items-center gap-3 text-sm">
-                            <span className="text-blue-400">{match.apiMatch.league}</span>
-                            <span className="text-slate-500">•</span>
-                            <span className="text-slate-400">
-                              {new Date(match.apiMatch.date).toLocaleString('tr-TR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
+                          <p className="text-sm text-blue-400 mt-1">{match.apiMatch.league}</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {new Date(match.apiMatch.date).toLocaleString('tr-TR')}
+                          </p>
                         </div>
-                        <span className="bg-emerald-600/20 text-emerald-300 text-xs px-3 py-1 rounded-full font-medium">
+                        <span className="bg-green-600/20 text-green-300 text-xs px-2 py-1 rounded">
                           {match.apiMatch.status}
                         </span>
                       </div>
-
-                      {/* Tahmin */}
-                      <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <TrendingUp className="w-5 h-5 text-emerald-400" />
-                              <span className="text-slate-400 text-sm font-medium">AI Tahmini:</span>
-                            </div>
-                            <p className="text-2xl font-bold text-emerald-400" data-testid={`prediction-${idx}`}>
-                              {match.prediction || 'Tahmin yapılıyor...'}
-                            </p>
-                          </div>
-                          
-                          {/* Güven Skoru */}
-                          {match.confidence && (
-                            <div className="text-right">
-                              <div className="text-sm text-slate-400 mb-1">Güven</div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"
-                                    style={{ width: `${match.confidence}%` }}
-                                  />
-                                </div>
-                                <span className="text-lg font-bold text-white">
-                                  {match.confidence}%
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Açıklama */}
-                        {match.reasoning && (
-                          <div className="mt-3 pt-3 border-t border-slate-700/50">
-                            <p className="text-sm text-slate-300 leading-relaxed">
-                              {match.reasoning}
-                            </p>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   ))}
-                </div>
-
-                {/* Kupon Özeti */}
-                <div className="mt-6 bg-slate-800/60 border border-slate-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-400 text-sm mb-1">Toplam Maç</p>
-                      <p className="text-white text-2xl font-bold">{result.matchedMatches.length}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-slate-400 text-sm mb-1">Ortalama Güven</p>
-                      <p className="text-emerald-400 text-2xl font-bold">
-                        {Math.round(
-                          result.matchedMatches.reduce((sum, m) => sum + (m.confidence || 0), 0) / 
-                          result.matchedMatches.length
-                        )}%
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

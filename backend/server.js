@@ -17,9 +17,9 @@ try {
   });
   
   firebaseInitialized = true;
-  console.log('✅ Firebase Admin SDK initialized');
-} catch (error) {
-  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
+  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
+  
+  return currentCredits - credits; // Kalan kredi
 }
 
 // Helper: Kullanıcıya kredi iade et
@@ -80,34 +80,6 @@ function parseGeminiJSON(text) {
     throw new Error(`JSON parse hatası: ${error.message}`);
   }
 }
-
-// Express app setup
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-// CORS ayarları - Tüm originlere izin ver (production'da domain belirtin)
-app.use(cors({
-  origin: '*', // Production'da: 'https://aikupon.com'
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// JSON body parser - ÖNCE raw body'yi logla
-app.use((req, res, next) => {
-  if (req.path === '/api/analyze-coupon-image') {
-    console.log('🔍 Request alındı:', {
-      method: req.method,
-      path: req.path,
-      contentType: req.get('content-type'),
-      contentLength: req.get('content-length'),
-      hasBody: !!req.body
-    });
-  }
-  next();
-});
-
-app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Shopier Callback Endpoint
 app.post('/api/shopier/callback', async (req, res) => {
@@ -209,7 +181,37 @@ app.listen(PORT, () => {
   console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
   console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
   console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
+});('✅ Firebase Admin SDK initialized');
+} catch (error) {
+  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
+}
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// CORS ayarları - Tüm originlere izin ver (production'da domain belirtin)
+app.use(cors({
+  origin: '*', // Production'da: 'https://aikupon.com'
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// JSON body parser - ÖNCE raw body'yi logla
+app.use((req, res, next) => {
+  if (req.path === '/api/analyze-coupon-image') {
+    console.log('🔍 Request alındı:', {
+      method: req.method,
+      path: req.path,
+      contentType: req.get('content-type'),
+      contentLength: req.get('content-length'),
+      hasBody: !!req.body
+    });
+  }
+  next();
 });
+
+app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // API-Football Proxy Endpoint
 app.get('/api/football/*', async (req, res) => {
@@ -925,7 +927,4 @@ async function deductCreditsFromUser(userId, credits, analysisType) {
     timestamp: new Date().toISOString()
   });
   
-  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
-  
-  return currentCredits - credits; // Kalan kredi
-}
+  console.log
