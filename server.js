@@ -373,13 +373,29 @@ app.post('/api/analyze-coupon-image', upload.single('image'), async (req, res) =
 
     // Analiz tipine göre prompt belirle
     let prompt = '';
-    if (analysisType === 'detailed') {
+    
+    // Analiz tipine göre özel tahmin formatı
+    const predictionFormats = {
+      'ilkYariSonucu': '1 (Ev sahibi önde) veya X (Beraberlik) veya 2 (Deplasman önde)',
+      'macSonucu': '1 (Ev sahibi kazanır) veya X (Beraberlik) veya 2 (Deplasman kazanır)',
+      'karsilikliGol': 'Var (Her iki takım gol atar) veya Yok (En az bir takım gol atmaz)',
+      'ilkYariMac': '1/1, 1/X, 1/2, X/1, X/X, X/2, 2/1, 2/X, 2/2',
+      'handikap': 'Handikap değeri (örn: +1.5, -0.5)',
+      'altustu': '2.5 Üst (3+ gol) veya 2.5 Alt (0-2 gol)',
+      'hepsi': 'Tüm bahis seçenekleri'
+    };
+
+    const predictionFormat = predictionFormats[analysisType] || predictionFormats['macSonucu'];
+    
+    if (analysisType === 'detailed' || analysisType === 'hepsi') {
       prompt = `Bu futbol kuponunu detaylı analiz et. Şu bilgileri çıkar:
 
 1. Tüm maçları listele (takım isimleri, oran, seçilen bahis)
 2. Her maç için tahmin ve güven oranı
 3. Kuponun genel başarı şansı
 4. Risk analizi ve öneriler
+
+Tahmin formatı: ${predictionFormat}
 
 JSON formatında yanıt ver:
 {
@@ -388,8 +404,8 @@ JSON formatında yanıt ver:
       "homeTeam": "takım",
       "awayTeam": "takım", 
       "odds": {"1": oran, "X": oran, "2": oran},
-      "selectedBet": "1/X/2",
-      "prediction": "tahmin",
+      "selectedBet": "seçilen bahis",
+      "prediction": "${predictionFormat} formatında tahmin",
       "confidence": 0-100
     }
   ],
@@ -400,7 +416,9 @@ JSON formatında yanıt ver:
   "summary": "genel değerlendirme"
 }`;
     } else {
-      prompt = `Bu futbol kuponunu analiz et. Maçları, oranları ve seçilen bahisleri çıkar.
+      prompt = `Bu futbol kuponunu analiz et ve "${analysisType}" için tahmin yap.
+
+Tahmin formatı: ${predictionFormat}
 
 JSON formatında yanıt ver:
 {
@@ -409,7 +427,8 @@ JSON formatında yanıt ver:
       "homeTeam": "takım adı",
       "awayTeam": "takım adı",
       "odds": {"1": oran, "X": oran, "2": oran},
-      "selectedBet": "1/X/2",
+      "selectedBet": "seçilen bahis",
+      "prediction": "${predictionFormat} formatında tahmin",
       "confidence": 0-100
     }
   ],
@@ -549,10 +568,16 @@ JSON formatında yanıt ver:
           if (bestMatch) {
             matchedMatches.push({
               ...geminiMatch,
-              fixtureId: bestMatch.fixtureId,
-              date: bestMatch.date,
-              time: bestMatch.time,
-              league: bestMatch.league,
+              apiMatch: {
+                fixtureId: bestMatch.fixtureId,
+                homeTeam: bestMatch.homeTeam,
+                awayTeam: bestMatch.awayTeam,
+                league: bestMatch.league,
+                date: bestMatch.date,
+                time: bestMatch.time,
+                status: bestMatch.status || 'scheduled',
+                timestamp: bestMatch.timestamp
+              },
               matchScore: Math.round(bestScore * 100)
             });
             console.log(`✅ Eşleşti: ${geminiMatch.homeTeam} vs ${geminiMatch.awayTeam} → ${bestMatch.homeTeam} vs ${bestMatch.awayTeam} (Skor: ${Math.round(bestScore * 100)}%)`);
@@ -572,6 +597,7 @@ JSON formatında yanıt ver:
       ...analysisData,
       matchedMatches,
       unmatchedMatches,
+      analysisType: analysisType || 'hepsi',
       totalMatches: analysisData.matches?.length || 0,
       matchedCount: matchedMatches.length,
       unmatchedCount: unmatchedMatches.length
