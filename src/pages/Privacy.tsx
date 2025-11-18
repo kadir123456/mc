@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Footer } from '../components/Footer';
 
 export const Privacy: React.FC = () => {
@@ -15,6 +15,20 @@ export const Privacy: React.FC = () => {
 
           <h1 className="text-4xl font-bold text-white mb-6">Gizlilik Politikası</h1>
 
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 mb-8">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-base font-bold text-red-400 mb-2">⚠️ Önemli Bilgilendirme</h3>
+                <div className="text-slate-300 text-sm leading-relaxed space-y-1">
+                  <p>• Platform sadece eğitim ve bilgilendirme amaçlıdır.</p>
+                  <p>• 18 yaş altı kullanıcılar için uygun değildir.</p>
+                  <p>• Yatırım tavsiyesi niteliği taşımaz.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 space-y-6">
             <section>
               <h2 className="text-2xl font-bold text-white mb-3">1. Toplanan Bilgiler</h2>
@@ -24,8 +38,7 @@ export const Privacy: React.FC = () => {
               <ul className="list-disc list-inside text-slate-300 space-y-1 ml-4">
                 <li>E-posta adresi ve ad soyad</li>
                 <li>Profil fotoğrafı (Google ile girişte)</li>
-                <li>Yüklenen kupon görselleri</li>
-                <li>Analiz sonuçları ve geçmişi</li>
+                <li>Değerlendirme sonuçları ve geçmişi</li>
                 <li>Ödeme ve işlem bilgileri</li>
                 <li>Cihaz ve tarayıcı bilgileri</li>
               </ul>
@@ -37,7 +50,7 @@ export const Privacy: React.FC = () => {
                 Toplanan bilgiler aşağıdaki amaçlarla kullanılır:
               </p>
               <ul className="list-disc list-inside text-slate-300 space-y-1 ml-4">
-                <li>Hizmet sunumu ve analiz işlemleri</li>
+                <li>Hizmet sunumu ve değerlendirme işlemleri</li>
                 <li>Kullanıcı hesabı yönetimi</li>
                 <li>Ödeme işlemlerinin gerçekleştirilmesi</li>
                 <li>Platform güvenliğinin sağlanması</li>
@@ -53,7 +66,7 @@ export const Privacy: React.FC = () => {
                 sınırlı veri aktarımı gerçekleşebilir:
               </p>
               <ul className="list-disc list-inside text-slate-300 mt-2 space-y-1 ml-4">
-                <li><strong>Analiz Servisi:</strong> Sadece görsel analizi için kullanılır</li>
+                <li><strong>Analiz Servisi:</strong> Sadece istatistiksel değerlendirme için kullanılır</li>
                 <li><strong>Ödeme Altyapısı:</strong> Sadece ödeme işlemleri için kullanılır</li>
                 <li><strong>Yasal Zorunluluk:</strong> Yasal talep durumunda</li>
               </ul>
@@ -62,7 +75,7 @@ export const Privacy: React.FC = () => {
             <section>
               <h2 className="text-2xl font-bold text-white mb-3">4. Veri Güvenliği</h2>
               <p className="text-slate-300 leading-relaxed">
-                Verilerinizin güvenliği önceliğimizdir. Şu önlemler alınmıştır:
+                Verilerinizin güvenliği öncelikimizdir. Şu önlemler alınmıştır:
               </p>
               <ul className="list-disc list-inside text-slate-300 mt-2 space-y-1 ml-4">
                 <li>SSL/TLS şifreleme ile güvenli iletişim</li>
@@ -97,10 +110,10 @@ export const Privacy: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-white mb-3">7. Çocukların Gizliliği</h2>
+              <h2 className="text-2xl font-bold text-white mb-3">7. Yaş Sınırı ve Gizlilik</h2>
               <p className="text-slate-300 leading-relaxed">
-                Platformumuz 18 yaş altı kullanıcılara yönelik değildir. 18 yaş altı bireylerin
-                kişisel bilgilerini bilerek toplamayız.
+                <strong>Platformumuz 18 yaş altı kullanıcılara yönelik değildir.</strong> 18 yaş altı bireylerin
+                kişisel bilgilerini bilerek toplamayız. Eğer 18 yaş altındaysınız, lütfen platforma erişmeyiniz.
               </p>
             </section>
 

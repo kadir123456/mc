@@ -226,7 +226,7 @@ export const Bulletin: React.FC = () => {
           {showInfo && (
             <div className="mb-2 p-2 bg-blue-900/20 border border-blue-700/30 rounded text-xs text-slate-300">
               <strong className="text-blue-400">Standart:</strong> 3 maç, MS1-MSX-MS2, 2.5, KG (1 kredi)<br/>
-              <strong className="text-purple-400">Detaylı:</strong> 5 maç + ilk yarı tahminleri (5 kredi)
+              <strong className="text-purple-400">Detaylı:</strong> 5 maç + ilk yarı istatistiksel değerlendirme (5 kredi)
             </div>
           )}
 

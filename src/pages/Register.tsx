@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User as UserIcon, Chrome } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, Chrome, AlertTriangle } from 'lucide-react';
 import { authService } from '../services/authService';
 
 export const Register: React.FC = () => {
@@ -88,7 +88,18 @@ export const Register: React.FC = () => {
         <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Aikupon</h1>
-            <p className="text-slate-400">Maç listelerini analiz et, istatistiksel değerlendirme yap</p>
+            <p className="text-slate-400">Futbol maçlarını değerlendirin, istatistiksel raporlar alın</p>
+          </div>
+
+          {/* Önemli Uyarı */}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-6">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="text-slate-300 text-xs leading-relaxed">
+                <p className="font-semibold text-red-400 mb-1">18+ Yaş Sınırı</p>
+                <p>Bu platform sadece 18 yaş ve üstü kullanıcılar içindir. Eğitim amaçlıdır, yatırım tavsiyesi değildir.</p>
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -179,7 +190,9 @@ export const Register: React.FC = () => {
                 <Link to="/privacy" className="text-blue-400 hover:text-blue-300 underline">
                   Gizlilik Politikası
                 </Link>
-                {'nı okudum, kabul ediyorum. 18 yaşında veya daha büyüğüm.'}
+                {'nı okudum, kabul ediyorum. '}
+                <strong className="text-red-400">18 yaşında veya daha büyüğüm</strong>
+                {' ve bulunduğum ülkenin yasalarına göre hareket ediyorum.'}
               </label>
             </div>
 

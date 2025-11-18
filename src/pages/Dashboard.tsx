@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp, Image, FileText, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BankTransferPayment } from '../components/BankTransferPayment';
+import { ShopierPayment } from '../components/ShopierPayment';
 
 type TabType = 'pricing' | 'profile';
 
@@ -73,7 +73,7 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             <p className="text-slate-300 text-sm md:text-base mb-6 leading-relaxed">
-              AI"ile analiz edin ve profesyonel tahminlere anında erişin.
+              Yapay zeka ile maç istatistiklerini değerlendirin ve profesyonel raporlara anında erişin.
             </p>
             
             {/* Quick Actions */}
@@ -126,7 +126,7 @@ export const Dashboard: React.FC = () => {
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <p className="font-bold text-sm">Tahminler</p>
+                      <p className="font-bold text-sm">Analizler</p>
                       <p className="text-xs text-slate-400">Geçmiş</p>
                     </div>
                   </div>
@@ -227,7 +227,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Content */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-4 md:p-6 shadow-xl">
-          {activeTab === 'pricing' && <BankTransferPayment />}
+          {activeTab === 'pricing' && <ShopierPayment />}
           {activeTab === 'profile' && (
             <div>
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">

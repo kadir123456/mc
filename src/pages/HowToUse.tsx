@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, UserPlus, Upload, Sparkles, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, UserPlus, TrendingUp, Sparkles, ShoppingBag, AlertTriangle } from 'lucide-react';
 import { Footer } from '../components/Footer';
 
 export const HowToUse: React.FC = () => {
@@ -14,9 +14,23 @@ export const HowToUse: React.FC = () => {
           </Link>
 
           <h1 className="text-4xl font-bold text-white mb-4">Nasıl Kullanılır?</h1>
-          <p className="text-slate-400 mb-12">
-            Aikupon'ı kullanarak kuponlarınızı kolayca analiz edebilirsiniz. İşte adım adım rehber:
+          <p className="text-slate-400 mb-8">
+            Aikupon'u kullanarak futbol maçlarını kolayca değerlendirebilirsiniz. İşte adım adım rehber:
           </p>
+
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 mb-8">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-base font-bold text-red-400 mb-2">⚠️ Önemli Uyarı</h3>
+                <div className="text-slate-300 text-sm leading-relaxed space-y-1">
+                  <p>• Bu platform sadece eğitim ve bilgilendirme amaçlıdır.</p>
+                  <p>• 18 yaş altı kullanıcılar için uygun değildir.</p>
+                  <p>• Yatırım tavsiyesi değildir, bulunduğunuz ülkenin yasalarına göre hareket ediniz.</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-8">
             <div className="bg-slate-800/50 border-l-4 border-blue-500 rounded-xl p-8">
@@ -31,8 +45,8 @@ export const HowToUse: React.FC = () => {
                     hızlıca kayıt olabilirsiniz.
                   </p>
                   <ul className="text-slate-400 text-sm space-y-1">
-                    <li>• İlk kayıtta <span className="text-green-400 font-semibold">1 ücretsiz kredi</span> kazanırsınız</li>
-                    <li>• 18 yaş ve üzeri olmalısınız</li>
+                    <li>• İlk kayıtta <span className="text-green-400 font-semibold">1 ücretsiz kredi</span> hediye edilir</li>
+                    <li>• <strong className="text-red-400">18 yaş ve üzeri olmalısınız</strong></li>
                     <li>• Kullanım şartlarını kabul etmelisiniz</li>
                   </ul>
                 </div>
@@ -42,18 +56,17 @@ export const HowToUse: React.FC = () => {
             <div className="bg-slate-800/50 border-l-4 border-green-500 rounded-xl p-8">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-green-400" />
+                  <TrendingUp className="w-6 h-6 text-green-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white mb-3">2. Kupon Görselini Yükleyin</h2>
+                  <h2 className="text-2xl font-bold text-white mb-3">2. Bültenden Maç Seçin</h2>
                   <p className="text-slate-300 leading-relaxed mb-4">
-                    Dashboard'unuzdan "Görsel Yükle" sekmesine gelin ve kupon görselinizi seçin.
+                    Dashboard'unuzdan "Bülten" sekmesine gelin ve günlük maçlardan istediğiniz maçları seçin.
                   </p>
                   <ul className="text-slate-400 text-sm space-y-1">
-                    <li>• PNG, JPG veya WebP formatları desteklenir</li>
-                    <li>• Maksimum dosya boyutu: 10MB</li>
-                    <li>• Görsel net ve okunabilir olmalıdır</li>
-                    <li>• Ekran görüntüsü veya fotoğraf kullanabilirsiniz</li>
+                    <li>• 3 maç standart değerlendirme: 1 kredi</li>
+                    <li>• 5 maç + ilk yarı detaylı inceleme: 3 kredi</li>
+                    <li>• Maçlar günlük olarak güncellenir</li>
                   </ul>
                 </div>
               </div>
@@ -65,22 +78,21 @@ export const HowToUse: React.FC = () => {
                   <Sparkles className="w-6 h-6 text-purple-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white mb-3">3. Analizi Başlatın</h2>
+                  <h2 className="text-2xl font-bold text-white mb-3">3. Değerlendirmeyi Başlatın</h2>
                   <p className="text-slate-300 leading-relaxed mb-4">
-                    Görseli yükledikten sonra "Analiz Yap" butonuna tıklayın. Sistem otomatik olarak
-                    kuponunuzu detaylı şekilde analiz edecektir.
+                    Maçları seçtikten sonra "Analiz Yap" butonuna tıklayın. Sistem otomatik olarak
+                    maçları detaylı şekilde istatistiksel olarak değerlendirecektir.
                   </p>
                   <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-4 mt-4">
-                    <h4 className="text-white font-semibold mb-2">Analiz Neler İçerir?</h4>
+                    <h4 className="text-white font-semibold mb-2">Değerlendirme Neler İçerir?</h4>
                     <ul className="text-slate-400 text-sm space-y-1">
-                      <li>• Her maç için MS1, MS2, Beraberlik tahminleri</li>
-                      <li>• Alt/Üst ve Handicap değerlendirmeleri</li>
-                      <li>• Güven oranları (0-100 arası)</li>
-                      <li>• Takım form durumu analizi</li>
+                      <li>• Her maç için istatistiksel olasılık hesaplamaları</li>
+                      <li>• Takım performans değerlendirmeleri</li>
+                      <li>• Güven skorları (0-100 arası)</li>
+                      <li>• Takım form durumu incelemesi</li>
                       <li>• Yaralı/cezalı oyuncu bilgileri</li>
-                      <li>• Hava durumu faktörü</li>
                       <li>• Geçmiş karşılaşma istatistikleri</li>
-                      <li>• Özel öneriler ve dikkat edilmesi gerekenler</li>
+                      <li>• Detaylı veri raporları</li>
                     </ul>
                   </div>
                 </div>
@@ -95,22 +107,22 @@ export const HowToUse: React.FC = () => {
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-white mb-3">4. Kredi Satın Alın</h2>
                   <p className="text-slate-300 leading-relaxed mb-4">
-                    Her analiz 1 kredi tüketir. Krediniz bittiğinde "Kredi Al" sekmesinden paket
+                    Her değerlendirme kredi tüketir. Krediniz bittiğinde "Kredi Al" sekmesinden paket
                     satın alabilirsiniz.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
                     <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3">
                       <p className="text-blue-400 font-bold text-lg">99 ₺</p>
-                      <p className="text-slate-300 text-sm">5 Analiz</p>
+                      <p className="text-slate-300 text-sm">5 Değerlendirme</p>
                     </div>
                     <div className="bg-blue-600/20 border border-blue-500 rounded-lg p-3">
                       <p className="text-blue-400 font-bold text-lg">299 ₺</p>
-                      <p className="text-slate-300 text-sm">20 Analiz</p>
+                      <p className="text-slate-300 text-sm">20 Değerlendirme</p>
                       <span className="text-xs text-green-400">En Popüler</span>
                     </div>
                     <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3">
                       <p className="text-blue-400 font-bold text-lg">499 ₺</p>
-                      <p className="text-slate-300 text-sm">50 Analiz</p>
+                      <p className="text-slate-300 text-sm">50 Değerlendirme</p>
                     </div>
                   </div>
                 </div>
@@ -123,11 +135,11 @@ export const HowToUse: React.FC = () => {
             <ul className="space-y-3 text-slate-300">
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold mt-1">•</span>
-                <span>Kupon görsellerinizin net ve okunabilir olmasına dikkat edin</span>
+                <span>Maç seçimlerinizi dikkatli yapın ve detaylı inceleyin</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold mt-1">•</span>
-                <span>Analiz sonuçlarını "Geçmiş" sekmesinden istediğiniz zaman görüntüleyebilirsiniz</span>
+                <span>Değerlendirme sonuçlarını "Geçmiş" sekmesinden istediğiniz zaman görüntüleyebilirsiniz</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold mt-1">•</span>
@@ -135,7 +147,11 @@ export const HowToUse: React.FC = () => {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold mt-1">•</span>
-                <span>Analiz sonuçları sadece bilgilendirme amaçlıdır, nihai karar size aittir</span>
+                <span><strong>Değerlendirme sonuçları sadece bilgilendirme amaçlıdır</strong>, nihai karar size aittir</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 font-bold mt-1">•</span>
+                <span><strong className="text-red-400">Yatırım tavsiyesi değildir</strong>, yerel yasalara uygun hareket ediniz</span>
               </li>
             </ul>
           </div>
@@ -143,7 +159,7 @@ export const HowToUse: React.FC = () => {
           <div className="mt-8 text-center">
             <Link
               to="/register"
-              className="inline-block bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium px-8 py-3 rounded-lg transition"
+              className="inline-block bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium px-8 py-3 rounded-lg transition shadow-lg"
             >
               Hemen Başla
             </Link>

@@ -36,20 +36,20 @@ export const Home: React.FC = () => {
           <div className="max-w-7xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-6">
               <Star className="w-4 h-4" />
-              Yapay Zeka Destekli Spor Analizi
+              Yapay Zeka Destekli Futbol İstatistik Analizi
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
               Futbol Maçlarını
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                AI ile Analiz Edin
+                Yapay Zeka ile Değerlendirin
               </span>
             </h1>
 
             <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Günlük maç bülteninden maç seçin, yapay zeka her maçı gerçek verilerle analiz etsin.
-              Profesyonel istatistiksel değerlendirme ile bilinçli kararlar alın.
+              Günlük maç bülteninden maçları seçin, yapay zeka her maçı gerçek verilerle değerlendirsin.
+              Profesyonel istatistiksel analiz ile detaylı inceleme yapın.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
@@ -89,7 +89,7 @@ export const Home: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-white mb-4">Neden Aikupon?</h2>
-              <p className="text-xl text-slate-300">Yapay zeka ile profesyonel istatistiksel analize saniyeler içinde ulaşın</p>
+              <p className="text-xl text-slate-300">Yapay zeka ile profesyonel istatistiksel değerlendirmeye saniyeler içinde ulaşın</p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -109,7 +109,7 @@ export const Home: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">Güven Skorları</h3>
                 <p className="text-slate-300">
-                  Her maç analizi için 0-100 arası güven skoru, yüzde tahminleri ve profesyonel öneriler.
+                  Her maç değerlendirmesi için 0-100 arası güven skoru, yüzde olasılıkları ve profesyonel öneriler.
                 </p>
               </div>
 
@@ -117,9 +117,9 @@ export const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center mb-4">
                   <Clock className="w-6 h-6 text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Anlık Analiz</h3>
+                <h3 className="text-xl font-bold text-white mb-3">Anlık Değerlendirme</h3>
                 <p className="text-slate-300">
-                  Maçları seçin, yapay zeka 30 saniye içinde detaylı istatistiksel tahmin oluşturur.
+                  Maçları seçin, yapay zeka 30 saniye içinde detaylı istatistiksel rapor oluşturur.
                 </p>
               </div>
 
@@ -140,7 +140,7 @@ export const Home: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-white mb-4">Nasıl Çalışır?</h2>
-              <p className="text-xl text-slate-300">3 basit adımda istatistiksel analiz</p>
+              <p className="text-xl text-slate-300">3 basit adımda istatistiksel değerlendirme</p>
             </div>
 
             <div className="space-y-8">
@@ -152,7 +152,7 @@ export const Home: React.FC = () => {
                   <h3 className="text-2xl font-bold text-white mb-2">Bültenden Maç Seç</h3>
                   <p className="text-slate-300 text-lg">
                     Günlük güncellenen maç bülteninden istediğiniz maçları seçin.
-                    3 maç için 1 kredi, 5 maç + ilk yarı analizi için 5 kredi.
+                    3 maç için 1 kredi, 5 maç + ilk yarı incelemesi için 5 kredi.
                   </p>
                 </div>
               </div>
@@ -162,10 +162,10 @@ export const Home: React.FC = () => {
                   2
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Yapay Zeka Analizi</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Yapay Zeka Değerlendirmesi</h3>
                   <p className="text-slate-300 text-lg">
-                    Aikupon yapay zekası seçtiğiniz maçları gerçek verilerle analiz eder.
-                    İstatistiksel tahminler, form analizi ve detaylı değerlendirmeler.
+                    Aikupon yapay zekası seçtiğiniz maçları gerçek verilerle değerlendirir.
+                    İstatistiksel olasılıklar, form analizi ve detaylı inceleme.
                   </p>
                 </div>
               </div>
@@ -177,8 +177,8 @@ export const Home: React.FC = () => {
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">Sonuçları Görüntüle</h3>
                   <p className="text-slate-300 text-lg">
-                    Detaylı analiz sonuçları "Analizlerim" sayfasında saklanır.
-                    Yüzde tahminleri, güven skorları ve öneriler ile bilinçli değerlendirme yapın.
+                    Detaylı değerlendirme sonuçları "Analizlerim" sayfasında saklanır.
+                    Yüzde olasılıkları, güven skorları ve öneriler ile bilinçli inceleme yapın.
                   </p>
                 </div>
               </div>
@@ -198,19 +198,21 @@ export const Home: React.FC = () => {
 
         <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-800/30">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-12">
-              <h3 className="text-lg font-bold text-yellow-400 mb-2">Önemli Uyarı</h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Bu platform sadece eğitim ve bilgilendirme amaçlıdır. Sunulan analizler yatırım veya finansal tavsiye niteliğinde değildir.
-                Kullanıcılar kendi kararlarından tamamen sorumludur. Sonuçlar garanti edilmez ve platform yöneticileri
-                herhangi bir kayıptan sorumlu tutulamaz. Platform, spor maçlarının istatistiksel değerlendirmesini sağlar.
-              </p>
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 mb-8">
+              <h3 className="text-lg font-bold text-red-400 mb-3">⚠️ Önemli Yasal Uyarılar</h3>
+              <div className="text-slate-300 text-sm leading-relaxed space-y-2">
+                <p>• <strong>18 Yaş Sınırı:</strong> Bu platform 18 yaş altı kullanıcılar için uygun değildir. Platforma erişim ve kullanım için 18 yaşında veya daha büyük olmanız gerekmektedir.</p>
+                <p>• <strong>Bilgilendirme Amaçlıdır:</strong> Sunulan tüm analizler, değerlendirmeler ve raporlar sadece bilgilendirme ve eğitim amaçlıdır. Hiçbir şekilde yatırım, finansal tavsiye veya kesin sonuç garantisi niteliği taşımaz.</p>
+                <p>• <strong>Kişisel Sorumluluk:</strong> Kullanıcılar, platform üzerinden elde ettikleri bilgilere dayanarak aldıkları kararlardan tamamen kendileri sorumludur. Platform yöneticileri herhangi bir kayıptan sorumlu tutulamaz.</p>
+                <p>• <strong>Yerel Yasalara Uyum:</strong> Bulunduğunuz ülke ve bölgenin yasalarına göre hareket etmek sizin sorumluluğunuzdadır. Platformu kullanmadan önce yerel düzenlemeleri kontrol ediniz.</p>
+                <p>• <strong>Sonuç Garantisi Yoktur:</strong> İstatistiksel değerlendirmeler geçmiş verilere dayanır ve gelecek sonuçlarını garanti etmez.</p>
+              </div>
             </div>
 
             <div className="text-center">
               <h2 className="text-4xl font-bold text-white mb-6">Hemen Başlayın</h2>
               <p className="text-xl text-slate-300 mb-10">
-                Ücretsiz hesap oluşturun, ilk analizinizi yapın. Kredi kartı bilgisi gerekmez.
+                Ücretsiz hesap oluşturun, ilk değerlendirmenizi yapın. Kredi kartı bilgisi gerekmez.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
