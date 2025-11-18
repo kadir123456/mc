@@ -85,7 +85,7 @@ app.get('/api/football/*', async (req, res) => {
 // Bülten Analiz Endpoint
 app.post('/api/gemini/analyze', async (req, res) => {
   try {
-    const { matches } = req.body;
+    const { matches, userId, creditsToDeduct } = req.body;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     if (!GEMINI_API_KEY) {
@@ -95,6 +95,18 @@ app.post('/api/gemini/analyze', async (req, res) => {
 
     if (!matches || !Array.isArray(matches)) {
       return res.status(400).json({ error: 'Geçersiz maç verisi' });
+    }
+
+    // Kredi düşürme işlemi
+    if (userId && creditsToDeduct && firebaseInitialized) {
+      try {
+        const analysisType = creditsToDeduct === 5 ? 'detailed' : 'standard';
+        await deductCreditsFromUser(userId, creditsToDeduct, analysisType);
+        console.log(`✅ ${creditsToDeduct} kredi düşüldü (${userId})`);
+      } catch (creditError) {
+        console.error('❌ Kredi düşürme hatası:', creditError.message);
+        return res.status(400).json({ error: creditError.message });
+      }
     }
 
     console.log(`🤖 Gemini analizi başlatılıyor: ${matches.length} maç`);
@@ -250,6 +262,264 @@ SADECE JSON yanıt ver.`
   }
 });
 
+// ==================== GÖRSEL ANALİZ KUPON ENDPOINT ====================
+
+// Görsel Analiz Kupon Endpoint
+app.post('/api/analyze-coupon-image', async (req, res) => {
+  try {
+    const { image, userId, creditsToDeduct, analysisType } = req.body;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const FOOTBALL_API_KEY = process.env.API_FOOTBALL_KEY;
+
+    if (!GEMINI_API_KEY) {
+      console.error('❌ Gemini API key bulunamadı');
+      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
+    }
+
+    if (!FOOTBALL_API_KEY) {
+      console.error('❌ Football API key bulunamadı');
+      return res.status(500).json({ error: 'Football API key yapılandırılmamış' });
+    }
+
+    if (!image) {
+      return res.status(400).json({ error: 'Görsel bulunamadı' });
+    }
+
+    if (!userId || !creditsToDeduct) {
+      return res.status(400).json({ error: 'Kullanıcı bilgisi eksik' });
+    }
+
+    // Kredi düşürme işlemi
+    if (firebaseInitialized) {
+      try {
+        await deductCreditsFromUser(userId, parseInt(creditsToDeduct), 'image_analysis');
+        console.log(`✅ ${creditsToDeduct} kredi düşüldü (${userId})`);
+      } catch (creditError) {
+        console.error('❌ Kredi düşürme hatası:', creditError.message);
+        return res.status(400).json({ error: creditError.message });
+      }
+    }
+
+    console.log('🖼️ Görsel kupon analizi başlatılıyor...');
+
+    // Base64'ten data:image prefix'ini temizle
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+
+    // 1. Adım: Gemini Vision ile maçları çıkar
+    console.log('📝 Gemini ile maçlar çıkarılıyor...');
+    const extractResponse = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [
+            {
+              text: `Bu görselde futbol maçları var. Her maçın EV SAHİBİ ve DEPLASMAN takım isimlerini İNGİLİZCE olarak çıkar.
+
+ÖNEMLI: 
+- Takım isimlerini mutlaka İNGİLİZCE yaz
+- Sadece takım isimlerini ver, oran veya diğer bilgileri ekleme
+- JSON formatında yanıt ver
+
+Örnek format:
+{
+  "matches": [
+    {
+      "homeTeam": "Manchester United",
+      "awayTeam": "Liverpool"
+    }
+  ]
+}
+
+SADECE JSON yanıt ver, başka metin ekleme.`
+            },
+            {
+              inline_data: {
+                mime_type: 'image/jpeg',
+                data: base64Data
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 2000
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 45000
+      }
+    );
+
+    const extractText = extractResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!extractText) {
+      throw new Error('Gemini yanıtı alınamadı');
+    }
+
+    const jsonMatch = extractText.match(/\{[\s\S]*\}/);
+    const extractedData = jsonMatch ? JSON.parse(jsonMatch[0]) : { matches: [] };
+    const extractedMatches = extractedData.matches || [];
+
+    console.log(`✅ ${extractedMatches.length} maç çıkarıldı`);
+
+    if (extractedMatches.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Görselde maç bulunamadı',
+        extractedMatches: [],
+        matchedMatches: []
+      });
+    }
+
+    // 2. Adım: Football API'den maçları bul
+    console.log('🔍 Football API\'den maçlar aranıyor...');
+    const matchedMatches = [];
+
+    for (const extracted of extractedMatches) {
+      try {
+        // Takım isimlerine göre maç ara
+        const searchResponse = await axios.get(
+          `https://v3.football.api-sports.io/fixtures`,
+          {
+            params: {
+              next: 50 // Önümüzdeki 50 maçı ara
+            },
+            headers: {
+              'x-apisports-key': FOOTBALL_API_KEY
+            },
+            timeout: 10000
+          }
+        );
+
+        if (searchResponse.data?.response) {
+          // Takım isimlerine göre eşleştir
+          const match = searchResponse.data.response.find(f => {
+            const homeMatch = f.teams.home.name.toLowerCase().includes(extracted.homeTeam.toLowerCase()) ||
+                            extracted.homeTeam.toLowerCase().includes(f.teams.home.name.toLowerCase());
+            const awayMatch = f.teams.away.name.toLowerCase().includes(extracted.awayTeam.toLowerCase()) ||
+                            extracted.awayTeam.toLowerCase().includes(f.teams.away.name.toLowerCase());
+            return homeMatch && awayMatch;
+          });
+
+          if (match) {
+            // 3. Adım: Gemini ile tahmin yap
+            let prediction = '';
+            
+            const predictionPrompt = buildPredictionPrompt(
+              match.teams.home.name,
+              match.teams.away.name,
+              match.league.name,
+              analysisType
+            );
+
+            const predictionResponse = await axios.post(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+              {
+                contents: [{
+                  parts: [{ text: predictionPrompt }]
+                }],
+                generationConfig: {
+                  temperature: 0.3,
+                  maxOutputTokens: 500
+                }
+              },
+              {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 30000
+              }
+            );
+
+            const predictionText = predictionResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (predictionText) {
+              const predJsonMatch = predictionText.match(/\{[\s\S]*\}/);
+              const predData = predJsonMatch ? JSON.parse(predJsonMatch[0]) : {};
+              prediction = predData.prediction || 'Tahmin yapılamadı';
+            }
+
+            matchedMatches.push({
+              extracted,
+              apiMatch: {
+                fixtureId: match.fixture.id,
+                homeTeam: match.teams.home.name,
+                awayTeam: match.teams.away.name,
+                league: match.league.name,
+                date: match.fixture.date,
+                status: match.fixture.status.long
+              },
+              prediction
+            });
+
+            console.log(`✅ Eşleşti: ${match.teams.home.name} vs ${match.teams.away.name}`);
+          }
+        }
+
+        // Rate limit için kısa bekleme
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+      } catch (error) {
+        console.error(`⚠️ API hatası: ${extracted.homeTeam} vs ${extracted.awayTeam}`, error.message);
+      }
+    }
+
+    console.log(`✅ ${matchedMatches.length}/${extractedMatches.length} maç eşleştirildi`);
+
+    res.json({
+      success: true,
+      message: `${matchedMatches.length} maç başarıyla analiz edildi`,
+      extractedMatches,
+      matchedMatches,
+      analysisType
+    });
+
+  } catch (error) {
+    console.error('❌ Görsel kupon analiz hatası:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Görsel analizi yapılamadı',
+      details: error.message 
+    });
+  }
+});
+
+// Tahmin prompt'u oluşturma helper fonksiyonu
+function buildPredictionPrompt(homeTeam, awayTeam, league, analysisType) {
+  const typeMap = {
+    'ilkYariSonucu': 'İLK YARI SONUCU (1: Ev sahibi önde, X: Beraberlik, 2: Deplasman önde)',
+    'macSonucu': 'MAÇ SONUCU (1: Ev sahibi kazanır, X: Beraberlik, 2: Deplasman kazanır)',
+    'karsilikliGol': 'KARŞILIKLI GOL (Var / Yok)',
+    'ilkYariMac': 'İLK YARI/MAÇ SONUCU (örn: 1/1, X/2, vb.)',
+    'handikap': 'HANDİKAP (-1.5, -0.5, +0.5, +1.5)',
+    'altustu': '2.5 ALT/ÜST (Alt / Üst)',
+    'hepsi': 'TÜM TAHMİNLER (Maç Sonucu, 2.5 Alt/Üst, Karşılıklı Gol)'
+  };
+
+  const predictionType = typeMap[analysisType] || 'MAÇ SONUCU';
+
+  return `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. 
+
+MAÇ: ${homeTeam} vs ${awayTeam}
+LİG: ${league}
+
+TAHMİN TİPİ: ${predictionType}
+
+Bu maç için ${predictionType} tahmini yap.
+
+ÇIKTI FORMATI (JSON):
+{
+  "prediction": "tahminin"
+}
+
+Örnek tahminler:
+- Maç Sonucu: "1" veya "X" veya "2"
+- İlk Yarı Sonucu: "1" veya "X" veya "2"
+- Karşılıklı Gol: "Var" veya "Yok"
+- İlk Yarı/Maç: "1/1", "X/2", "2/X" vb.
+- Handikap: "-1.5", "+0.5" vb.
+- Alt/Üst: "Alt" veya "Üst"
+- Hepsi: "1 & Üst & Var"
+
+SADECE JSON formatında yanıt ver, açıklama ekleme.`;
+}
+
 // ==================== SHOPIER ENDPOINTS ====================
 
 // Paket fiyatlarına göre kredi mapping
@@ -312,6 +582,54 @@ async function addCreditsToUser(userId, credits, orderId, amount) {
   });
   
   console.log(`💰 ${credits} kredi ${userId} kullanıcısına eklendi`);
+}
+
+// Helper: Kullanıcıdan kredi düş
+async function deductCreditsFromUser(userId, credits, analysisType) {
+  if (!firebaseInitialized) {
+    throw new Error('Firebase not initialized');
+  }
+  
+  const db = admin.database();
+  const userRef = db.ref(`users/${userId}`);
+  
+  // Önce mevcut krediyi kontrol et
+  const snapshot = await userRef.once('value');
+  const userData = snapshot.val();
+  
+  if (!userData) {
+    throw new Error('Kullanıcı bulunamadı');
+  }
+  
+  const currentCredits = userData.credits || 0;
+  
+  if (currentCredits < credits) {
+    throw new Error(`Yetersiz kredi. Mevcut: ${currentCredits}, Gerekli: ${credits}`);
+  }
+  
+  // Transaction ile güvenli kredi düşürme
+  await userRef.transaction((user) => {
+    if (user && user.credits >= credits) {
+      user.credits = user.credits - credits;
+      return user;
+    }
+    return user;
+  });
+  
+  // Transaction kaydı oluştur
+  const transactionRef = db.ref(`users/${userId}/transactions`).push();
+  await transactionRef.set({
+    type: 'analysis',
+    credits: -credits,
+    analysisType: analysisType,
+    status: 'completed',
+    createdAt: Date.now(),
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
+  
+  return currentCredits - credits; // Kalan kredi
 }
 
 // Shopier Callback Endpoint
@@ -412,5 +730,6 @@ app.listen(PORT, () => {
   console.log(`📡 Football API: http://localhost:${PORT}/api/football/*`);
   console.log(`🤖 Gemini Analiz: http://localhost:${PORT}/api/gemini/analyze`);
   console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
+  console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
   console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
 });
