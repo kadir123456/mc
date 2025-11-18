@@ -115,15 +115,27 @@ export const ImageAnalysis: React.FC = () => {
       setError(null);
       setResult(null);
 
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-      formData.append('userId', user.uid);
-      formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
-      formData.append('analysisType', analysisType);
+      // Görseli base64'e çevir
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
+      const base64Image = await base64Promise;
 
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64Image,
+          userId: user.uid,
+          creditsToDeduct: REQUIRED_CREDITS,
+          analysisType: analysisType,
+        }),
       });
 
       const data = await response.json();
