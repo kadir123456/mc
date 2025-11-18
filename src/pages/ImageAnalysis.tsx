@@ -19,6 +19,9 @@ interface MatchedMatch {
     date: string;
     status: string;
   };
+  prediction?: string;
+  confidence?: number;
+  reasoning?: string;
 }
 
 interface AnalysisResult {
@@ -212,10 +215,11 @@ export const ImageAnalysis: React.FC = () => {
             Nasıl Çalışır?
           </h3>
           <ul className="text-sm text-slate-300 space-y-1">
-            <li>• Maç listesi görselinizin ekran görüntüsünü alın</li>
-            <li>• Görseli buraya yükleyin</li>
+            <li>• Bülten veya müsabaka görselinizin ekran görüntüsünü alın</li>
+            <li>• Görseli buraya yükleyin (3 kredi)</li>
             <li>• AI, görseldeki maçları otomatik çıkarır</li>
-            <li>• Maçlar API'den bulunur ve detaylı analiz yapılır</li>
+            <li>• Müsabakalar API'den bulunur ve AI tahmini yapılır</li>
+            <li>• Her maç için tahmin, güven skoru ve açıklama görürsünüz</li>
           </ul>
         </div>
 
@@ -308,7 +312,9 @@ export const ImageAnalysis: React.FC = () => {
               <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-green-300 font-medium">Analiz Tamamlandı!</p>
-                <p className="text-sm text-green-200/80">Görsel başarıyla analiz edildi. 3 kredi hesabınızdan düşüldü.</p>
+                <p className="text-sm text-green-200/80">
+                  Görsel başarıyla analiz edildi ve müsabaka tahminleri hazırlandı. 3 kredi hesabınızdan düşüldü.
+                </p>
               </div>
             </div>
 
@@ -366,12 +372,12 @@ export const ImageAnalysis: React.FC = () => {
               <div className="bg-slate-800/50 border border-green-700/30 rounded-lg p-4">
                 <h3 className="text-green-300 font-semibold mb-3 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
-                  API'den Eşleşen Maçlar ({result.matchedMatches.length})
+                  Müsabaka Tahminleri ({result.matchedMatches.length})
                 </h3>
                 <div className="space-y-3">
                   {result.matchedMatches.map((match, idx) => (
                     <div key={idx} className="bg-slate-900/50 p-4 rounded border border-green-700/30">
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
                           <p className="text-white font-medium text-lg">
                             {match.apiMatch.homeTeam} <span className="text-slate-500">vs</span> {match.apiMatch.awayTeam}
@@ -385,6 +391,28 @@ export const ImageAnalysis: React.FC = () => {
                           {match.apiMatch.status}
                         </span>
                       </div>
+                      
+                      {/* Tahmin Sonuçları */}
+                      {match.prediction && (
+                        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-3 mt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Zap className="w-4 h-4 text-yellow-400" />
+                              <span className="text-blue-300 font-semibold">AI Tahmini:</span>
+                              <span className="text-white font-bold text-lg">{match.prediction}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-slate-400">Güven:</span>
+                              <span className="text-yellow-400 font-semibold">{match.confidence}%</span>
+                            </div>
+                          </div>
+                          {match.reasoning && (
+                            <p className="text-sm text-slate-300 mt-2 border-t border-slate-700/50 pt-2">
+                              💡 {match.reasoning}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
