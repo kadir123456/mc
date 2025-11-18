@@ -304,6 +304,15 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
   let creditsDeducted = false;
   const { image, userId, creditsToDeduct, analysisType } = req.body;
   
+  // Debug logging
+  console.log('📥 Gelen istek parametreleri:', {
+    hasImage: !!image,
+    imageLength: image?.length || 0,
+    userId: userId || 'YOK',
+    creditsToDeduct: creditsToDeduct || 'YOK',
+    analysisType: analysisType || 'YOK'
+  });
+  
   try {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const FOOTBALL_API_KEY = process.env.API_FOOTBALL_KEY;
@@ -319,10 +328,12 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
     }
 
     if (!image) {
+      console.error('❌ Görsel parametresi eksik veya boş');
       return res.status(400).json({ error: 'Görsel bulunamadı' });
     }
 
     if (!userId || !creditsToDeduct) {
+      console.error('❌ Kullanıcı bilgisi eksik:', { userId, creditsToDeduct });
       return res.status(400).json({ error: 'Kullanıcı bilgisi eksik' });
     }
 
