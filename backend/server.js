@@ -33,8 +33,8 @@ app.use(cors({
 }));
 
 // JSON body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // API-Football Proxy Endpoint
 app.get('/api/football/*', async (req, res) => {
@@ -79,6 +79,178 @@ app.get('/api/football/*', async (req, res) => {
     });
   }
 });
+
+// ==================== GEMİNİ ENDPOINTS ====================
+
+// Bülten Analiz Endpoint
+app.post('/api/gemini/analyze', async (req, res) => {
+  try {
+    const { matches } = req.body;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    if (!GEMINI_API_KEY) {
+      console.error('❌ Gemini API key bulunamadı');
+      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
+    }
+
+    if (!matches || !Array.isArray(matches)) {
+      return res.status(400).json({ error: 'Geçersiz maç verisi' });
+    }
+
+    console.log(`🤖 Gemini analizi başlatılıyor: ${matches.length} maç`);
+
+    // Gemini API'ye istek
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [{
+            text: `Sen bir futbol analiz uzmanısın. Aşağıdaki maçları analiz et ve her maç için tahmin yap.
+
+Maçlar:
+${matches.map((m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}
+   - Lig: ${m.league}
+   - Tarih: ${m.date}
+   - Saat: ${m.time}
+   ${m.statistics ? `- İstatistikler: ${JSON.stringify(m.statistics)}` : ''}`).join('\n\n')}
+
+Her maç için şu formatta JSON yanıt ver:
+{
+  "analyses": [
+    {
+      "matchId": "maç_id",
+      "prediction": "1/X/2",
+      "confidence": 0-100,
+      "reasoning": "kısa açıklama"
+    }
+  ]
+}
+
+SADECE JSON yanıt ver, başka metin ekleme.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2000
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      }
+    );
+
+    const geminiText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!geminiText) {
+      throw new Error('Gemini yanıtı alınamadı');
+    }
+
+    // JSON parse et
+    const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
+    const analysisData = jsonMatch ? JSON.parse(jsonMatch[0]) : { analyses: [] };
+
+    console.log(`✅ Gemini analizi tamamlandı: ${analysisData.analyses?.length || 0} tahmin`);
+    
+    res.json(analysisData);
+
+  } catch (error) {
+    console.error('❌ Gemini analiz hatası:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Analiz yapılamadı',
+      details: error.message 
+    });
+  }
+});
+
+// Görsel Analiz Endpoint
+app.post('/api/gemini/analyze-image', async (req, res) => {
+  try {
+    const { image, prompt } = req.body;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    if (!GEMINI_API_KEY) {
+      console.error('❌ Gemini API key bulunamadı');
+      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
+    }
+
+    if (!image) {
+      return res.status(400).json({ error: 'Görsel bulunamadı' });
+    }
+
+    console.log('🖼️ Görsel analizi başlatılıyor...');
+
+    // Base64'ten data:image prefix'ini temizle
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+
+    // Gemini Vision API'ye istek
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [
+            {
+              text: prompt || `Bu futbol bültenini analiz et. Maçları, oranları ve önerilen tahminleri çıkar. 
+              
+Yanıtı şu JSON formatında ver:
+{
+  "matches": [
+    {
+      "homeTeam": "takım adı",
+      "awayTeam": "takım adı",
+      "odds": { "1": oran, "X": oran, "2": oran },
+      "recommendation": "1/X/2",
+      "confidence": 0-100
+    }
+  ],
+  "summary": "genel değerlendirme"
+}
+
+SADECE JSON yanıt ver.`
+            },
+            {
+              inline_data: {
+                mime_type: 'image/jpeg',
+                data: base64Data
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2000
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 45000
+      }
+    );
+
+    const geminiText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!geminiText) {
+      throw new Error('Gemini yanıtı alınamadı');
+    }
+
+    // JSON parse et
+    const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
+    const analysisData = jsonMatch ? JSON.parse(jsonMatch[0]) : { matches: [], summary: '' };
+
+    console.log(`✅ Görsel analizi tamamlandı: ${analysisData.matches?.length || 0} maç bulundu`);
+    
+    res.json(analysisData);
+
+  } catch (error) {
+    console.error('❌ Görsel analiz hatası:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Görsel analizi yapılamadı',
+      details: error.message 
+    });
+  }
+});
+
+// ==================== SHOPIER ENDPOINTS ====================
 
 // Paket fiyatlarına göre kredi mapping
 const PRICE_TO_CREDITS = {
@@ -226,10 +398,19 @@ app.post('/api/shopier/callback', async (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    firebase: firebaseInitialized,
+    gemini: !!process.env.GEMINI_API_KEY,
+    football: !!process.env.API_FOOTBALL_KEY
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Backend proxy sunucusu ${PORT} portunda çalışıyor`);
+  console.log(`📡 Football API: http://localhost:${PORT}/api/football/*`);
+  console.log(`🤖 Gemini Analiz: http://localhost:${PORT}/api/gemini/analyze`);
+  console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
   console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
 });
