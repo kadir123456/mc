@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp, Image, FileText, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { ShopierPayment } from '../components/ShopierPayment';
+import { BankTransferPayment } from '../components/BankTransferPayment';
 
 type TabType = 'pricing' | 'profile';
 
@@ -227,7 +227,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Content */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-4 md:p-6 shadow-xl">
-          {activeTab === 'pricing' && <ShopierPayment />}
+          {activeTab === 'pricing' && <BankTransferPayment />}
           {activeTab === 'profile' && (
             <div>
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">

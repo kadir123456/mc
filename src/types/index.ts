@@ -21,7 +21,6 @@ export interface Package {
   searches: number;
   price: number;
   popular?: boolean;
-  shopierUrl?: string;
 }
 
 export interface CouponAnalysis {

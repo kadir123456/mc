@@ -34,15 +34,14 @@ export const authService = {
         // IP hatası olsa bile kayda devam et
       }
 
-      // ✅ Firebase Authentication (normalize email)
-      const normalizedEmail = email.toLowerCase().trim();
-      const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+      // ✅ Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
 
       // ✅ User data kaydet
       const userData: User = {
         uid: userCredential.user.uid,
-        email: normalizedEmail,
+        email,
         displayName,
         credits: 1,
         totalSpent: 0,
@@ -86,9 +85,8 @@ export const authService = {
         console.warn('⚠️ IP kontrolü başarısız, devam ediliyor:', ipError);
       }
 
-      // ✅ Firebase login (normalize email)
-      const normalizedEmail = email.toLowerCase().trim();
-      const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+      // ✅ Firebase login
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
       // ✅ Ban kontrolü
       const userRef = ref(database, `users/${userCredential.user.uid}`);
@@ -140,10 +138,10 @@ export const authService = {
       const snapshot = await get(userRef);
 
       if (!snapshot.exists()) {
-        // ✅ Yeni kullanıcı - kaydet (normalize email)
+        // ✅ Yeni kullanıcı - kaydet
         const userData: User = {
           uid: user.uid,
-          email: (user.email || '').toLowerCase().trim(),
+          email: user.email || '',
           displayName: user.displayName || '',
           photoURL: user.photoURL || '',
           credits: 1,
