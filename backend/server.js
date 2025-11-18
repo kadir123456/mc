@@ -84,8 +84,10 @@ app.get('/api/football/*', async (req, res) => {
 
 // Bülten Analiz Endpoint
 app.post('/api/gemini/analyze', async (req, res) => {
+  let creditsDeducted = false;
+  const { matches, userId, creditsToDeduct } = req.body;
+  
   try {
-    const { matches, userId, creditsToDeduct } = req.body;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     if (!GEMINI_API_KEY) {
@@ -102,7 +104,8 @@ app.post('/api/gemini/analyze', async (req, res) => {
       try {
         const analysisType = creditsToDeduct === 5 ? 'detailed' : 'standard';
         await deductCreditsFromUser(userId, creditsToDeduct, analysisType);
-        console.log(`✅ ${creditsToDeduct} kredi düşüldü (${userId})`);
+        creditsDeducted = true;
+        console.log(`💰 ${creditsToDeduct} kredi düşüldü: ${userId}`);
       } catch (creditError) {
         console.error('❌ Kredi düşürme hatası:', creditError.message);
         return res.status(400).json({ error: creditError.message });
@@ -143,7 +146,8 @@ SADECE JSON yanıt ver, başka metin ekleme.`
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2000
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json"
         }
       },
       {
@@ -158,16 +162,35 @@ SADECE JSON yanıt ver, başka metin ekleme.`
       throw new Error('Gemini yanıtı alınamadı');
     }
 
-    // JSON parse et
-    const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
-    const analysisData = jsonMatch ? JSON.parse(jsonMatch[0]) : { analyses: [] };
+    // Güvenli JSON parse
+    let analysisData;
+    try {
+      analysisData = parseGeminiJSON(geminiText);
+      if (!analysisData.analyses) {
+        analysisData = { analyses: [] };
+      }
+    } catch (parseError) {
+      console.error('❌ JSON parse hatası:', parseError.message);
+      throw new Error('Analiz sonuçları işlenirken hata oluştu');
+    }
 
     console.log(`✅ Gemini analizi tamamlandı: ${analysisData.analyses?.length || 0} tahmin`);
     
     res.json(analysisData);
 
   } catch (error) {
-    console.error('❌ Gemini analiz hatası:', error.response?.data || error.message);
+    console.error('❌ Gemini analiz hatası:', error.message);
+    
+    // Hata durumunda kredi iadesi yap
+    if (creditsDeducted && firebaseInitialized && userId && creditsToDeduct) {
+      try {
+        await refundCreditsToUser(userId, creditsToDeduct, 'Analiz hatası - otomatik iade');
+        console.log(`♻️ ${creditsToDeduct} kredi iade edildi: ${userId}`);
+      } catch (refundError) {
+        console.error('❌ Kredi iadesi hatası:', refundError.message);
+      }
+    }
+    
     res.status(500).json({ 
       error: 'Analiz yapılamadı',
       details: error.message 
@@ -230,7 +253,8 @@ SADECE JSON yanıt ver.`
         }],
         generationConfig: {
           temperature: 0.4,
-          maxOutputTokens: 2000
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json"
         }
       },
       {
@@ -245,16 +269,27 @@ SADECE JSON yanıt ver.`
       throw new Error('Gemini yanıtı alınamadı');
     }
 
-    // JSON parse et
-    const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
-    const analysisData = jsonMatch ? JSON.parse(jsonMatch[0]) : { matches: [], summary: '' };
+    // Güvenli JSON parse
+    let analysisData;
+    try {
+      analysisData = parseGeminiJSON(geminiText);
+      if (!analysisData.matches) {
+        analysisData.matches = [];
+      }
+      if (!analysisData.summary) {
+        analysisData.summary = '';
+      }
+    } catch (parseError) {
+      console.error('❌ JSON parse hatası:', parseError.message);
+      throw new Error('Görsel işlenirken hata oluştu');
+    }
 
     console.log(`✅ Görsel analizi tamamlandı: ${analysisData.matches?.length || 0} maç bulundu`);
     
     res.json(analysisData);
 
   } catch (error) {
-    console.error('❌ Görsel analiz hatası:', error.response?.data || error.message);
+    console.error('❌ Görsel analiz hatası:', error.message);
     res.status(500).json({ 
       error: 'Görsel analizi yapılamadı',
       details: error.message 
@@ -266,8 +301,10 @@ SADECE JSON yanıt ver.`
 
 // Görsel Analiz Kupon Endpoint
 app.post('/api/analyze-coupon-image', async (req, res) => {
+  let creditsDeducted = false;
+  const { image, userId, creditsToDeduct, analysisType } = req.body;
+  
   try {
-    const { image, userId, creditsToDeduct, analysisType } = req.body;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const FOOTBALL_API_KEY = process.env.API_FOOTBALL_KEY;
 
@@ -293,14 +330,15 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
     if (firebaseInitialized) {
       try {
         await deductCreditsFromUser(userId, parseInt(creditsToDeduct), 'image_analysis');
-        console.log(`✅ ${creditsToDeduct} kredi düşüldü (${userId})`);
+        creditsDeducted = true;
+        console.log(`💰 ${creditsToDeduct} kredi düşüldü: ${userId}`);
       } catch (creditError) {
         console.error('❌ Kredi düşürme hatası:', creditError.message);
         return res.status(400).json({ error: creditError.message });
       }
     }
 
-    console.log('🖼️ Görsel kupon analizi başlatılıyor...');
+    console.log('🖼️ Kupon görsel analizi başlatılıyor...');
 
     // Base64'ten data:image prefix'ini temizle
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
@@ -342,7 +380,8 @@ SADECE JSON yanıt ver, başka metin ekleme.`
         }],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 2000
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json"
         }
       },
       {
@@ -356,10 +395,16 @@ SADECE JSON yanıt ver, başka metin ekleme.`
       throw new Error('Gemini yanıtı alınamadı');
     }
 
-    const jsonMatch = extractText.match(/\{[\s\S]*\}/);
-    const extractedData = jsonMatch ? JSON.parse(jsonMatch[0]) : { matches: [] };
-    const extractedMatches = extractedData.matches || [];
+    // Güvenli JSON parse
+    let extractedData;
+    try {
+      extractedData = parseGeminiJSON(extractText);
+    } catch (parseError) {
+      console.error('❌ Maç çıkarma JSON parse hatası:', parseError.message);
+      throw new Error('Görsel işlenirken hata oluştu. Lütfen tekrar deneyin.');
+    }
 
+    const extractedMatches = extractedData.matches || [];
     console.log(`✅ ${extractedMatches.length} maç çıkarıldı`);
 
     if (extractedMatches.length === 0) {
@@ -403,37 +448,47 @@ SADECE JSON yanıt ver, başka metin ekleme.`
 
           if (match) {
             // 3. Adım: Gemini ile tahmin yap
-            let prediction = '';
+            let prediction = 'Tahmin yapılamadı';
             
-            const predictionPrompt = buildPredictionPrompt(
-              match.teams.home.name,
-              match.teams.away.name,
-              match.league.name,
-              analysisType
-            );
+            try {
+              const predictionPrompt = buildPredictionPrompt(
+                match.teams.home.name,
+                match.teams.away.name,
+                match.league.name,
+                analysisType
+              );
 
-            const predictionResponse = await axios.post(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-              {
-                contents: [{
-                  parts: [{ text: predictionPrompt }]
-                }],
-                generationConfig: {
-                  temperature: 0.3,
-                  maxOutputTokens: 500
+              const predictionResponse = await axios.post(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+                {
+                  contents: [{
+                    parts: [{ text: predictionPrompt }]
+                  }],
+                  generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 500,
+                    responseMimeType: "application/json"
+                  }
+                },
+                {
+                  headers: { 'Content-Type': 'application/json' },
+                  timeout: 30000
                 }
-              },
-              {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: 30000
-              }
-            );
+              );
 
-            const predictionText = predictionResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (predictionText) {
-              const predJsonMatch = predictionText.match(/\{[\s\S]*\}/);
-              const predData = predJsonMatch ? JSON.parse(predJsonMatch[0]) : {};
-              prediction = predData.prediction || 'Tahmin yapılamadı';
+              const predictionText = predictionResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (predictionText) {
+                try {
+                  const predData = parseGeminiJSON(predictionText);
+                  prediction = predData.prediction || 'Tahmin yapılamadı';
+                } catch (predParseError) {
+                  console.error('⚠️ Tahmin JSON parse hatası:', predParseError.message);
+                  prediction = 'Tahmin yapılamadı';
+                }
+              }
+            } catch (predError) {
+              console.error('⚠️ Tahmin hatası:', predError.message);
+              prediction = 'Tahmin yapılamadı';
             }
 
             matchedMatches.push({
@@ -449,7 +504,7 @@ SADECE JSON yanıt ver, başka metin ekleme.`
               prediction
             });
 
-            console.log(`✅ Eşleşti: ${match.teams.home.name} vs ${match.teams.away.name}`);
+            console.log(`✅ Eşleşti: ${match.teams.home.name} vs ${match.teams.away.name} - ${prediction}`);
           }
         }
 
@@ -472,7 +527,18 @@ SADECE JSON yanıt ver, başka metin ekleme.`
     });
 
   } catch (error) {
-    console.error('❌ Görsel kupon analiz hatası:', error.response?.data || error.message);
+    console.error('❌ Kupon analiz hatası:', error.message);
+    
+    // Hata durumunda kredi iadesi yap
+    if (creditsDeducted && firebaseInitialized && userId && creditsToDeduct) {
+      try {
+        await refundCreditsToUser(userId, parseInt(creditsToDeduct), 'Analiz hatası - otomatik iade');
+        console.log(`♻️ ${creditsToDeduct} kredi iade edildi: ${userId}`);
+      } catch (refundError) {
+        console.error('❌ Kredi iadesi hatası:', refundError.message);
+      }
+    }
+    
     res.status(500).json({ 
       error: 'Görsel analizi yapılamadı',
       details: error.message 
@@ -630,6 +696,65 @@ async function deductCreditsFromUser(userId, credits, analysisType) {
   console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
   
   return currentCredits - credits; // Kalan kredi
+}
+
+// Helper: Kullanıcıya kredi iade et
+async function refundCreditsToUser(userId, credits, reason) {
+  if (!firebaseInitialized) {
+    throw new Error('Firebase not initialized');
+  }
+  
+  const db = admin.database();
+  const userRef = db.ref(`users/${userId}`);
+  
+  // Transaction ile güvenli kredi iadesi
+  await userRef.transaction((user) => {
+    if (user) {
+      user.credits = (user.credits || 0) + credits;
+      return user;
+    }
+    return user;
+  });
+  
+  // Transaction kaydı oluştur
+  const transactionRef = db.ref(`users/${userId}/transactions`).push();
+  await transactionRef.set({
+    type: 'refund',
+    credits: credits,
+    reason: reason,
+    status: 'completed',
+    createdAt: Date.now(),
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log(`💰 ${credits} kredi ${userId} kullanıcısına iade edildi: ${reason}`);
+}
+
+// Helper: Gemini JSON yanıtını güvenli şekilde parse et
+function parseGeminiJSON(text) {
+  if (!text) {
+    throw new Error('Boş yanıt');
+  }
+  
+  try {
+    // Markdown kod bloklarını temizle
+    let cleanText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // JSON'u bul
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('JSON bulunamadı');
+    }
+    
+    // Parse et
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed;
+    
+  } catch (error) {
+    console.error('❌ JSON parse hatası:', error.message);
+    console.error('📄 Ham yanıt:', text.substring(0, 500));
+    throw new Error(`JSON parse hatası: ${error.message}`);
+  }
 }
 
 // Shopier Callback Endpoint
