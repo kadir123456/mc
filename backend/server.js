@@ -196,7 +196,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// JSON body parser
+// JSON body parser - ÖNCE raw body'yi logla
+app.use((req, res, next) => {
+  if (req.path === '/api/analyze-coupon-image') {
+    console.log('🔍 Request alındı:', {
+      method: req.method,
+      path: req.path,
+      contentType: req.get('content-type'),
+      contentLength: req.get('content-length'),
+      hasBody: !!req.body
+    });
+  }
+  next();
+});
+
 app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -465,6 +478,11 @@ SADECE JSON yanıt ver.`
 
 app.post('/api/analyze-coupon-image', async (req, res) => {
   let creditsDeducted = false;
+  
+  console.log('🎯 ENDPOINT HIT - analyze-coupon-image');
+  console.log('📦 Request body keys:', Object.keys(req.body || {}));
+  console.log('📦 Request body:', JSON.stringify(req.body || {}).substring(0, 200));
+  
   const { image, userId, creditsToDeduct, analysisType } = req.body;
   
   console.log('📥 Gelen istek:', {
