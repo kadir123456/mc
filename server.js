@@ -313,6 +313,145 @@ SADECE JSON yanıt ver, başka metin ekleme.`;
   }
 });
 
+// ============================================
+// 🖼️ KUPON GÖRSEL ANALİZİ (FormData ile)
+// ============================================
+
+app.post('/api/analyze-coupon-image', upload.single('image'), async (req, res) => {
+  try {
+    console.log('🖼️ Kupon görsel analizi başlatılıyor...');
+    
+    if (!GEMINI_API_KEY) {
+      console.error('❌ Gemini API key bulunamadı');
+      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Görsel yüklenemedi' });
+    }
+
+    const { userId, creditsToDeduct, analysisType } = req.body;
+    
+    // Kredi kontrolü ve düşürme (opsiyonel)
+    if (userId && creditsToDeduct && firebaseDb) {
+      const userRef = firebaseDb.ref(`users/${userId}`);
+      const userSnapshot = await userRef.once('value');
+      const userData = userSnapshot.val();
+      
+      if (!userData || userData.credits < parseInt(creditsToDeduct)) {
+        return res.status(403).json({ error: 'Yetersiz kredi' });
+      }
+      
+      // Kredi düş
+      await userRef.update({
+        credits: userData.credits - parseInt(creditsToDeduct)
+      });
+      
+      console.log(`💰 ${creditsToDeduct} kredi düşüldü: ${userId}`);
+    }
+
+    // Base64'e çevir
+    const base64Image = req.file.buffer.toString('base64');
+
+    // Analiz tipine göre prompt belirle
+    let prompt = '';
+    if (analysisType === 'detailed') {
+      prompt = `Bu futbol kuponunu detaylı analiz et. Şu bilgileri çıkar:
+
+1. Tüm maçları listele (takım isimleri, oran, seçilen bahis)
+2. Her maç için tahmin ve güven oranı
+3. Kuponun genel başarı şansı
+4. Risk analizi ve öneriler
+
+JSON formatında yanıt ver:
+{
+  "matches": [
+    {
+      "homeTeam": "takım",
+      "awayTeam": "takım", 
+      "odds": {"1": oran, "X": oran, "2": oran},
+      "selectedBet": "1/X/2",
+      "prediction": "tahmin",
+      "confidence": 0-100
+    }
+  ],
+  "totalOdds": toplam_oran,
+  "successProbability": 0-100,
+  "riskLevel": "düşük/orta/yüksek",
+  "recommendations": ["öneri1", "öneri2"],
+  "summary": "genel değerlendirme"
+}`;
+    } else {
+      prompt = `Bu futbol kuponunu analiz et. Maçları, oranları ve seçilen bahisleri çıkar.
+
+JSON formatında yanıt ver:
+{
+  "matches": [
+    {
+      "homeTeam": "takım adı",
+      "awayTeam": "takım adı",
+      "odds": {"1": oran, "X": oran, "2": oran},
+      "selectedBet": "1/X/2",
+      "confidence": 0-100
+    }
+  ],
+  "totalOdds": toplam_oran,
+  "summary": "kısa değerlendirme"
+}`;
+    }
+
+    // Gemini Vision API çağrısı
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inline_data: {
+                mime_type: req.file.mimetype || 'image/jpeg',
+                data: base64Image
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 3000
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 45000
+      }
+    );
+
+    const geminiText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!geminiText) {
+      throw new Error('Gemini yanıtı alınamadı');
+    }
+
+    // JSON parse et
+    const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
+    const analysisData = jsonMatch ? JSON.parse(jsonMatch[0]) : { 
+      matches: [], 
+      summary: 'Analiz yapılamadı' 
+    };
+
+    console.log(`✅ Kupon analizi tamamlandı: ${analysisData.matches?.length || 0} maç`);
+    
+    res.json(analysisData);
+
+  } catch (error) {
+    console.error('❌ Kupon analiz hatası:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Görsel analizi yapılamadı',
+      details: error.message 
+    });
+  }
+});
+
 // Görsel Analiz Endpoint (Frontend için)
 app.post('/api/gemini/analyze-image', async (req, res) => {
   try {
