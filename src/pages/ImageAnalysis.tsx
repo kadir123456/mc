@@ -150,71 +150,69 @@ export const ImageAnalysis: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
         <div className="text-center">
-          <Zap className="w-16 h-16 mx-auto text-yellow-400 mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Giriş Yapın</h2>
-          <p className="text-slate-300 mb-6">Görsel analizi için giriş yapmalısınız</p>
+          <Zap className="w-20 h-20 mx-auto text-yellow-400 mb-6" />
+          <h2 className="text-3xl font-bold text-white mb-4">Giriş Yapın</h2>
+          <p className="text-slate-300 mb-8 text-lg">Görsel analizi için giriş yapmalısınız</p>
           <button
             onClick={() => navigate('/login')}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
-          >
-            Giriş Yap
-          </button>
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
+          >Giriş Yap</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 pb-28 md:pb-8 md:pt-20">
+    <div className="min-h-screen bg-slate-900 pb-32 md:pb-12 md:pt-20">
       {/* Header */}
       <header className="md:hidden bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 py-2.5">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="p-1.5 text-slate-300 hover:text-white"
+                className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-6 h-6" />
               </button>
-              <ImageIcon className="w-6 h-6 text-yellow-400" />
-              <h1 className="text-lg font-bold text-white">Görsel Analizi</h1>
+              <ImageIcon className="w-7 h-7 text-yellow-400" />
+              <h1 className="text-xl font-bold text-white">Görsel Analizi</h1>
             </div>
-            <div className="bg-slate-700/80 px-2.5 py-1.5 rounded text-xs font-medium text-yellow-400 flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5" />
+            <div className="bg-slate-700/80 px-4 py-2 rounded-lg text-sm font-semibold text-yellow-400 flex items-center gap-2 shadow-md">
+              <Zap className="w-4 h-4" />
               {user.credits}
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-3 py-6 md:py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 md:py-10">
         {/* Desktop Header */}
-        <div className="hidden md:block mb-8">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="hidden md:block mb-10">
+          <div className="flex items-center gap-4 mb-3">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-2 text-slate-400 hover:text-white transition"
+              className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <ImageIcon className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-3xl font-bold text-white">Maç Görseli Analizi</h1>
+            <ImageIcon className="w-10 h-10 text-yellow-400" />
+            <h1 className="text-4xl font-bold text-white">Maç Görseli Analizi</h1>
           </div>
-          <p className="text-slate-400 ml-14">
+          <p className="text-slate-400 text-lg ml-16">
             Maç listesi görselinizi yükleyin, AI ile detaylı analiz edelim
           </p>
         </div>
 
         {/* Info Card */}
-        <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <h3 className="text-blue-300 font-semibold mb-2 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5" />
+        <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-6 mb-8 shadow-lg">
+          <h3 className="text-blue-300 font-bold text-lg mb-4 flex items-center gap-2">
+            <ImageIcon className="w-6 h-6" />
             Nasıl Çalışır?
           </h3>
-          <ul className="text-sm text-slate-300 space-y-1">
+          <ul className="text-slate-300 space-y-2 leading-relaxed">
             <li>• Bülten veya müsabaka görselinizin ekran görüntüsünü alın</li>
             <li>• Görseli buraya yükleyin (3 kredi)</li>
             <li>• AI, görseldeki maçları otomatik çıkarır</li>
@@ -225,7 +223,7 @@ export const ImageAnalysis: React.FC = () => {
 
         {/* Upload Area */}
         {!result && (
-          <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-8 text-center">
+          <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-12 text-center shadow-lg">
             {!previewUrl ? (
               <div
                 onDrop={handleDrop}
@@ -240,49 +238,45 @@ export const ImageAnalysis: React.FC = () => {
                   id="file-upload"
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="w-16 h-16 mx-auto text-slate-500 mb-4" />
-                  <p className="text-white font-medium mb-2">Maç Görseli Yükle</p>
-                  <p className="text-sm text-slate-400 mb-4">
+                  <Upload className="w-20 h-20 mx-auto text-slate-500 mb-6" />
+                  <p className="text-white font-semibold text-xl mb-3">Maç Görseli Yükle</p>
+                  <p className="text-slate-400 mb-6 text-lg">
                     veya sürükleyip bırakın
                   </p>
                   <button
                     type="button"
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
-                  >
-                    Boşluğa Tıkla
-                  </button>
+                    className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all hover:scale-105 shadow-lg"
+                  >Boşluğa Tıkla</button>
                 </label>
-                <p className="text-xs text-slate-500 mt-4">
+                <p className="text-xs text-slate-500 mt-6">
                   PNG, JPG, JPEG (Max 10MB)
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <img
                   src={previewUrl}
                   alt="Preview"
-                  className="max-h-96 mx-auto rounded-lg border border-slate-600"
+                  className="max-h-96 mx-auto rounded-xl border border-slate-600 shadow-xl"
                 />
-                <div className="flex gap-3 justify-center">
+                <div className="flex gap-4 justify-center">
                   <button
                     onClick={handleReset}
-                    className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
-                  >
-                    Değiştir
-                  </button>
+                    className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
+                  >Değiştir</button>
                   <button
                     onClick={handleAnalyze}
                     disabled={uploading}
-                    className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold transition-all flex items-center gap-2 hover:scale-105 shadow-lg"
                   >
                     {uploading ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-6 h-6 animate-spin" />
                         Analiz Ediliyor...
                       </>
                     ) : (
                       <>
-                        <Zap className="w-5 h-5" />
+                        <Zap className="w-6 h-6" />
                         Analiz Et (3 Kredi)
                       </>
                     )}
@@ -295,24 +289,24 @@ export const ImageAnalysis: React.FC = () => {
 
         {/* Error */}
         {error && (
-          <div className="mt-6 bg-red-600/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div className="mt-8 bg-red-600/10 border border-red-500/30 rounded-xl p-5 flex items-start gap-4 shadow-lg">
+            <XCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-red-300 font-medium">Hata</p>
-              <p className="text-sm text-red-200/80">{error}</p>
+              <p className="text-red-300 font-semibold text-lg">Hata</p>
+              <p className="text-red-200/80 mt-1">{error}</p>
             </div>
           </div>
         )}
 
         {/* Results */}
         {result && (
-          <div className="space-y-6 mt-6">
+          <div className="space-y-8 mt-8">
             {/* Success Message */}
-            <div className="bg-green-600/10 border border-green-500/30 rounded-lg p-4 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <div className="bg-green-600/10 border border-green-500/30 rounded-xl p-5 flex items-start gap-4 shadow-lg">
+              <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-green-300 font-medium">Analiz Tamamlandı!</p>
-                <p className="text-sm text-green-200/80">
+                <p className="text-green-300 font-semibold text-lg">Analiz Tamamlandı!</p>
+                <p className="text-green-200/80 mt-1">
                   Görsel başarıyla analiz edildi ve müsabaka tahminleri hazırlandı. 3 kredi hesabınızdan düşüldü.
                 </p>
               </div>
@@ -320,27 +314,27 @@ export const ImageAnalysis: React.FC = () => {
 
             {/* Preview */}
             {previewUrl && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-blue-400" />
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 shadow-lg">
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                  <ImageIcon className="w-6 h-6 text-blue-400" />
                   Yüklenen Görsel
                 </h3>
                 <img
                   src={previewUrl}
                   alt="Analyzed"
-                  className="max-h-64 mx-auto rounded-lg border border-slate-600"
+                  className="max-h-64 mx-auto rounded-xl border border-slate-600 shadow-lg"
                 />
               </div>
             )}
 
             {/* OCR Text */}
             {result.ocrText && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 shadow-lg">
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                  <CheckCircle className="w-6 h-6 text-green-400" />
                   Çıkarılan Metin
                 </h3>
-                <pre className="text-sm text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-3 rounded max-h-64 overflow-y-auto">
+                <pre className="text-slate-300 whitespace-pre-wrap bg-slate-900/50 p-4 rounded-lg max-h-64 overflow-y-auto leading-relaxed">
                   {result.ocrText}
                 </pre>
               </div>
@@ -348,18 +342,18 @@ export const ImageAnalysis: React.FC = () => {
 
             {/* Extracted Matches */}
             {result.extractedMatches && result.extractedMatches.length > 0 && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-3">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 shadow-lg">
+                <h3 className="text-white font-bold text-lg mb-4">
                   Tespit Edilen Maçlar ({result.extractedMatches.length})
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {result.extractedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-3 rounded border border-slate-700">
-                      <p className="text-white font-medium">
+                    <div key={idx} className="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+                      <p className="text-white font-semibold text-base">
                         {match.homeTeam} <span className="text-slate-500">vs</span> {match.awayTeam}
                       </p>
                       {match.league && (
-                        <p className="text-sm text-slate-400 mt-1">{match.league}</p>
+                        <p className="text-slate-400 mt-2">{match.league}</p>
                       )}
                     </div>
                   ))}
@@ -369,45 +363,45 @@ export const ImageAnalysis: React.FC = () => {
 
             {/* Matched Matches */}
             {result.matchedMatches && result.matchedMatches.length > 0 && (
-              <div className="bg-slate-800/50 border border-green-700/30 rounded-lg p-4">
-                <h3 className="text-green-300 font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
+              <div className="bg-slate-800/50 border border-green-700/30 rounded-xl p-6 shadow-lg">
+                <h3 className="text-green-300 font-bold text-lg mb-5 flex items-center gap-2">
+                  <CheckCircle className="w-6 h-6" />
                   Müsabaka Tahminleri ({result.matchedMatches.length})
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-5">
                   {result.matchedMatches.map((match, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-4 rounded border border-green-700/30">
-                      <div className="flex items-start justify-between gap-4 mb-3">
+                    <div key={idx} className="bg-slate-900/50 p-6 rounded-xl border border-green-700/30">
+                      <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex-1">
-                          <p className="text-white font-medium text-lg">
+                          <p className="text-white font-bold text-xl mb-2">
                             {match.apiMatch.homeTeam} <span className="text-slate-500">vs</span> {match.apiMatch.awayTeam}
                           </p>
-                          <p className="text-sm text-blue-400 mt-1">{match.apiMatch.league}</p>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-blue-400 mb-2">{match.apiMatch.league}</p>
+                          <p className="text-xs text-slate-500">
                             {new Date(match.apiMatch.date).toLocaleString('tr-TR')}
                           </p>
                         </div>
-                        <span className="bg-green-600/20 text-green-300 text-xs px-2 py-1 rounded">
+                        <span className="bg-green-600/20 text-green-300 text-xs px-3 py-1 rounded-full font-semibold">
                           {match.apiMatch.status}
                         </span>
                       </div>
                       
                       {/* Tahmin Sonuçları */}
                       {match.prediction && (
-                        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-3 mt-3">
-                          <div className="flex items-center justify-between mb-2">
+                        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-xl p-4 mt-4">
+                          <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <Zap className="w-4 h-4 text-yellow-400" />
-                              <span className="text-blue-300 font-semibold">AI Tahmini:</span>
+                              <Zap className="w-5 h-5 text-yellow-400" />
+                              <span className="text-blue-300 font-bold">AI Tahmini:</span>
                               <span className="text-white font-bold text-lg">{match.prediction}</span>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2">
                               <span className="text-xs text-slate-400">Güven:</span>
-                              <span className="text-yellow-400 font-semibold">{match.confidence}%</span>
+                              <span className="text-yellow-400 font-bold">{match.confidence}%</span>
                             </div>
                           </div>
                           {match.reasoning && (
-                            <p className="text-sm text-slate-300 mt-2 border-t border-slate-700/50 pt-2">
+                            <p className="text-slate-300 mt-3 border-t border-slate-700/50 pt-3 leading-relaxed">
                               💡 {match.reasoning}
                             </p>
                           )}
@@ -421,9 +415,9 @@ export const ImageAnalysis: React.FC = () => {
 
             {/* AI Analysis */}
             {result.analysis && (
-              <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg p-6">
-                <h3 className="text-blue-300 font-semibold mb-4 flex items-center gap-2 text-lg">
-                  <Zap className="w-6 h-6" />
+              <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-8 shadow-lg">
+                <h3 className="text-blue-300 font-bold mb-5 flex items-center gap-2 text-xl">
+                  <Zap className="w-7 h-7" />
                   AI Analiz Sonucu
                 </h3>
                 <div className="prose prose-invert prose-sm max-w-none">
@@ -436,25 +430,21 @@ export const ImageAnalysis: React.FC = () => {
 
             {/* Message */}
             {result.message && (
-              <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-lg p-4">
-                <p className="text-yellow-300">{result.message}</p>
+              <div className="bg-yellow-600/10 border border-yellow-500/30 rounded-xl p-5 shadow-lg">
+                <p className="text-yellow-300 text-lg">{result.message}</p>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 justify-center pt-4">
+            <div className="flex gap-4 justify-center pt-6">
               <button
                 onClick={handleReset}
-                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
-              >
-                Yeni Analiz
-              </button>
+                className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
+              >Yeni Analiz</button>
               <button
                 onClick={() => navigate('/bulletin')}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
-              >
-                Bültene Git
-              </button>
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all"
+              >Bültene Git</button>
             </div>
           </div>
         )}

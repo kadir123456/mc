@@ -51,16 +51,14 @@ export const MyCoupons: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-6">
         <div className="text-center">
-          <Ticket className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-          <p className="text-white mb-4">Analizleri görmek için giriş yapmalısınız</p>
+          <Ticket className="w-20 h-20 mx-auto text-slate-600 mb-6" />
+          <p className="text-white text-xl mb-6">Analizleri görmek için giriş yapmalısınız</p>
           <button
             onClick={() => navigate('/login')}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
-          >
-            Giriş Yap
-          </button>
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all hover:scale-105 shadow-lg"
+          >Giriş Yap</button>
         </div>
       </div>
     );
@@ -70,76 +68,74 @@ export const MyCoupons: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-          <p className="text-white">Analizler yükleniyor...</p>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-6"></div>
+          <p className="text-white text-xl">Analizler yükleniyor...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pb-24 md:pb-8 md:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pb-32 md:pb-12 md:pt-20">
       {/* Header */}
       <header className="md:hidden bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-400 hover:text-white transition"
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-bold text-white">Analizler</h1>
-          <div className="w-9"></div>
+          <h1 className="text-xl font-bold text-white">Analizler</h1>
+          <div className="w-10"></div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Desktop Header */}
-        <div className="hidden md:block mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <Ticket className="w-8 h-8 text-blue-400" />
+        <div className="hidden md:block mb-10">
+          <h1 className="text-4xl font-bold text-white mb-3 flex items-center gap-4">
+            <Ticket className="w-10 h-10 text-blue-400" />
             Kuponlarım
           </h1>
-          <p className="text-slate-400">AI analiz sonuçlarınız</p>
+          <p className="text-slate-400 text-lg">AI analiz sonuçlarınız</p>
         </div>
 
         {coupons.length === 0 ? (
-          <div className="text-center py-16 bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
-            <Ticket className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-300 text-lg mb-2">Henüz Analiziniz yok</p>
-            <p className="text-slate-500 mb-6">Bülten'den maç seçerek ilk analizini oluşturun</p>
+          <div className="text-center py-20 bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-lg">
+            <Ticket className="w-20 h-20 mx-auto text-slate-600 mb-6" />
+            <p className="text-slate-300 text-2xl mb-3">Henüz Analiziniz yok</p>
+            <p className="text-slate-500 text-lg mb-8">Bülten'den maç seçerek ilk analizini oluşturun</p>
             <button
               onClick={() => navigate('/bulletin')}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition"
-            >
-              Maçları Görüntüle
-            </button>
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-all hover:scale-105 shadow-lg"
+            >Maçları Görüntüle</button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {coupons.map((coupon) => {
               const isExpanded = expandedCoupon === coupon.id;
 
               return (
                 <div
                   key={coupon.id}
-                  className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-300"
+                  className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-300 shadow-lg"
                 >
                   {/* Kupon Header */}
                   <button
                     onClick={() => toggleCoupon(coupon.id)}
-                    className="w-full p-5 text-left"
+                    className="w-full p-6 text-left hover:bg-slate-800/30 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                          <Ticket className="w-6 h-6 text-white" />
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                          <Ticket className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-white font-bold text-lg">Kupon #{coupon.id.slice(-6)}</h3>
-                          <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
+                          <h3 className="text-white font-bold text-xl">Kupon #{coupon.id.slice(-6)}</h3>
+                          <div className="flex items-center gap-4 text-sm text-slate-400 mt-2">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-4 h-4" />
                               {new Date(coupon.purchasedAt).toLocaleDateString('tr-TR', {
                                 day: 'numeric',
                                 month: 'short'
@@ -148,24 +144,24 @@ export const MyCoupons: React.FC = () => {
                             <span>•</span>
                             <span>{coupon.matches.length} Maç</span>
                             <span>•</span>
-                            <span className="text-yellow-400">{coupon.creditsUsed} Kredi</span>
+                            <span className="text-yellow-400 font-semibold">{coupon.creditsUsed} Kredi</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             shareCoupon(coupon);
                           }}
-                          className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+                          className="p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
                         >
-                          <Share2 className="w-4 h-4 text-slate-400" />
+                          <Share2 className="w-5 h-5 text-slate-400" />
                         </button>
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-slate-400" />
+                          <ChevronUp className="w-6 h-6 text-slate-400" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-slate-400" />
+                          <ChevronDown className="w-6 h-6 text-slate-400" />
                         )}
                       </div>
                     </div>
@@ -176,9 +172,9 @@ export const MyCoupons: React.FC = () => {
                     <div className="border-t border-slate-800/50 bg-slate-800/30">
                       {/* Yeni Format: Image Analysis Sonuçları */}
                       {coupon.matches && Array.isArray(coupon.matches) && !coupon.analysis && (
-                        <div className="p-4 space-y-3">
-                          <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-3 mb-3">
-                            <p className="text-sm text-blue-300 font-medium">
+                        <div className="p-6 space-y-4">
+                          <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-4 mb-4">
+                            <p className="text-blue-300 font-semibold">
                               Analiz Tipi: {
                                 coupon.analysisType === 'macSonucu' ? 'Maç Sonucu' :
                                 coupon.analysisType === 'karsilikliGol' ? 'Karşılıklı Gol' :
@@ -193,23 +189,23 @@ export const MyCoupons: React.FC = () => {
                           {coupon.matches.map((match: any, index: number) => (
                             <div
                               key={index}
-                              className="bg-slate-900/70 border border-slate-700/50 rounded-lg p-4 hover:border-blue-500/30 transition"
+                              className="bg-slate-900/70 border border-slate-700/50 rounded-xl p-5 hover:border-blue-500/30 transition-all"
                               data-testid={`coupon-match-${index}`}
                             >
-                              <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-start justify-between gap-4 mb-4">
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
                                       {index + 1}
                                     </div>
-                                    <span className="text-xs text-blue-300 font-medium">
+                                    <span className="text-sm text-blue-300 font-semibold">
                                       {match.league}
                                     </span>
                                   </div>
-                                  <p className="text-white font-semibold text-base">
+                                  <p className="text-white font-bold text-lg mb-2">
                                     {match.homeTeam} <span className="text-slate-500 mx-2">vs</span> {match.awayTeam}
                                   </p>
-                                  <p className="text-xs text-slate-400 mt-1">
+                                  <p className="text-sm text-slate-400">
                                     {new Date(match.date).toLocaleDateString('tr-TR', {
                                       day: '2-digit',
                                       month: 'short',
@@ -222,9 +218,9 @@ export const MyCoupons: React.FC = () => {
                               </div>
                               
                               {match.prediction && (
-                                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-lg p-3 mt-3">
-                                  <p className="text-xs text-green-300 font-medium mb-1">İstatistiksel Değerlendirme:</p>
-                                  <p className="text-white font-bold text-lg whitespace-pre-wrap">{match.prediction}</p>
+                                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-xl p-4 mt-4">
+                                  <p className="text-sm text-green-300 font-semibold mb-2">İstatistiksel Değerlendirme:</p>
+                                  <p className="text-white font-bold text-lg whitespace-pre-wrap leading-relaxed">{match.prediction}</p>
                                 </div>
                               )}
                             </div>
@@ -234,7 +230,7 @@ export const MyCoupons: React.FC = () => {
                       
                       {/* Eski Format: Standart Kuponlar */}
                       {coupon.analysis && coupon.analysis.length > 0 && (
-                        <div className="p-4 space-y-2">
+                        <div className="p-6 space-y-4">
                         {coupon.analysis.map((match, index) => {
                           // En yüksek istatistiksel değerlendirmeyi bul
                           const predictions = [
@@ -247,50 +243,50 @@ export const MyCoupons: React.FC = () => {
                           return (
                             <div
                               key={match.fixtureId}
-                              className="bg-slate-900/70 border border-slate-700/50 rounded-lg p-3 hover:border-blue-500/30 transition"
+                              className="bg-slate-900/70 border border-slate-700/50 rounded-xl p-5 hover:border-blue-500/30 transition-all"
                             >
                               {/* Başlık: Maç No + Lig */}
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
                                     {index + 1}
                                   </div>
-                                  <span className="text-xs text-blue-300 font-medium">
+                                  <span className="text-sm text-blue-300 font-semibold">
                                     {translateLeague(match.league)}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-slate-500">
+                                <span className="text-xs text-slate-500">
                                   {new Date(match.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} • {match.time}
                                 </span>
                               </div>
 
                               {/* Takımlar - Kompakt Görünüm */}
-                              <div className="mb-2">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                  <span className="text-white font-semibold">{translateTeam(match.homeTeam)}</span>
-                                  <span className="text-xs text-slate-500 px-2">vs</span>
-                                  <span className="text-white font-semibold">{translateTeam(match.awayTeam)}</span>
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-white font-bold text-base">{translateTeam(match.homeTeam)}</span>
+                                  <span className="text-sm text-slate-500 px-3">vs</span>
+                                  <span className="text-white font-bold text-base">{translateTeam(match.awayTeam)}</span>
                                 </div>
                               </div>
 
                               {/* İstatistiksel Değerlendirme - Tablo Formatı */}
-                              <div className="bg-slate-800/50 rounded-lg p-2 mb-2">
-                                <div className="grid grid-cols-3 gap-2 text-center">
-                                  <div className={`${bestPrediction.key === 'ms1' ? 'bg-green-600/20 border border-green-500/30' : ''} rounded p-1.5`}>
-                                    <div className="text-[10px] text-slate-400 mb-0.5">Ev Sahibi</div>
-                                    <div className={`text-xs font-bold ${bestPrediction.key === 'ms1' ? 'text-green-400' : 'text-white'}`}>
+                              <div className="bg-slate-800/50 rounded-xl p-3 mb-4">
+                                <div className="grid grid-cols-3 gap-3 text-center">
+                                  <div className={`${bestPrediction.key === 'ms1' ? 'bg-green-600/20 border border-green-500/30' : ''} rounded-lg p-3`}>
+                                    <div className="text-xs text-slate-400 mb-1">Ev Sahibi</div>
+                                    <div className={`text-sm font-bold ${bestPrediction.key === 'ms1' ? 'text-green-400' : 'text-white'}`}>
                                       %{match.predictions.ms1}
                                     </div>
                                   </div>
-                                  <div className={`${bestPrediction.key === 'msX' ? 'bg-yellow-600/20 border border-yellow-500/30' : ''} rounded p-1.5`}>
-                                    <div className="text-[10px] text-slate-400 mb-0.5">Beraberlik</div>
-                                    <div className={`text-xs font-bold ${bestPrediction.key === 'msX' ? 'text-yellow-400' : 'text-white'}`}>
+                                  <div className={`${bestPrediction.key === 'msX' ? 'bg-yellow-600/20 border border-yellow-500/30' : ''} rounded-lg p-3`}>
+                                    <div className="text-xs text-slate-400 mb-1">Beraberlik</div>
+                                    <div className={`text-sm font-bold ${bestPrediction.key === 'msX' ? 'text-yellow-400' : 'text-white'}`}>
                                       %{match.predictions.msX}
                                     </div>
                                   </div>
-                                  <div className={`${bestPrediction.key === 'ms2' ? 'bg-blue-600/20 border border-blue-500/30' : ''} rounded p-1.5`}>
-                                    <div className="text-[10px] text-slate-400 mb-0.5">Deplasman</div>
-                                    <div className={`text-xs font-bold ${bestPrediction.key === 'ms2' ? 'text-blue-400' : 'text-white'}`}>
+                                  <div className={`${bestPrediction.key === 'ms2' ? 'bg-blue-600/20 border border-blue-500/30' : ''} rounded-lg p-3`}>
+                                    <div className="text-xs text-slate-400 mb-1">Deplasman</div>
+                                    <div className={`text-sm font-bold ${bestPrediction.key === 'ms2' ? 'text-blue-400' : 'text-white'}`}>
                                       %{match.predictions.ms2}
                                     </div>
                                   </div>
@@ -298,13 +294,13 @@ export const MyCoupons: React.FC = () => {
                               </div>
 
                               {/* AI Tavsiyesi - Kompakt */}
-                              <div className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-1">
-                                  <Trophy className="w-3 h-3 text-yellow-400" />
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Trophy className="w-4 h-4 text-yellow-400" />
                                   <span className="text-slate-400">AI Tavsiye:</span>
                                   <span className="text-white font-bold">{bestPrediction.type}</span>
                                 </div>
-                                <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                                   match.confidence >= 70 ? 'bg-green-500/20 text-green-400' :
                                   match.confidence >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
                                   'bg-red-500/20 text-red-400'
@@ -315,8 +311,8 @@ export const MyCoupons: React.FC = () => {
 
                               {/* Öneri Metni - Opsiyonel */}
                               {match.recommendation && (
-                                <div className="mt-2 bg-blue-500/5 border border-blue-500/20 rounded p-2">
-                                  <p className="text-xs text-slate-300 leading-relaxed">{match.recommendation}</p>
+                                <div className="mt-4 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                                  <p className="text-sm text-slate-300 leading-relaxed">{match.recommendation}</p>
                                 </div>
                               )}
                             </div>
@@ -327,12 +323,12 @@ export const MyCoupons: React.FC = () => {
 
                       {/* Genel Analiz - Sadece eski kuponlar için */}
                       {coupon.analysis && coupon.analysis[0]?.analysis && (
-                        <div className="border-t border-slate-800/50 p-5">
-                          <h4 className="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-yellow-400" />
+                        <div className="border-t border-slate-800/50 p-6">
+                          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                            <Trophy className="w-5 h-5 text-yellow-400" />
                             Genel Değerlendirme
                           </h4>
-                          <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                          <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">
                             {coupon.analysis[0].analysis}
                           </p>
                         </div>
