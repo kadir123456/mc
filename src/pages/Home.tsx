@@ -13,16 +13,16 @@ export const Home: React.FC = () => {
               <Zap className="w-8 h-8 text-yellow-400" />
               <h1 className="text-2xl font-bold text-white">Aikupon</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link
                 to="/login"
-                className="text-slate-300 hover:text-white transition px-4 py-2"
+                className="text-slate-300 hover:text-white transition px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base"
               >
                 Giriş Yap
               </Link>
               <Link
                 to="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-lg font-medium transition text-sm sm:text-base"
               >
                 Ücretsiz Başla
               </Link>
@@ -55,14 +55,14 @@ export const Home: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Link
                 to="/bulletin"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold text-lg transition flex items-center gap-2 shadow-xl shadow-blue-600/20"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition flex items-center gap-2 shadow-xl shadow-blue-600/20 w-full sm:w-auto justify-center"
               >
                 Günlük Bülteni Görüntüle
                 <ChevronRight className="w-5 h-5" />
               </Link>
               <Link
                 to="/how-to-use"
-                className="bg-slate-700/50 hover:bg-slate-700 text-white px-8 py-4 rounded-lg font-bold text-lg transition border border-slate-600"
+                className="bg-slate-700/50 hover:bg-slate-700 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition border border-slate-600 w-full sm:w-auto justify-center"
               >
                 Nasıl Çalışır?
               </Link>
@@ -143,6 +143,23 @@ export const Home: React.FC = () => {
               <p className="text-xl text-slate-300">3 basit adımda istatistiksel değerlendirme</p>
             </div>
 
+            {/* Tanıtım Videosu */}
+            <div className="mb-12">
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full rounded-xl shadow-2xl border-2 border-slate-600"
+                  src="https://www.youtube.com/embed/kCBz3-lPJVc"
+                  title="Aikupon Nasıl Kullanılır?"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <p className="text-center text-slate-400 mt-4 text-sm">
+                📹 Platform kullanımını anlatan detaylı video rehberimizi izleyin
+              </p>
+            </div>
+
             <div className="space-y-8">
               <div className="flex items-start gap-6 bg-slate-700/50 border border-slate-600 rounded-xl p-8">
                 <div className="flex-shrink-0 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
@@ -187,7 +204,7 @@ export const Home: React.FC = () => {
             <div className="text-center mt-12">
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-4 rounded-lg font-bold text-lg transition shadow-2xl shadow-blue-600/30"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition shadow-2xl shadow-blue-600/30"
               >
                 Ücretsiz Dene
                 <ChevronRight className="w-5 h-5" />
@@ -217,13 +234,13 @@ export const Home: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   to="/register"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-lg font-bold text-lg transition w-full sm:w-auto"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition w-full sm:w-auto text-center"
                 >
                   Ücretsiz Kayıt Ol
                 </Link>
                 <Link
                   to="/contact"
-                  className="bg-slate-700 hover:bg-slate-600 text-white px-10 py-4 rounded-lg font-bold text-lg transition border border-slate-600 w-full sm:w-auto"
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition border border-slate-600 w-full sm:w-auto text-center"
                 >
                   İletişim
                 </Link>
