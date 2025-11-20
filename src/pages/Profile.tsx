@@ -112,26 +112,26 @@ export const Profile: React.FC = () => {
 
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-10">
         {/* Profile Card */}
-        <div className="relative mb-8 overflow-hidden">
+        <div className="relative mb-6 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 blur-3xl"></div>
-          <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-8 shadow-2xl">
-            <div className="flex items-start gap-5">
+          <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
               {/* Avatar */}
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <User className="w-12 h-12 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <User className="w-8 h-8 text-white" />
               </div>
               
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <h2 className="text-3xl font-bold text-white mb-2 truncate">
+                <h2 className="text-xl font-bold text-white mb-1 truncate">
                   {user.displayName || 'Kullanıcı'}
                 </h2>
-                <div className="flex items-center gap-2 text-base text-slate-400 mb-4">
-                  <Mail className="w-5 h-5" />
+                <div className="flex items-center gap-1.5 text-sm text-slate-400 mb-2">
+                  <Mail className="w-4 h-4" />
                   <span className="truncate">{user.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Calendar className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Calendar className="w-3 h-3" />
                   <span>
                     Üye: {new Date(user.createdAt).toLocaleDateString('tr-TR', {
                       day: 'numeric',
@@ -143,46 +143,46 @@ export const Profile: React.FC = () => {
               </div>
 
               {/* Settings Button */}
-              <button className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
-                <Settings className="w-6 h-6" />
+              <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                <Settings className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {stats.map((stat, index) => (
             <div 
               key={index}
-              className={`bg-slate-900/50 backdrop-blur border ${stat.border} rounded-xl p-5 hover:scale-105 transition-all duration-200 shadow-lg`}
+              className={`bg-slate-900/50 backdrop-blur border ${stat.border} rounded-lg p-3 hover:scale-105 transition-all duration-200 shadow-lg`}
             >
-              <div className={`w-12 h-12 ${stat.bg} rounded-lg flex items-center justify-center mb-4`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <div className={`w-8 h-8 ${stat.bg} rounded-lg flex items-center justify-center mb-2`}>
+                <stat.icon className={`w-4 h-4 ${stat.color}`} />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">{stat.value}</p>
-              <p className="text-sm text-slate-400">{stat.label}</p>
+              <p className="text-xl font-bold text-white mb-1">{stat.value}</p>
+              <p className="text-xs text-slate-400">{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* Menu Items */}
-        <div className="space-y-4 mb-8">
-          <h3 className="text-base font-bold text-slate-400 px-2">Hızlı Erişim</h3>
+        <div className="space-y-2 mb-6">
+          <h3 className="text-sm font-bold text-slate-400 px-1">Hızlı Erişim</h3>
           {menuItems.map((item, index) => (
             <button
               key={index}
               onClick={() => navigate(item.path)}
-              className="w-full bg-slate-900/50 backdrop-blur border border-slate-800/50 rounded-xl p-5 hover:bg-slate-800/50 hover:border-slate-700 transition-all duration-200 flex items-center gap-5 shadow-lg"
+              className="w-full bg-slate-900/50 backdrop-blur border border-slate-800/50 rounded-lg p-3 hover:bg-slate-800/50 hover:border-slate-700 transition-all duration-200 flex items-center gap-3 shadow-lg"
             >
-              <div className={`w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                <item.icon className={`w-7 h-7 ${item.color}`} />
+              <div className={`w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                <item.icon className={`w-5 h-5 ${item.color}`} />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-white font-bold text-base mb-1">{item.label}</p>
-                <p className="text-sm text-slate-400">{item.desc}</p>
+                <p className="text-white font-bold text-sm mb-0.5">{item.label}</p>
+                <p className="text-xs text-slate-400">{item.desc}</p>
               </div>
-              <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -190,30 +190,30 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* Account Actions */}
-        <div className="space-y-4">
-          <h3 className="text-base font-bold text-slate-400 px-2">Hesap</h3>
+        <div className="space-y-2">
+          <h3 className="text-sm font-bold text-slate-400 px-1">Hesap</h3>
           
           {user.isAdmin && (
             <button
               onClick={() => navigate('/admin')}
-              className="w-full bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/30 rounded-xl p-5 hover:from-purple-600/20 hover:to-pink-600/20 transition-all duration-200 flex items-center gap-5 shadow-lg"
+              className="w-full bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/30 rounded-lg p-3 hover:from-purple-600/20 hover:to-pink-600/20 transition-all duration-200 flex items-center gap-3 shadow-lg"
             >
-              <Shield className="w-7 h-7 text-purple-400" />
+              <Shield className="w-5 h-5 text-purple-400" />
               <div className="flex-1 text-left">
-                <p className="text-white font-bold text-base">Admin Panel</p>
-                <p className="text-sm text-purple-400">Yönetim paneline git</p>
+                <p className="text-white font-bold text-sm">Admin Panel</p>
+                <p className="text-xs text-purple-400">Yönetim paneline git</p>
               </div>
             </button>
           )}
 
           <button
             onClick={handleLogout}
-            className="w-full bg-red-600/10 border border-red-500/30 rounded-xl p-5 hover:bg-red-600/20 transition-all duration-200 flex items-center gap-5 shadow-lg"
+            className="w-full bg-red-600/10 border border-red-500/30 rounded-lg p-3 hover:bg-red-600/20 transition-all duration-200 flex items-center gap-3 shadow-lg"
           >
-            <LogOut className="w-7 h-7 text-red-400" />
+            <LogOut className="w-5 h-5 text-red-400" />
             <div className="flex-1 text-left">
-              <p className="text-white font-bold text-base">Çıkış Yap</p>
-              <p className="text-sm text-red-400">Hesaptan çıkış yap</p>
+              <p className="text-white font-bold text-sm">Çıkış Yap</p>
+              <p className="text-xs text-red-400">Hesaptan çıkış yap</p>
             </div>
           </button>
         </div>

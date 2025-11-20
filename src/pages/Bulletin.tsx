@@ -162,104 +162,104 @@ export const Bulletin: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 pb-32 md:pb-12 md:pt-20">
       <header className="md:hidden bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Zap className="w-7 h-7 text-yellow-400" />
-              <h1 className="text-xl font-bold text-white">Aikupon</h1>
+        <div className="max-w-7xl mx-auto px-3 py-2.5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-400" />
+              <h1 className="text-base font-bold text-white">Aikupon</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-700/80 px-4 py-2 rounded-lg text-sm font-semibold text-yellow-400 flex items-center gap-2 shadow-md">
-                <Zap className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <div className="bg-slate-700/80 px-3 py-1.5 rounded-lg text-xs font-semibold text-yellow-400 flex items-center gap-1.5 shadow-md">
+                <Zap className="w-3.5 h-3.5" />
                 {user.credits}
               </div>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-2.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
+                className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
               >
-                {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           {menuOpen && (
-            <div className="mb-3">
+            <div className="mb-2">
               <button
                 onClick={() => {
                   navigate('/dashboard');
                   setMenuOpen(false);
                 }}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-md"
+                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-semibold transition-all shadow-md"
               >Kredi Al</button>
             </div>
           )}
 
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Takım veya lig ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none placeholder-slate-400 shadow-md"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-700 text-white rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none placeholder-slate-400 shadow-md"
             />
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-white">Bültendeki maç saatleri Türkiye saatine göre farklılık gösterebilir</h3>
+      <div className="max-w-7xl mx-auto px-3 py-3">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 mb-3 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-white">Maç saatleri Türkiye saatine göre farklılık gösterebilir</h3>
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="text-slate-400 hover:text-white p-2 hover:bg-slate-700 rounded-lg transition-all"
+              className="text-slate-400 hover:text-white p-1 hover:bg-slate-700 rounded-lg transition-all"
             >
-              <Info className="w-5 h-5" />
+              <Info className="w-4 h-4" />
             </button>
           </div>
 
           {showInfo && (
-            <div className="mb-4 p-4 bg-blue-900/30 border border-blue-600/40 rounded-lg text-sm text-slate-200 leading-relaxed">
+            <div className="mb-2 p-2 bg-blue-900/30 border border-blue-600/40 rounded-lg text-xs text-slate-200 leading-snug">
               <strong className="text-blue-300">Standart:</strong> 3 maç, MS1-MSX-MS2, 2.5, KG (1 kredi)<br/>
               <strong className="text-purple-300">Detaylı:</strong> 5 maç + ilk yarı istatistiksel değerlendirme (5 kredi)
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => {
                 setAnalysisType('standard');
                 setSelectedMatches([]);
               }}
-              className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+              className={`p-2.5 rounded-lg border-2 transition-all duration-200 ${
                 analysisType === 'standard'
                   ? 'bg-blue-600/20 border-blue-500 text-blue-300 shadow-lg'
                   : 'bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500'
               }`}
             >
-              <div className="text-sm font-bold mb-1">Standart</div>
-              <div className="text-xs text-slate-400">3 maç • 1 kredi</div>
+              <div className="text-xs font-bold mb-0.5">Standart</div>
+              <div className="text-[10px] text-slate-400">3 maç • 1 kredi</div>
             </button>
             <button
               onClick={() => {
                 setAnalysisType('detailed');
                 setSelectedMatches([]);
               }}
-              className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+              className={`p-2.5 rounded-lg border-2 transition-all duration-200 ${
                 analysisType === 'detailed'
                   ? 'bg-purple-600/20 border-purple-500 text-purple-300 shadow-lg'
                   : 'bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500'
               }`}
             >
-              <div className="text-sm font-bold mb-1">Detaylı</div>
-              <div className="text-xs text-slate-400">5 maç • 5 kredi</div>
+              <div className="text-xs font-bold mb-0.5">Detaylı</div>
+              <div className="text-[10px] text-slate-400">5 maç • 5 kredi</div>
             </button>
           </div>
 
           {selectedMatches.length > 0 && (
-            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <div className="text-sm text-yellow-300 font-semibold">
+            <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <div className="text-xs text-yellow-300 font-semibold">
                 Seçilen: {selectedMatches.length}/{maxSelections} maç
               </div>
             </div>
@@ -267,23 +267,23 @@ export const Bulletin: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-base text-slate-300">Maçlar yükleniyor...</p>
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-3"></div>
+            <p className="text-sm text-slate-300">Maçlar yükleniyor...</p>
           </div>
         ) : filteredMatches.length === 0 ? (
-          <div className="text-center py-20 bg-slate-800/30 rounded-xl border border-slate-700">
-            <Clock className="w-16 h-16 mx-auto text-slate-500 mb-4" />
-            <p className="text-slate-300 text-base mb-2">{searchQuery ? 'Arama sonucu bulunamadı' : 'Şu an için maç bulunmuyor'}</p>
-            <p className="text-slate-500">Yakında maçlar eklenecek</p>
+          <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700">
+            <Clock className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+            <p className="text-slate-300 text-sm mb-1">{searchQuery ? 'Arama sonucu bulunamadı' : 'Şu an için maç bulunmuyor'}</p>
+            <p className="text-slate-500 text-xs">Yakında maçlar eklenecek</p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-3">
             {Object.keys(groupedMatches).map(league => (
-              <div key={league} className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
-                <div className="bg-slate-700/50 px-5 py-3 border-b border-slate-600 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-200">{translateLeague(league)}</h3>
-                  <span className="text-xs text-slate-400">
+              <div key={league} className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
+                <div className="bg-slate-700/50 px-3 py-2 border-b border-slate-600 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-200">{translateLeague(league)}</h3>
+                  <span className="text-[10px] text-slate-400">
                     {getDateDisplay(groupedMatches[league][0].date)}
                   </span>
                 </div>
@@ -300,31 +300,31 @@ export const Bulletin: React.FC = () => {
                         key={match.fixtureId}
                         onClick={() => canSelect && toggleMatchSelection(match)}
                         disabled={!canSelect || matchIsFinished}
-                        className={`w-full text-left px-5 py-4 transition-all hover:bg-slate-700/30 ${
-                          isSelected ? 'bg-blue-600/10 border-l-4 border-blue-500' : ''
+                        className={`w-full text-left px-3 py-2.5 transition-all hover:bg-slate-700/30 ${
+                          isSelected ? 'bg-blue-600/10 border-l-2 border-blue-500' : ''
                         } ${!canSelect || matchIsFinished ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-all ${
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all ${
                             isSelected
                               ? 'bg-blue-500 border-blue-500'
                               : 'border-slate-600'
                           }`}>
                             {isSelected && (
                               <div className="w-full h-full flex items-center justify-center">
-                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                               </div>
                             )}
                           </div>
-                          <span className="text-xs text-slate-500 font-medium">{formatMatchTime(match.timestamp)}</span>
+                          <span className="text-[10px] text-slate-500 font-medium">{formatMatchTime(match.timestamp)}</span>
                           
                           {matchIsLive && (
-                            <span className="text-xs bg-red-600 text-white px-2.5 py-1 rounded-full font-bold animate-pulse">
+                            <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-bold animate-pulse">
                               🔴 CANLI
                             </span>
                           )}
                           {matchIsFinished && (
-                            <span className="text-xs bg-slate-600 text-slate-300 px-2.5 py-1 rounded-full font-medium">
+                            <span className="text-[10px] bg-slate-600 text-slate-300 px-2 py-0.5 rounded-full font-medium">
                               Bitti
                             </span>
                           )}
@@ -332,17 +332,17 @@ export const Bulletin: React.FC = () => {
 
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="text-base text-white font-semibold truncate mb-1">
+                            <div className="text-sm text-white font-semibold truncate mb-0.5">
                               {translateTeam(match.homeTeam)}
                             </div>
-                            <div className="text-base text-slate-300 truncate">
+                            <div className="text-sm text-slate-300 truncate">
                               {translateTeam(match.awayTeam)}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 ml-4">
+                          <div className="flex items-center gap-2 ml-3">
                             {!matchIsFinished && (
-                              <div className="bg-blue-600/20 text-blue-400 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                              <div className="bg-blue-600/20 text-blue-400 px-2 py-1 rounded text-[10px] font-semibold">
                                 Analiz Et
                               </div>
                             )}

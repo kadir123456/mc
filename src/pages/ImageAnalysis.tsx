@@ -207,12 +207,12 @@ export const ImageAnalysis: React.FC = () => {
         </div>
 
         {/* Info Card */}
-        <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-6 mb-8 shadow-lg">
-          <h3 className="text-blue-300 font-bold text-lg mb-4 flex items-center gap-2">
-            <ImageIcon className="w-6 h-6" />
+        <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-3 mb-4 shadow-lg">
+          <h3 className="text-blue-300 font-bold text-sm mb-2 flex items-center gap-1.5">
+            <ImageIcon className="w-4 h-4" />
             Nasıl Çalışır?
           </h3>
-          <ul className="text-slate-300 space-y-2 leading-relaxed">
+          <ul className="text-slate-300 space-y-1 leading-snug text-xs">
             <li>• Bülten veya müsabaka görselinizin ekran görüntüsünü alın</li>
             <li>• Görseli buraya yükleyin (3 kredi)</li>
             <li>• AI, görseldeki maçları otomatik çıkarır</li>
@@ -223,7 +223,7 @@ export const ImageAnalysis: React.FC = () => {
 
         {/* Upload Area */}
         {!result && (
-          <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-12 text-center shadow-lg">
+          <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-6 text-center shadow-lg">
             {!previewUrl ? (
               <div
                 onDrop={handleDrop}
@@ -238,17 +238,17 @@ export const ImageAnalysis: React.FC = () => {
                   id="file-upload"
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="w-20 h-20 mx-auto text-slate-500 mb-6" />
-                  <p className="text-white font-semibold text-xl mb-3">Maç Görseli Yükle</p>
-                  <p className="text-slate-400 mb-6 text-lg">
+                  <Upload className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+                  <p className="text-white font-semibold text-base mb-2">Maç Görseli Yükle</p>
+                  <p className="text-slate-400 mb-4 text-sm">
                     veya sürükleyip bırakın
                   </p>
                   <button
                     type="button"
-                    className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all hover:scale-105 shadow-lg"
-                  >Boşluğa Tıkla</button>
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-semibold transition-all hover:scale-105 shadow-lg"
+                  >Dosya Seç</button>
                 </label>
-                <p className="text-xs text-slate-500 mt-6">
+                <p className="text-[10px] text-slate-500 mt-4">
                   PNG, JPG, JPEG (Max 10MB)
                 </p>
               </div>
