@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || '',
               photoURL: firebaseUser.photoURL || '',
-              credits: 1,
+              credits: 5,
               totalSpent: 0,
               createdAt: Date.now(),
               lastLogin: Date.now(),
