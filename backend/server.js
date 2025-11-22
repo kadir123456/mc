@@ -1,4 +1,4 @@
-// server.js
+// server.js - TAM VE DÜZELTİLMİŞ VERSİYON
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Firebase Admin SDK Initialization
+// ==================== FIREBASE ADMIN INIT ====================
 let firebaseInitialized = false;
 try {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
@@ -17,12 +17,89 @@ try {
   });
   
   firebaseInitialized = true;
-  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
-  
-  return currentCredits - credits; // Kalan kredi
+  console.log('✅ Firebase Admin SDK initialized');
+} catch (error) {
+  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
 }
 
-// Helper: Kullanıcıya kredi iade et
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// ==================== CORS AYARLARI ====================
+app.use(cors({
+  origin: '*', // Production'da: 'https://aikupon.com'
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// ==================== BODY PARSER ====================
+app.use((req, res, next) => {
+  if (req.path === '/api/analyze-coupon-image') {
+    console.log('🔍 Request alındı:', {
+      method: req.method,
+      path: req.path,
+      contentType: req.get('content-type'),
+      contentLength: req.get('content-length'),
+      hasBody: !!req.body
+    });
+  }
+  next();
+});
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ==================== HELPER FUNCTIONS ====================
+
+// Kullanıcıdan kredi düş
+async function deductCreditsFromUser(userId, credits, analysisType) {
+  if (!firebaseInitialized) {
+    throw new Error('Firebase not initialized');
+  }
+  
+  const db = admin.database();
+  const userRef = db.ref(`users/${userId}`);
+  
+  // Önce mevcut krediyi kontrol et
+  const snapshot = await userRef.once('value');
+  const userData = snapshot.val();
+  
+  if (!userData) {
+    throw new Error('Kullanıcı bulunamadı');
+  }
+  
+  const currentCredits = userData.credits || 0;
+  
+  if (currentCredits < credits) {
+    throw new Error(`Yetersiz kredi. Mevcut: ${currentCredits}, Gerekli: ${credits}`);
+  }
+  
+  // Transaction ile güvenli kredi düşürme
+  await userRef.transaction((user) => {
+    if (user && user.credits >= credits) {
+      user.credits = user.credits - credits;
+      return user;
+    }
+    return user;
+  });
+  
+  // Transaction kaydı oluştur
+  const transactionRef = db.ref(`users/${userId}/transactions`).push();
+  await transactionRef.set({
+    type: 'analysis',
+    credits: -credits,
+    analysisType: analysisType,
+    status: 'completed',
+    createdAt: Date.now(),
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
+  
+  return currentCredits - credits;
+}
+
+// Kullanıcıya kredi iade et
 async function refundCreditsToUser(userId, credits, reason) {
   if (!firebaseInitialized) {
     throw new Error('Firebase not initialized');
@@ -54,7 +131,7 @@ async function refundCreditsToUser(userId, credits, reason) {
   console.log(`💰 ${credits} kredi ${userId} kullanıcısına iade edildi: ${reason}`);
 }
 
-// Helper: Gemini JSON yanıtını güvenli şekilde parse et
+// Gemini JSON yanıtını güvenli şekilde parse et
 function parseGeminiJSON(text) {
   if (!text) {
     throw new Error('Boş yanıt');
@@ -81,142 +158,66 @@ function parseGeminiJSON(text) {
   }
 }
 
-// Shopier Callback Endpoint
-app.post('/api/shopier/callback', async (req, res) => {
-  try {
-    console.log('📦 Shopier callback alındı:', req.body);
-    
-    // Shopier'dan gelen parametreler
-    const {
-      platform_order_id,
-      order_id,
-      buyer_name,
-      buyer_email,
-      buyer_phone,
-      total_order_value,
-      status,
-      API_key,
-      random_nr
-    } = req.body;
-
-    // API Key doğrulama
-    const expectedApiKey = process.env.SHOPIER_API_USER;
-    if (API_key !== expectedApiKey) {
-      console.error('❌ Geçersiz API Key');
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Signature doğrulama (Shopier API şifre ile)
-    const signature = crypto
-      .createHash('sha256')
-      .update(`${platform_order_id}${order_id}${process.env.SHOPIER_API_SECRET}`)
-      .digest('hex');
-
-    console.log('✅ Shopier ödeme doğrulandı:', {
-      order_id,
-      buyer_email,
-      amount: total_order_value,
-      status
-    });
-
-    // Ödeme başarılı ise
-    if (status === '1' || status === 1) {
-      try {
-        // Kullanıcıyı email ile bul
-        const user = await findUserByEmail(buyer_email);
-        
-        if (!user) {
-          console.error(`❌ Kullanıcı bulunamadı: ${buyer_email}`);
-          // Yine de Shopier'a OK döneceğiz çünkü bu bizim taraf hatası
-          return res.status(200).send('OK');
-        }
-        
-        // Fiyata göre kredi miktarını belirle
-        const amount = parseInt(total_order_value);
-        const credits = PRICE_TO_CREDITS[amount];
-        
-        if (!credits) {
-          console.error(`❌ Bilinmeyen paket fiyatı: ${amount}₺`);
-          return res.status(200).send('OK');
-        }
-        
-        // Kullanıcıya kredi ekle
-        await addCreditsToUser(user.userId, credits, order_id, amount);
-        
-        console.log(`✅ Ödeme işlendi: ${credits} kredi -> ${user.userId} (${buyer_email})`);
-        
-      } catch (error) {
-        console.error('❌ Kredi ekleme hatası:', error);
-        // Yine de Shopier'a OK döneceğiz
-      }
-    } else {
-      console.log('⚠️ Ödeme başarısız veya beklemede:', status);
-    }
-
-    // Shopier'a başarılı yanıt (her durumda)
-    res.status(200).send('OK');
-
-  } catch (error) {
-    console.error('❌ Shopier callback hatası:', error);
-    // Shopier'a yine OK döneriz çünkü webhook'u tekrar göndermelerini istemeyiz
-    res.status(200).send('OK');
+// Email ile kullanıcı bul
+async function findUserByEmail(email) {
+  if (!firebaseInitialized) {
+    throw new Error('Firebase not initialized');
   }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    firebase: firebaseInitialized,
-    gemini: !!process.env.GEMINI_API_KEY,
-    football: !!process.env.API_FOOTBALL_KEY
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Backend proxy sunucusu ${PORT} portunda çalışıyor`);
-  console.log(`📡 Football API: http://localhost:${PORT}/api/football/*`);
-  console.log(`🤖 Gemini Analiz: http://localhost:${PORT}/api/gemini/analyze`);
-  console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
-  console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
-  console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
-});('✅ Firebase Admin SDK initialized');
-} catch (error) {
-  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
+  
+  const db = admin.database();
+  const usersRef = db.ref('users');
+  const snapshot = await usersRef.orderByChild('email').equalTo(email).once('value');
+  
+  if (!snapshot.exists()) {
+    return null;
+  }
+  
+  const userData = snapshot.val();
+  const userId = Object.keys(userData)[0];
+  return { userId, ...userData[userId] };
 }
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-// CORS ayarları - Tüm originlere izin ver (production'da domain belirtin)
-app.use(cors({
-  origin: '*', // Production'da: 'https://aikupon.com'
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// JSON body parser - ÖNCE raw body'yi logla
-app.use((req, res, next) => {
-  if (req.path === '/api/analyze-coupon-image') {
-    console.log('🔍 Request alındı:', {
-      method: req.method,
-      path: req.path,
-      contentType: req.get('content-type'),
-      contentLength: req.get('content-length'),
-      hasBody: !!req.body
-    });
+// Kullanıcıya kredi ekle
+async function addCreditsToUser(userId, credits, orderId, amount) {
+  if (!firebaseInitialized) {
+    throw new Error('Firebase not initialized');
   }
-  next();
-});
+  
+  const db = admin.database();
+  const userRef = db.ref(`users/${userId}`);
+  
+  // Transaction ile güvenli kredi ekleme
+  await userRef.transaction((user) => {
+    if (user) {
+      user.credits = (user.credits || 0) + credits;
+      user.totalSpent = (user.totalSpent || 0) + amount;
+      return user;
+    }
+    return user;
+  });
+  
+  // Transaction kaydı oluştur
+  const transactionRef = db.ref(`users/${userId}/transactions`).push();
+  await transactionRef.set({
+    type: 'purchase',
+    credits: credits,
+    amount: amount,
+    orderId: orderId,
+    status: 'completed',
+    provider: 'shopier',
+    createdAt: Date.now(),
+    timestamp: new Date().toISOString()
+  });
+  
+  console.log(`💰 ${credits} kredi ${userId} kullanıcısına eklendi`);
+}
 
-app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// ==================== API ENDPOINTS ====================
 
 // API-Football Proxy Endpoint
 app.get('/api/football/*', async (req, res) => {
   try {
-    const endpoint = req.params[0]; // teams, fixtures, standings vs.
+    const endpoint = req.params[0];
     const API_KEY = process.env.API_FOOTBALL_KEY;
     
     if (!API_KEY) {
@@ -474,7 +475,7 @@ SADECE JSON yanıt ver.`
   }
 });
 
-// ==================== GÖRSEL ANALİZ KUPON ENDPOINT - OPTİMİZE EDİLMİŞ ====================
+// ==================== GÖRSEL ANALİZ KUPON ENDPOINT ====================
 
 app.post('/api/analyze-coupon-image', async (req, res) => {
   let creditsDeducted = false;
@@ -616,13 +617,13 @@ SADECE JSON yanıt ver.`
       });
     }
 
-    // ADIM 2: Football API'den önümüzdeki maçları al (tek seferde)
+    // ADIM 2: Football API'den önümüzdeki maçları al
     console.log('🔍 Football API\'den maçlar alınıyor...');
     const footballResponse = await axios.get(
       'https://v3.football.api-sports.io/fixtures',
       {
         params: {
-          next: 100 // Önümüzdeki 100 maç
+          next: 100
         },
         headers: {
           'x-apisports-key': FOOTBALL_API_KEY
@@ -634,7 +635,7 @@ SADECE JSON yanıt ver.`
     const allFixtures = footballResponse.data?.response || [];
     console.log(`📊 ${allFixtures.length} maç bulundu Football API'de`);
 
-    // ADIM 3: Çıkarılan maçları API maçlarıyla eşleştir
+    // ADIM 3: Maçları eşleştir
     const matchedMatches = [];
     const unmatchedMatches = [];
 
@@ -642,12 +643,10 @@ SADECE JSON yanıt ver.`
       const homeSearch = extracted.homeTeam.toLowerCase().trim();
       const awaySearch = extracted.awayTeam.toLowerCase().trim();
 
-      // Eşleşen maçı bul
       const foundMatch = allFixtures.find(fixture => {
         const apiHome = fixture.teams.home.name.toLowerCase();
         const apiAway = fixture.teams.away.name.toLowerCase();
         
-        // Tam eşleşme veya içerme kontrolü
         const homeMatch = apiHome.includes(homeSearch) || homeSearch.includes(apiHome);
         const awayMatch = apiAway.includes(awaySearch) || awaySearch.includes(apiAway);
         
@@ -675,11 +674,10 @@ SADECE JSON yanıt ver.`
 
     console.log(`🎯 ${matchedMatches.length}/${extractedMatches.length} maç eşleştirildi`);
 
-    // ADIM 4: Eşleşen maçlar için TEK BİR GEMINI İSTEĞİ ile tüm tahminleri yap
+    // ADIM 4: Gemini ile tahmin yap
     if (matchedMatches.length > 0) {
       console.log('🤖 Gemini ile tahminler yapılıyor...');
       
-      // Analiz tipi açıklamaları
       const typeDescriptions = {
         'ilkYariSonucu': 'İLK YARI SONUCU (1: Ev sahibi önde, X: Beraberlik, 2: Deplasman önde)',
         'macSonucu': 'MAÇ SONUCU (1: Ev sahibi kazanır, X: Beraberlik, 2: Deplasman kazanır)',
@@ -692,7 +690,6 @@ SADECE JSON yanıt ver.`
 
       const predictionType = typeDescriptions[analysisType] || 'MAÇ SONUCU';
       
-      // Tüm maçları tek prompt'ta gönder
       const matchesText = matchedMatches.map((m, idx) => 
         `${idx + 1}. ${m.apiMatch.homeTeam} vs ${m.apiMatch.awayTeam}
    Lig: ${m.apiMatch.league}
@@ -760,7 +757,6 @@ KURALLAR:
             const predData = parseGeminiJSON(predictionText);
             const predictions = predData.predictions || [];
             
-            // Tahminleri eşleşen maçlara ekle
             predictions.forEach(pred => {
               const idx = pred.matchIndex;
               if (idx >= 0 && idx < matchedMatches.length) {
@@ -773,7 +769,6 @@ KURALLAR:
             console.log(`✅ ${predictions.length} tahmin tamamlandı`);
           } catch (predParseError) {
             console.error('⚠️ Tahmin JSON parse hatası:', predParseError.message);
-            // Hata durumunda varsayılan tahmin
             matchedMatches.forEach(m => {
               if (!m.prediction) {
                 m.prediction = 'Tahmin yapılamadı';
@@ -783,14 +778,12 @@ KURALLAR:
         }
       } catch (predError) {
         console.error('⚠️ Toplu tahmin hatası:', predError.message);
-        // Hata durumunda varsayılan tahmin
         matchedMatches.forEach(m => {
           m.prediction = 'Tahmin yapılamadı';
         });
       }
     }
 
-    // Sonuçları formatla ve döndür
     res.json({
       success: true,
       message: `${matchedMatches.length} maç başarıyla analiz edildi`,
@@ -803,7 +796,7 @@ KURALLAR:
     console.error('❌ Kupon analiz hatası:', error.message);
     console.error('Stack:', error.stack);
     
-    // Hata durumunda kredi iadesi yap
+    // Hata durumunda kredi iadesi
     if (creditsDeducted && firebaseInitialized && userId && creditsToDeduct) {
       try {
         await refundCreditsToUser(userId, parseInt(creditsToDeduct), 'Analiz hatası - otomatik iade');
@@ -822,7 +815,6 @@ KURALLAR:
 
 // ==================== SHOPIER ENDPOINTS ====================
 
-// Paket fiyatlarına göre kredi mapping
 const PRICE_TO_CREDITS = {
   99: 5,
   189: 10,
@@ -830,101 +822,95 @@ const PRICE_TO_CREDITS = {
   799: 50
 };
 
-// Helper: Email ile kullanıcı bul
-async function findUserByEmail(email) {
-  if (!firebaseInitialized) {
-    throw new Error('Firebase not initialized');
-  }
-  
-  const db = admin.database();
-  const usersRef = db.ref('users');
-  const snapshot = await usersRef.orderByChild('email').equalTo(email).once('value');
-  
-  if (!snapshot.exists()) {
-    return null;
-  }
-  
-  const userData = snapshot.val();
-  const userId = Object.keys(userData)[0];
-  return { userId, ...userData[userId] };
-}
+app.post('/api/shopier/callback', async (req, res) => {
+  try {
+    console.log('📦 Shopier callback alındı:', req.body);
+    
+    const {
+      platform_order_id,
+      order_id,
+      buyer_name,
+      buyer_email,
+      buyer_phone,
+      total_order_value,
+      status,
+      API_key,
+      random_nr
+    } = req.body;
 
-// Helper: Kullanıcıya kredi ekle
-async function addCreditsToUser(userId, credits, orderId, amount) {
-  if (!firebaseInitialized) {
-    throw new Error('Firebase not initialized');
-  }
-  
-  const db = admin.database();
-  const userRef = db.ref(`users/${userId}`);
-  
-  // Transaction ile güvenli kredi ekleme
-  await userRef.transaction((user) => {
-    if (user) {
-      user.credits = (user.credits || 0) + credits;
-      user.totalSpent = (user.totalSpent || 0) + amount;
-      return user;
+    const expectedApiKey = process.env.SHOPIER_API_USER;
+    if (API_key !== expectedApiKey) {
+      console.error('❌ Geçersiz API Key');
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-    return user;
-  });
-  
-  // Transaction kaydı oluştur
-  const transactionRef = db.ref(`users/${userId}/transactions`).push();
-  await transactionRef.set({
-    type: 'purchase',
-    credits: credits,
-    amount: amount,
-    orderId: orderId,
-    status: 'completed',
-    provider: 'shopier',
-    createdAt: Date.now(),
-    timestamp: new Date().toISOString()
-  });
-  
-  console.log(`💰 ${credits} kredi ${userId} kullanıcısına eklendi`);
-}
 
-// Helper: Kullanıcıdan kredi düş
-async function deductCreditsFromUser(userId, credits, analysisType) {
-  if (!firebaseInitialized) {
-    throw new Error('Firebase not initialized');
-  }
-  
-  const db = admin.database();
-  const userRef = db.ref(`users/${userId}`);
-  
-  // Önce mevcut krediyi kontrol et
-  const snapshot = await userRef.once('value');
-  const userData = snapshot.val();
-  
-  if (!userData) {
-    throw new Error('Kullanıcı bulunamadı');
-  }
-  
-  const currentCredits = userData.credits || 0;
-  
-  if (currentCredits < credits) {
-    throw new Error(`Yetersiz kredi. Mevcut: ${currentCredits}, Gerekli: ${credits}`);
-  }
-  
-  // Transaction ile güvenli kredi düşürme
-  await userRef.transaction((user) => {
-    if (user && user.credits >= credits) {
-      user.credits = user.credits - credits;
-      return user;
+    const signature = crypto
+      .createHash('sha256')
+      .update(`${platform_order_id}${order_id}${process.env.SHOPIER_API_SECRET}`)
+      .digest('hex');
+
+    console.log('✅ Shopier ödeme doğrulandı:', {
+      order_id,
+      buyer_email,
+      amount: total_order_value,
+      status
+    });
+
+    if (status === '1' || status === 1) {
+      try {
+        const user = await findUserByEmail(buyer_email);
+        
+        if (!user) {
+          console.error(`❌ Kullanıcı bulunamadı: ${buyer_email}`);
+          return res.status(200).send('OK');
+        }
+        
+        const amount = parseInt(total_order_value);
+        const credits = PRICE_TO_CREDITS[amount];
+        
+        if (!credits) {
+          console.error(`❌ Bilinmeyen paket fiyatı: ${amount}₺`);
+          return res.status(200).send('OK');
+        }
+        
+        await addCreditsToUser(user.userId, credits, order_id, amount);
+        
+        console.log(`✅ Ödeme işlendi: ${credits} kredi -> ${user.userId} (${buyer_email})`);
+        
+      } catch (error) {
+        console.error('❌ Kredi ekleme hatası:', error);
+      }
+    } else {
+      console.log('⚠️ Ödeme başarısız veya beklemede:', status);
     }
-    return user;
+
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('❌ Shopier callback hatası:', error);
+    res.status(200).send('OK');
+  }
+});
+
+// ==================== HEALTH CHECK ====================
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    firebase: firebaseInitialized,
+    gemini: !!process.env.GEMINI_API_KEY,
+    football: !!process.env.API_FOOTBALL_KEY
   });
-  
-  // Transaction kaydı oluştur
-  const transactionRef = db.ref(`users/${userId}/transactions`).push();
-  await transactionRef.set({
-    type: 'analysis',
-    credits: -credits,
-    analysisType: analysisType,
-    status: 'completed',
-    createdAt: Date.now(),
-    timestamp: new Date().toISOString()
-  });
-  
-  console.log
+});
+
+// ==================== SERVER START ====================
+
+app.listen(PORT, () => {
+  console.log(`🚀 Backend proxy sunucusu ${PORT} portunda çalışıyor`);
+  console.log(`📡 Football API: http://localhost:${PORT}/api/football/*`);
+  console.log(`🤖 Gemini Analiz: http://localhost:${PORT}/api/gemini/analyze`);
+  console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
+  console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
+  console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
+});
