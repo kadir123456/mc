@@ -21,25 +21,16 @@ export const PricingPlans: React.FC = () => {
         user.email
       );
 
-      // Yeni sekmede aç
+      // ✅ Yeni sekmede aç (SADECE yeni sekmede)
       const newWindow = window.open(paymentUrl, '_blank', 'noopener,noreferrer');
       
-      // Eğer pop-up engelleyici varsa, kullanıcıya bildir
+      // ✅ Eğer pop-up engelleyici varsa, kullanıcıyı bilgilendir (ama mevcut sekmede AÇMA)
       if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        // Pop-up engellendi, kullanıcıya alternatif sun
-        const userConfirm = window.confirm(
-          '⚠️ Pop-up engelleyici aktif olabilir.\n\n' +
-          'Ödeme sayfasını yeni sekmede açmak için "Tamam"a tıklayın.\n' +
-          'Veya "İptal" ile mevcut sekmede devam edin.'
+        alert(
+          '⚠️ Pop-up engelleyici aktif!\n\n' +
+          'Lütfen tarayıcınızın pop-up engelleyicisini devre dışı bırakın ve tekrar deneyin.\n\n' +
+          'Veya "Satın Al" butonuna tekrar tıklayın.'
         );
-        
-        if (userConfirm) {
-          // Yeniden dene
-          window.open(paymentUrl, '_blank', 'noopener,noreferrer');
-        } else {
-          // Mevcut sekmede aç (fallback)
-          window.location.href = paymentUrl;
-        }
       }
       
       setLoading(null);

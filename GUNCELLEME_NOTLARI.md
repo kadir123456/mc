@@ -1,155 +1,222 @@
-# 🎉 AİKUPON - GÜNCELLEME RAPORU
+## 📖 Proje Çalışma Mantığı (AI Kupon Analiz Platformu)
 
-## ✅ YAPILAN İYİLEŞTİRMELER
-
-### 1. **Türkiye Saati Düzeltmeleri** 🕐
-- ✅ Tüm maç saatleri artık **Türkiye saati (UTC+3)** ile gösteriliyor
-- ✅ `formatMatchTime()` fonksiyonu düzeltildi
-- ✅ Timezone: `Europe/Istanbul` kullanılıyor
-- ✅ Backend'de maç verisi kaydedilirken Türkiye saatine çevriliyor
-
-### 2. **Türkçe Çeviriler** 🇹🇷
-- ✅ **Takım isimleri Türkçe'ye çevrildi**
-  - Barselona, Bayern Münih, Rapid Viyana vb.
-  - Popüler 50+ takım çevirisi eklendi
-- ✅ **Lig isimleri tam Türkçe**
-  - Şampiyonlar Ligi, İtalya Serie A, Süper Lig vb.
-- ✅ Yeni fonksiyonlar:
-  - `translateTeam()`
-  - `translateLeague()`
-
-### 3. **Maç Durumu Gösterimleri** 📊
-- ✅ **Canlı maçlar**: 🔴 CANLI badge (animasyonlu)
-- ✅ **Bitmiş maçlar**: "Bitti" badge
-- ✅ **Gelecek maçlar**: "Analiz Et" butonu
-- ✅ Bitmiş maçlar seçilemez hale getirildi
-- ✅ Yeni fonksiyonlar:
-  - `getMatchStatusText()`
-  - `isMatchLive()`
-  - `isMatchFinished()`
-
-### 4. **Kupon Görünümü - Kompakt Tasarım** 🎫
-- ✅ Daha kompakt ve okunabilir kart tasarımı
-- ✅ **"Takım 1 vs Takım 2 = Sonuç"** formatı
-- ✅ Tahmin sonuçları tablo formatında:
-  ```
-  ┌─────────────┬─────────────┬─────────────┐
-  │  Ev Sahibi  │ Beraberlik  │ Deplasman   │
-  │    %45      │    %25      │    %30      │
-  └─────────────┴─────────────┴─────────────┘
-  ```
-- ✅ En yüksek tahmin yeşil arka plan ile vurgulanıyor
-- ✅ AI tavsiyesi kompakt gösterim
-- ✅ Güven skoru badge'i
-
-### 5. **Görsel Analiz - Kredi Sistemi** 💳
-- ✅ **Görsel analiz 3 kredi harcıyor** (düzeltildi)
-- ✅ Analiz öncesi kullanıcıya onay soruluyor
-- ✅ Yetersiz kredi kontrolü (frontend + backend)
-- ✅ Başarılı analiz sonrası kredi otomatik düşüyor
-- ✅ Backend'de güvenli kredi yönetimi
-
-### 6. **UI/UX İyileştirmeleri** 🎨
-- ✅ Bültende daha net maç kartları
-- ✅ Seçili maçlar mavi border ile vurgulanıyor
-- ✅ Bitmiş maçlar opaklık ile gösteriliyor
-- ✅ Canlı maçlar pulse animasyonu
-- ✅ Daha okunaklı font boyutları
-- ✅ Gradient renkler ve modern tasarım
-
-### 7. **Backend İyileştirmeleri** ⚙️
-- ✅ Environment variables düzenlendi
-- ✅ Firebase credentials güvenli şekilde kaydedildi
-- ✅ Gemini API entegrasyonu aktif
-- ✅ Kredi sistemi backend'de de kontrol ediliyor
-- ✅ Otomatik maç güncelleme sistemi hazır
-
-## ⚠️ ÖNEMLİ NOT: API-FOOTBALL KEY EKSİK
-
-**Maç güncellemesi çalışmıyor çünkü API-Football key eksik!**
-
-### Nasıl Eklerim?
-
-1. **API-Football Key Alın:**
-   - https://www.api-football.com/ adresine gidin
-   - Ücretsiz hesap oluşturun (günde 100 istek)
-   - API Key'inizi kopyalayın
-
-2. **Render.com'da Ekleyin:**
-   ```
-   VITE_FOOTBALL_API_KEY=your_api_key_here
-   API_FOOTBALL_KEY=your_api_key_here
-   ```
-
-3. **Maçlar Otomatik Güncellenecek:**
-   - Her 60 dakikada bir
-   - Türkiye saatine göre
-   - Otomatik temizleme
-
-## 📂 GÜNCELLENEN DOSYALAR
-
-### Frontend:
-- `/app/src/utils/leagueTranslations.ts` ➡️ Türkçe çeviriler eklendi
-- `/app/src/pages/Bulletin.tsx` ➡️ Maç durumu gösterimleri
-- `/app/src/pages/MyCoupons.tsx` ➡️ Kompakt kupon tasarımı
-- `/app/src/pages/ImageAnalysis.tsx` ➡️ Kredi sistemi düzeltmesi
-
-### Backend:
-- `/app/server.js` ➡️ Kredi kontrolü ve görsel analiz
-- `/app/backend/server.js` ➡️ API-Football proxy
-
-### Config:
-- `/app/.env.local` ➡️ Frontend environment variables
-- `/app/backend/.env` ➡️ Backend environment variables
-
-## 🚀 NASIL ÇALIŞTIRIRIM?
-
-### 1. Dependencies Yükle:
-```bash
-cd /app
-yarn install
-```
-
-### 2. Sunucuyu Başlat:
-```bash
-yarn start
-```
-
-### 3. Geliştirme Modu (isteğe bağlı):
-```bash
-yarn dev
-```
-
-## ✨ YENİ ÖZELLİKLER
-
-### Kullanıcı Deneyimi:
-- Maçlar artık Türkçe ve anlaşılır
-- Canlı maçlar net gösteriliyor
-- Kupon tasarımı mobil uyumlu
-- Kredi sistemi şeffaf çalışıyor
-
-### Teknik İyileştirmeler:
-- Timezone düzeltmeleri
-- Güvenli kredi yönetimi
-- Optimized maç filtreleme
-- Daha hızlı UI
-
-## 📞 DESTEK
-
-Sorunlarınız için:
-- Email: bilwininc@gmail.com
-- Firebase Console: https://console.firebase.google.com/
-- API-Football: https://www.api-football.com/
-
-## 🎯 SONRAKİ ADIMLAR
-
-1. ✅ API-Football key ekleyin
-2. ✅ Render.com'da environment variables güncelleyin
-3. ✅ Sunucuyu yeniden başlatın
-4. ✅ Maçların otomatik güncellendiğini kontrol edin
+### 🎯 Projenin Amacı:
+Bu bir **futbol bahis kuponu analiz platformu**. Kullanıcılar:
+- Futbol maçlarını görüntüleyebilir
+- AI ile kupon görseli analiz edebilir
+- Maç tahminleri alabilir
+- Kredi satın alarak analiz yapabilir
 
 ---
 
-**Son Güncelleme:** 15 Kasım 2025  
-**Versiyon:** 1.1.0  
-**Geliştirici:** E1 AI Agent
+## 🏗️ Mimari Yapı
+
+```
+┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+│   FRONTEND  │────────▶│   BACKEND   │────────▶│  EXTERNAL   │
+│  React +    │  /api   │  Node.js +  │         │   SERVICES  │
+│   Vite      │ (3000)  │  Express    │         │             │
+│  TypeScript │         │   (8001)    │         │             │
+└─────────────┘         └─────────────┘         └─────────────┘
+                              │                        │
+                              ▼                        ▼
+                        ┌─────────────┐         • Gemini AI
+                        │   MongoDB   │         • Football API
+                        │             │         • Firebase
+                        └─────────────┘         • Shopier Payment
+```
+
+---
+
+## 🔄 Ana Akışlar
+
+### 1️⃣ **Görsel Analiz Akışı** (ANA ÖZELLIK)
+
+```
+Kullanıcı Kupon Görseli Yükler
+         ↓
+Frontend: Base64'e çevir
+         ↓
+POST /api/analyze-coupon-image
+{
+  image: "base64...",
+  userId: "xxx",
+  creditsToDeduct: 1,
+  analysisType: "hepsi"
+}
+         ↓
+Backend: Kredi kontrol & düş
+         ↓
+ADIM 1: Gemini Vision AI (Google Search Grounding)
+   → Görselden takım isimlerini çıkar
+   → Web'den doğru takım adlarını bul
+   → Lig bilgilerini araştır
+         ↓
+ADIM 2: Football API
+   → Önümüzdeki 150 maçı al
+   → Akıllı eşleştirme (fuzzy matching)
+   → Takım isimlerini karşılaştır
+         ↓
+ADIM 3: Gemini Text AI (Google Search Grounding)
+   → Her maç için web'den form araştır
+   → H2H geçmişi, sakatlık, lig durumu
+   → AI tahmin yap (1/X/2, Alt/Üst, vb)
+         ↓
+Frontend: Sonuçları göster
+   → Tespit edilen maçlar
+   → Eşleşen maçlar
+   → AI tahminleri (güven skoru ile)
+```
+
+### 2️⃣ **Satın Alma Akışı**
+
+```
+Kullanıcı "Satın Al" Tıklar
+         ↓
+Frontend: shopierService.redirectToPayment()
+         ↓
+Yeni Sekme: Shopier Ödeme Sayfası
+   → Kullanıcı ödeme yapar
+         ↓
+Shopier Webhook → Backend
+POST /api/shopier/callback
+         ↓
+Backend:
+   → Signature doğrula
+   → Kullanıcıyı email ile bul
+   → Firebase'e kredi ekle
+   → Transaction kaydı oluştur
+         ↓
+Kullanıcı: Kredi yüklendi! ✅
+```
+
+### 3️⃣ **Bülten Analiz Akışı**
+
+```
+Kullanıcı Maçları Seçer
+         ↓
+POST /api/gemini/analyze
+{
+  matches: [...],
+  userId: "xxx",
+  creditsToDeduct: 1
+}
+         ↓
+Backend: Kredi kontrol & düş
+         ↓
+Gemini AI:
+   → Her maç için istatistik analizi
+   → Tahmin üret (1/X/2)
+   → Güven skoru hesapla
+         ↓
+Frontend: Tahminleri göster
+```
+
+---
+
+## 💾 Veri Yapısı (Firebase Realtime Database)
+
+```
+users/
+  └── {userId}/
+       ├── email: "user@example.com"
+       ├── credits: 10
+       ├── totalSpent: 189
+       ├── transactions/
+       │    └── {transactionId}
+       │         ├── type: "purchase" | "analysis" | "refund"
+       │         ├── credits: 10
+       │         ├── amount: 189
+       │         ├── status: "completed"
+       │         └── timestamp: "2025-11-23..."
+       └── analyses/
+            └── {analysisId}
+                 ├── extractedMatches: [...]
+                 ├── matchedMatches: [...]
+                 ├── savedAt: 1732362000
+                 └── previewUrl: "blob:..."
+```
+
+---
+
+## 🔑 Kullanılan Teknolojiler
+
+### Frontend:
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool & dev server
+- **Tailwind CSS** - Styling
+- **Lucide React** - Icons
+- **React Router** - Navigation
+- **Firebase SDK** - Auth & Database
+
+### Backend:
+- **Node.js** - Runtime
+- **Express** - Web server
+- **Firebase Admin SDK** - Database & Auth
+- **Axios** - HTTP client
+- **Multer** - File upload (kullanılmıyor artık)
+
+### External APIs:
+- **Gemini 2.0 Flash** - AI analiz (vision + text)
+  - Google Search Grounding özelliği ile
+- **Football API (API-Sports)** - Maç verileri
+- **Firebase Realtime Database** - Kullanıcı verileri
+- **Shopier** - Ödeme gateway
+
+---
+
+## 🔐 Kredi Sistemi
+
+### Kredi Paketleri:
+```
+5 Kredi   →  99₺
+10 Kredi  → 189₺  (Popüler)
+25 Kredi  → 449₺
+50 Kredi  → 799₺
+```
+
+### Kredi Kullanımı:
+- **Görsel Analiz**: 1 kredi
+- **Standart Analiz**: 1 kredi
+- **Detaylı Analiz**: 5 kredi
+
+### Güvenlik:
+- Firebase Transaction ile kredi düşme (atomik)
+- Hata durumunda otomatik kredi iadesi
+- Transaction kaydı her işlemde
+
+---
+
+## 🚀 Test Senaryoları
+
+Şimdi bu akışları test edebilirsiniz:
+
+### ✅ Test 1: Satın Al Butonu
+1. Frontend'e giriş yap
+2. Profil → Kredi Satın Al
+3. Bir paket seç
+4. **Beklenen**: Sadece yeni sekme açılmalı (mevcut sekme değişmemeli)
+
+### ✅ Test 2: Görsel Analiz
+1. Görsel Analizi sayfasına git
+2. Bir kupon görseli yükle (ekli görsel gibi)
+3. "Analiz Et" butonuna tıkla
+4. **Beklenen**: 
+   - Gemini görseli analiz etsin
+   - Maçlar çıkarılsın
+   - Football API ile eşleştirilsin
+   - AI tahminler üretilsin
+   - F12 Console'da hata olmamalı
+
+### ✅ Test 3: F12 Console
+1. Tarayıcıda F12 aç
+2. Görsel analiz yap
+3. **Beklenen**:
+   - ❌ 500 error OLMAMALI
+   - ❌ JSON parse hatası OLMAMALI
+   - ✅ Network tab'da 200 OK görmeli
+
+---
+
+Hazırsanız, **testing_agent** ile kapsamlı test yapabilirim! 🎯

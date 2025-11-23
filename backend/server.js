@@ -33,7 +33,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// JSON body parser
+// JSON body parser - Görsel analiz için limit artırıldı
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Request loglama
 app.use((req, res, next) => {
   if (req.path === '/api/analyze-coupon-image') {
     console.log('🔍 Request alındı:', {
@@ -41,14 +45,12 @@ app.use((req, res, next) => {
       path: req.path,
       contentType: req.get('content-type'),
       contentLength: req.get('content-length'),
-      hasBody: !!req.body
+      hasBody: !!req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : []
     });
   }
   next();
 });
-
-app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Helper: Kullanıcıya kredi iade et
 async function refundCreditsToUser(userId, credits, reason) {
@@ -89,22 +91,52 @@ function parseGeminiJSON(text) {
   }
   
   try {
-    // Markdown kod bloklarını temizle
-    let cleanText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    
-    // JSON'u bul
-    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('JSON bulunamadı');
+    // 1. Önce direkt parse dene (Gemini application/json vermiş olabilir)
+    try {
+      const directParse = JSON.parse(text);
+      if (directParse && typeof directParse === 'object') {
+        console.log('✅ Direkt JSON parse başarılı');
+        return directParse;
+      }
+    } catch (directError) {
+      // Direkt parse başarısız, temizlemeye devam et
     }
     
-    // Parse et
-    const parsed = JSON.parse(jsonMatch[0]);
+    // 2. Markdown kod bloklarını temizle
+    let cleanText = text
+      .replace(/```json\s*/gi, '')
+      .replace(/```javascript\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+    
+    // 3. Başında/sonunda metin varsa temizle
+    // İlk { ve son } arasındaki kısmı al
+    const firstBrace = cleanText.indexOf('{');
+    const lastBrace = cleanText.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+    }
+    
+    // 4. Geçersiz karakterleri temizle
+    cleanText = cleanText
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Kontrol karakterleri
+      .trim();
+    
+    // 5. Parse et
+    const parsed = JSON.parse(cleanText);
+    
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Geçersiz JSON formatı');
+    }
+    
+    console.log('✅ JSON parse başarılı (temizleme sonrası)');
     return parsed;
     
   } catch (error) {
     console.error('❌ JSON parse hatası:', error.message);
-    console.error('📄 Ham yanıt:', text.substring(0, 500));
+    console.error('📄 Ham yanıt (ilk 500 karakter):', text.substring(0, 500));
+    console.error('📄 Ham yanıt (son 500 karakter):', text.substring(Math.max(0, text.length - 500)));
     throw new Error(`JSON parse hatası: ${error.message}`);
   }
 }

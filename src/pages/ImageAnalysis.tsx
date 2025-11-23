@@ -112,16 +112,26 @@ export const ImageAnalysis: React.FC = () => {
       setError(null);
       setResult(null);
 
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-      // ✅ User ID'yi backend'e gönder (kredi düşürmek için)
-      formData.append('userId', user.uid);
-      formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
-      formData.append('analysisType', 'hepsi'); // ✅ Tüm tahmin türlerini al
+      // ✅ Görseli base64'e çevir
+      const reader = new FileReader();
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
 
+      // ✅ JSON olarak gönder (FormData yerine)
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64Image,
+          userId: user.uid,
+          creditsToDeduct: REQUIRED_CREDITS,
+          analysisType: 'hepsi', // ✅ Tüm tahmin türlerini al
+        }),
       });
 
       const data = await response.json();
