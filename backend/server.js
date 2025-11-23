@@ -6,10 +6,6 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Initialize Express App
-const app = express();
-const PORT = process.env.PORT || 8001;
-
 // Firebase Admin SDK Initialization
 let firebaseInitialized = false;
 try {
@@ -21,36 +17,10 @@ try {
   });
   
   firebaseInitialized = true;
-  console.log('✅ Firebase Admin SDK initialized');
-} catch (error) {
-  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
+  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
+  
+  return currentCredits - credits; // Kalan kredi
 }
-
-// CORS ayarları - Tüm originlere izin ver (production'da domain belirtin)
-app.use(cors({
-  origin: '*', // Production'da: 'https://aikupon.com'
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// JSON body parser - Görsel analiz için limit artırıldı
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Request loglama
-app.use((req, res, next) => {
-  if (req.path === '/api/analyze-coupon-image') {
-    console.log('🔍 Request alındı:', {
-      method: req.method,
-      path: req.path,
-      contentType: req.get('content-type'),
-      contentLength: req.get('content-length'),
-      hasBody: !!req.body,
-      bodyKeys: req.body ? Object.keys(req.body) : []
-    });
-  }
-  next();
-});
 
 // Helper: Kullanıcıya kredi iade et
 async function refundCreditsToUser(userId, credits, reason) {
@@ -91,52 +61,22 @@ function parseGeminiJSON(text) {
   }
   
   try {
-    // 1. Önce direkt parse dene (Gemini application/json vermiş olabilir)
-    try {
-      const directParse = JSON.parse(text);
-      if (directParse && typeof directParse === 'object') {
-        console.log('✅ Direkt JSON parse başarılı');
-        return directParse;
-      }
-    } catch (directError) {
-      // Direkt parse başarısız, temizlemeye devam et
+    // Markdown kod bloklarını temizle
+    let cleanText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // JSON'u bul
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('JSON bulunamadı');
     }
     
-    // 2. Markdown kod bloklarını temizle
-    let cleanText = text
-      .replace(/```json\s*/gi, '')
-      .replace(/```javascript\s*/gi, '')
-      .replace(/```\s*/g, '')
-      .trim();
-    
-    // 3. Başında/sonunda metin varsa temizle
-    // İlk { ve son } arasındaki kısmı al
-    const firstBrace = cleanText.indexOf('{');
-    const lastBrace = cleanText.lastIndexOf('}');
-    
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-    }
-    
-    // 4. Geçersiz karakterleri temizle
-    cleanText = cleanText
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Kontrol karakterleri
-      .trim();
-    
-    // 5. Parse et
-    const parsed = JSON.parse(cleanText);
-    
-    if (!parsed || typeof parsed !== 'object') {
-      throw new Error('Geçersiz JSON formatı');
-    }
-    
-    console.log('✅ JSON parse başarılı (temizleme sonrası)');
+    // Parse et
+    const parsed = JSON.parse(jsonMatch[0]);
     return parsed;
     
   } catch (error) {
     console.error('❌ JSON parse hatası:', error.message);
-    console.error('📄 Ham yanıt (ilk 500 karakter):', text.substring(0, 500));
-    console.error('📄 Ham yanıt (son 500 karakter):', text.substring(Math.max(0, text.length - 500)));
+    console.error('📄 Ham yanıt:', text.substring(0, 500));
     throw new Error(`JSON parse hatası: ${error.message}`);
   }
 }
@@ -234,7 +174,44 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ==================== API ENDPOINTS ====================
+app.listen(PORT, () => {
+  console.log(`🚀 Backend proxy sunucusu ${PORT} portunda çalışıyor`);
+  console.log(`📡 Football API: http://localhost:${PORT}/api/football/*`);
+  console.log(`🤖 Gemini Analiz: http://localhost:${PORT}/api/gemini/analyze`);
+  console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
+  console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
+  console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
+});('✅ Firebase Admin SDK initialized');
+} catch (error) {
+  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
+}
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// CORS ayarları - Tüm originlere izin ver (production'da domain belirtin)
+app.use(cors({
+  origin: '*', // Production'da: 'https://aikupon.com'
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// JSON body parser - ÖNCE raw body'yi logla
+app.use((req, res, next) => {
+  if (req.path === '/api/analyze-coupon-image') {
+    console.log('🔍 Request alındı:', {
+      method: req.method,
+      path: req.path,
+      contentType: req.get('content-type'),
+      contentLength: req.get('content-length'),
+      hasBody: !!req.body
+    });
+  }
+  next();
+});
+
+app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // API-Football Proxy Endpoint
 app.get('/api/football/*', async (req, res) => {
@@ -512,83 +489,6 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
   });
   
   try {
-    // ADIM 0: Temel parametre kontrolleri (API key kontrolünden ÖNCE)
-    if (!image) {
-      console.error('❌ Görsel parametresi eksik');
-      return res.status(400).json({ error: 'Görsel bulunamadı' });
-    }
-
-    if (!userId || !creditsToDeduct) {
-      console.error('❌ Kullanıcı bilgisi eksik');
-      return res.status(400).json({ error: 'Kullanıcı bilgisi eksik' });
-    }
-
-    console.log('🖼️ Kupon görsel analizi başlatılıyor...');
-
-    // ✅ ADIM 1: Base64 Format Kontrolü ve MIME Type Tespiti (EN ÖNCE!)
-    let base64Data = '';
-    let mimeType = 'image/jpeg'; // Varsayılan
-
-    try {
-      // 1. Data URI kontrolü
-      if (image.includes('data:image/')) {
-        // MIME type'ı çıkar
-        const mimeMatch = image.match(/data:image\/([a-zA-Z0-9+.-]+);base64,/);
-        if (mimeMatch) {
-          const detectedType = mimeMatch[1].toLowerCase();
-          // Geçerli MIME type'ları
-          const validTypes = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp'];
-          mimeType = validTypes.includes(detectedType) ? `image/${detectedType}` : 'image/jpeg';
-          console.log(`📷 Görsel formatı tespit edildi: ${mimeType}`);
-          
-          // Base64 verisini al
-          const splitIndex = image.indexOf('base64,');
-          if (splitIndex !== -1) {
-            base64Data = image.substring(splitIndex + 7);
-          } else {
-            throw new Error('Base64 verisi bulunamadı');
-          }
-        } else {
-          throw new Error('Geçersiz data URI formatı');
-        }
-      } else if (image.match(/^[A-Za-z0-9+/]+=*$/)) {
-        // Saf base64 string (data URI olmadan)
-        base64Data = image;
-        console.log('📷 Saf base64 string tespit edildi, varsayılan MIME: image/jpeg');
-      } else {
-        throw new Error('Görsel formatı tanınamadı');
-      }
-
-      // 2. Base64 boyut kontrolü
-      const sizeInBytes = (base64Data.length * 3) / 4;
-      const sizeInMB = sizeInBytes / (1024 * 1024);
-      console.log(`📊 Görsel boyutu: ${sizeInMB.toFixed(2)} MB`);
-
-      // Gemini API limiti: ~20MB (güvenlik için 15MB)
-      if (sizeInMB > 15) {
-        throw new Error(`Görsel çok büyük: ${sizeInMB.toFixed(2)} MB. Maksimum: 15 MB`);
-      }
-
-      // 3. Base64 geçerlilik kontrolü
-      if (!base64Data || base64Data.length < 50) {
-        throw new Error('Base64 verisi çok kısa veya geçersiz');
-      }
-
-      console.log(`✅ Görsel doğrulandı: ${mimeType}, ${sizeInMB.toFixed(2)} MB`);
-
-    } catch (validationError) {
-      console.error('❌ Görsel doğrulama hatası:', validationError.message);
-      
-      // NOT: Henüz kredi düşürülmediği için iade gerekmez
-      
-      return res.status(400).json({ 
-        error: 'Görsel yükleme hatası',
-        details: validationError.message,
-        hint: 'Lütfen geçerli bir görsel yükleyin (JPEG, PNG, GIF, WebP)'
-      });
-    }
-
-    // ADIM 2: API key kontrolleri (görsel doğrulandıktan SONRA)
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const FOOTBALL_API_KEY = process.env.API_FOOTBALL_KEY;
 
@@ -602,7 +502,17 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
       return res.status(500).json({ error: 'Football API key yapılandırılmamış' });
     }
 
-    // ADIM 3: Kredi düşürme işlemi (validasyondan sonra, işlemden önce)
+    if (!image) {
+      console.error('❌ Görsel parametresi eksik');
+      return res.status(400).json({ error: 'Görsel bulunamadı' });
+    }
+
+    if (!userId || !creditsToDeduct) {
+      console.error('❌ Kullanıcı bilgisi eksik');
+      return res.status(400).json({ error: 'Kullanıcı bilgisi eksik' });
+    }
+
+    // Kredi düşürme işlemi
     if (firebaseInitialized) {
       try {
         await deductCreditsFromUser(userId, parseInt(creditsToDeduct), 'image_analysis');
@@ -614,34 +524,36 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
       }
     }
 
-    // ADIM 4: Gemini ile görselden maçları çıkar (Google Search Grounding ile)
-    console.log('🤖 Gemini ile maçlar çıkarılıyor (Web Search aktif)...');
+    console.log('🖼️ Kupon görsel analizi başlatılıyor...');
+
+    // Base64'ten data:image prefix'ini temizle
+    let base64Data = image;
+    if (image.includes('base64,')) {
+      base64Data = image.split('base64,')[1];
+    }
+
+    // ADIM 1: Gemini ile görselden maçları çıkar
+    console.log('🤖 Gemini ile maçlar çıkarılıyor...');
     const extractResponse = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{
           parts: [
             {
-              text: `Bu görseldeki futbol maçlarını analiz et ve her maç için şunları yap:
+              text: `Bu görseldeki futbol maçlarının takım isimlerini çıkar.
 
-1. Takım isimlerini tespit et (Türkçe veya İngilizce olabilir)
-2. GOOGLE SEARCH kullanarak doğru ve tam takım isimlerini bul
-3. Hangi ligde oynandığını araştır
-4. Yaklaşık maç tarihini bul (bugün, yarın, bu hafta gibi)
+SADECE takım isimlerini ver, başka bilgi ekleme.
+Takım isimlerini mutlaka İNGİLİZCE yaz.
+Türkçe takım isimlerini İngilizce'ye çevir.
 
-ÖNEMLİ:
-- Takım isimlerini resmi İngilizce formatta ver (örn: "Galatasaray SK" yerine "Galatasaray")
-- Eksik veya kısaltılmış isimleri web'den tam halini bularak düzelt
-- Lig bilgisini mutlaka ekle (örn: "UEFA Champions League", "Premier League")
+Örnek: "Galatasaray" -> "Galatasaray", "Fenerbahçe" -> "Fenerbahce"
 
 JSON formatı:
 {
   "matches": [
     {
-      "homeTeam": "Tam ev sahibi takım adı (İngilizce)",
-      "awayTeam": "Tam deplasman takım adı (İngilizce)",
-      "league": "Lig adı (İngilizce)",
-      "matchInfo": "Kısa maç bilgisi (tarih, önem vb)"
+      "homeTeam": "Ev sahibi takım (İngilizce)",
+      "awayTeam": "Deplasman takım (İngilizce)"
     }
   ]
 }
@@ -650,7 +562,7 @@ SADECE JSON yanıt ver.`
             },
             {
               inline_data: {
-                mime_type: mimeType, // Dinamik MIME type
+                mime_type: 'image/jpeg',
                 data: base64Data
               }
             }
@@ -658,17 +570,13 @@ SADECE JSON yanıt ver.`
         }],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 3000,
+          maxOutputTokens: 2000,
           responseMimeType: "application/json"
-        },
-        // ✅ Google Search Grounding ekle
-        tools: [{
-          googleSearch: {}
-        }]
+        }
       },
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 60000 // Web search için daha uzun timeout
+        timeout: 45000
       }
     );
 
@@ -687,13 +595,6 @@ SADECE JSON yanıt ver.`
 
     const extractedMatches = extractedData.matches || [];
     console.log(`✅ ${extractedMatches.length} maç çıkarıldı`);
-    
-    // Çıkarılan maçları logla
-    extractedMatches.forEach((match, idx) => {
-      console.log(`  ${idx + 1}. ${match.homeTeam} vs ${match.awayTeam}`);
-      if (match.league) console.log(`     Lig: ${match.league}`);
-      if (match.matchInfo) console.log(`     Bilgi: ${match.matchInfo}`);
-    });
 
     if (extractedMatches.length === 0) {
       // Krediyi iade et - maç bulunamadı
@@ -715,13 +616,13 @@ SADECE JSON yanıt ver.`
       });
     }
 
-    // ADIM 2: Football API'den önümüzdeki maçları al
+    // ADIM 2: Football API'den önümüzdeki maçları al (tek seferde)
     console.log('🔍 Football API\'den maçlar alınıyor...');
     const footballResponse = await axios.get(
       'https://v3.football.api-sports.io/fixtures',
       {
         params: {
-          next: 150 // Daha fazla maç çek
+          next: 100 // Önümüzdeki 100 maç
         },
         headers: {
           'x-apisports-key': FOOTBALL_API_KEY
@@ -733,100 +634,50 @@ SADECE JSON yanıt ver.`
     const allFixtures = footballResponse.data?.response || [];
     console.log(`📊 ${allFixtures.length} maç bulundu Football API'de`);
 
-    // ✅ AKILLI EŞLEŞTİRME FONKSİYONU
-    function fuzzyMatchTeam(searchName, apiName) {
-      const normalize = (str) => str.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      const search = normalize(searchName);
-      const api = normalize(apiName);
-      
-      // 1. Tam eşleşme
-      if (search === api) return 100;
-      
-      // 2. Birbirini içerme
-      if (api.includes(search) || search.includes(api)) return 90;
-      
-      // 3. Kelime kelime eşleşme
-      const searchWords = search.split(' ');
-      const apiWords = api.split(' ');
-      let matchCount = 0;
-      
-      searchWords.forEach(sw => {
-        if (apiWords.some(aw => aw.includes(sw) || sw.includes(aw))) {
-          matchCount++;
-        }
-      });
-      
-      const wordMatchScore = (matchCount / searchWords.length) * 80;
-      
-      // 4. Levenshtein benzeri basit karakter eşleşmesi
-      let charMatch = 0;
-      const minLen = Math.min(search.length, api.length);
-      for (let i = 0; i < minLen; i++) {
-        if (search[i] === api[i]) charMatch++;
-      }
-      const charScore = (charMatch / Math.max(search.length, api.length)) * 60;
-      
-      return Math.max(wordMatchScore, charScore);
-    }
-
-    // ADIM 3: Çıkarılan maçları API maçlarıyla akıllıca eşleştir
+    // ADIM 3: Çıkarılan maçları API maçlarıyla eşleştir
     const matchedMatches = [];
     const unmatchedMatches = [];
 
     for (const extracted of extractedMatches) {
-      let bestMatch = null;
-      let bestScore = 0;
+      const homeSearch = extracted.homeTeam.toLowerCase().trim();
+      const awaySearch = extracted.awayTeam.toLowerCase().trim();
 
-      // Tüm API fixture'larını skorla
-      for (const fixture of allFixtures) {
-        const homeScore = fuzzyMatchTeam(extracted.homeTeam, fixture.teams.home.name);
-        const awayScore = fuzzyMatchTeam(extracted.awayTeam, fixture.teams.away.name);
+      // Eşleşen maçı bul
+      const foundMatch = allFixtures.find(fixture => {
+        const apiHome = fixture.teams.home.name.toLowerCase();
+        const apiAway = fixture.teams.away.name.toLowerCase();
         
-        // Lig eşleşmesi varsa bonus
-        let leagueBonus = 0;
-        if (extracted.league && fixture.league.name) {
-          const leagueMatch = fuzzyMatchTeam(extracted.league, fixture.league.name);
-          leagueBonus = leagueMatch > 70 ? 10 : 0;
-        }
+        // Tam eşleşme veya içerme kontrolü
+        const homeMatch = apiHome.includes(homeSearch) || homeSearch.includes(apiHome);
+        const awayMatch = apiAway.includes(awaySearch) || awaySearch.includes(apiAway);
         
-        const totalScore = homeScore + awayScore + leagueBonus;
-        
-        // En az %60 eşleşme gerekli (her takım için ortalama %30)
-        if (totalScore > bestScore && homeScore > 50 && awayScore > 50) {
-          bestScore = totalScore;
-          bestMatch = fixture;
-        }
-      }
+        return homeMatch && awayMatch;
+      });
 
-      if (bestMatch && bestScore > 120) { // İyi eşleşme
+      if (foundMatch) {
         matchedMatches.push({
           extracted,
           apiMatch: {
-            fixtureId: bestMatch.fixture.id,
-            homeTeam: bestMatch.teams.home.name,
-            awayTeam: bestMatch.teams.away.name,
-            league: bestMatch.league.name,
-            date: bestMatch.fixture.date,
-            status: bestMatch.fixture.status.long
-          },
-          matchScore: bestScore.toFixed(0)
+            fixtureId: foundMatch.fixture.id,
+            homeTeam: foundMatch.teams.home.name,
+            awayTeam: foundMatch.teams.away.name,
+            league: foundMatch.league.name,
+            date: foundMatch.fixture.date,
+            status: foundMatch.fixture.status.long
+          }
         });
-        console.log(`✅ Eşleşti (Skor: ${bestScore.toFixed(0)}): ${bestMatch.teams.home.name} vs ${bestMatch.teams.away.name}`);
+        console.log(`✅ Eşleşti: ${foundMatch.teams.home.name} vs ${foundMatch.teams.away.name}`);
       } else {
         unmatchedMatches.push(extracted);
-        console.log(`❌ Eşleşmedi (En iyi skor: ${bestScore.toFixed(0)}): ${extracted.homeTeam} vs ${extracted.awayTeam}`);
+        console.log(`❌ Eşleşmedi: ${extracted.homeTeam} vs ${extracted.awayTeam}`);
       }
     }
 
     console.log(`🎯 ${matchedMatches.length}/${extractedMatches.length} maç eşleştirildi`);
 
-    // ADIM 4: Eşleşen maçlar için GOOGLE SEARCH ile detaylı analiz ve tahmin
+    // ADIM 4: Eşleşen maçlar için TEK BİR GEMINI İSTEĞİ ile tüm tahminleri yap
     if (matchedMatches.length > 0) {
-      console.log('🤖 Gemini ile tahminler yapılıyor (Google Search ile araştırma)...');
+      console.log('🤖 Gemini ile tahminler yapılıyor...');
       
       // Analiz tipi açıklamaları
       const typeDescriptions = {
@@ -845,20 +696,10 @@ SADECE JSON yanıt ver.`
       const matchesText = matchedMatches.map((m, idx) => 
         `${idx + 1}. ${m.apiMatch.homeTeam} vs ${m.apiMatch.awayTeam}
    Lig: ${m.apiMatch.league}
-   Tarih: ${new Date(m.apiMatch.date).toLocaleDateString('tr-TR')}
-   Fixture ID: ${m.apiMatch.fixtureId}`
+   Tarih: ${new Date(m.apiMatch.date).toLocaleDateString('tr-TR')}`
       ).join('\n\n');
 
       const bulkPredictionPrompt = `Sen profesyonel bir futbol analisti ve istatistik uzmanısın.
-
-🔍 HER MAÇ İÇİN GOOGLE SEARCH KULLANARAK ŞU BİLGİLERİ ARAŞTIR:
-1. Her iki takımın son 5 maç formu
-2. Takımların kafa kafaya (H2H) geçmişi
-3. Sakatlık ve ceza durumları
-4. Lig sıralaması ve puan durumu
-5. Son transfer haberleri ve takım morali
-6. Ev sahibi avantajı istatistikleri
-7. Son maçlardaki gol ortalamaları
 
 AŞAĞIDAKİ MAÇLAR İÇİN "${predictionType}" TAHMİNİ YAP:
 
@@ -871,9 +712,9 @@ ${matchesText}
       "matchIndex": 0,
       "homeTeam": "Takım adı",
       "awayTeam": "Takım adı",
-      "prediction": "KAZANMA İHTİMALİ EN YÜKSEK TAHMİN",
+      "prediction": "tahminin",
       "confidence": 65,
-      "reasoning": "Web'den araştırdığın verilere dayalı kısa açıklama (max 150 karakter)"
+      "reasoning": "Kısa açıklama"
     }
   ]
 }
@@ -887,12 +728,10 @@ TAHMİN ÖRNEKLERİ:
 - Alt/Üst: "Alt", "Üst"
 - Hepsi: "1 & Üst & Var"
 
-ÖNEMLİ KURALLAR:
+KURALLAR:
 - Her maç için matchIndex değeri sırayla 0, 1, 2... olmalı
-- Confidence: Web'den topladığın verilere göre gerçekçi skor ver (45-85 arası)
-- Prediction: KAZANMA İHTİMALİ EN YÜKSEK seçeneği belirt
-- Reasoning: Araştırma sonuçlarına dayalı somut bilgi ver
-- Form, H2H, sakatlık gibi faktörleri dikkate al
+- Confidence 40-85 arası olsun
+- Reasoning max 100 karakter
 - SADECE JSON yanıt ver, başka metin ekleme`;
 
       try {
@@ -903,18 +742,14 @@ TAHMİN ÖRNEKLERİ:
               parts: [{ text: bulkPredictionPrompt }]
             }],
             generationConfig: {
-              temperature: 0.3, // Daha tutarlı tahminler için düşürüldü
-              maxOutputTokens: 4000,
+              temperature: 0.4,
+              maxOutputTokens: 3000,
               responseMimeType: "application/json"
-            },
-            // ✅ Google Search Grounding - Tahminler için de aktif
-            tools: [{
-              googleSearch: {}
-            }]
+            }
           },
           {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 90000 // Web search + analiz için uzun timeout
+            timeout: 45000
           }
         );
 
@@ -1092,109 +927,4 @@ async function deductCreditsFromUser(userId, credits, analysisType) {
     timestamp: new Date().toISOString()
   });
   
-
-  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
-  
-  return currentCredits - credits; // Kalan kredi
-}
-
-// ✅ Analizi Kaydet
-app.post('/api/save-analysis', async (req, res) => {
-  try {
-    const { userId, analysisData } = req.body;
-    
-    if (!userId || !analysisData) {
-      return res.status(400).json({ error: 'userId ve analysisData gerekli' });
-    }
-    
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: 'Firebase başlatılamadı' });
-    }
-    
-    const db = admin.database();
-    const analysisRef = db.ref(`users/${userId}/analyses`).push();
-    
-    await analysisRef.set({
-      ...analysisData,
-      savedAt: Date.now(),
-      timestamp: new Date().toISOString()
-    });
-    
-    res.json({ 
-      success: true, 
-      analysisId: analysisRef.key,
-      message: 'Analiz kaydedildi' 
-    });
-    
-  } catch (error) {
-    console.error('❌ Analiz kaydetme hatası:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ✅ Kullanıcının Analizlerini Getir
-app.get('/api/get-analyses/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: 'Firebase başlatılamadı' });
-    }
-    
-    const db = admin.database();
-    const analysesRef = db.ref(`users/${userId}/analyses`);
-    const snapshot = await analysesRef.once('value');
-    const data = snapshot.val();
-    
-    if (!data) {
-      return res.json({ success: true, analyses: [] });
-    }
-    
-    // Object'i array'e çevir
-    const analyses = Object.entries(data).map(([id, value]) => ({
-      id,
-      ...value
-    }));
-    
-    // Tarihe göre sırala (yeni -> eski)
-    analyses.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
-    
-    res.json({ success: true, analyses });
-    
-  } catch (error) {
-    console.error('❌ Analizler getirme hatası:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ✅ Analizi Sil
-app.delete('/api/delete-analysis/:userId/:analysisId', async (req, res) => {
-  try {
-    const { userId, analysisId } = req.params;
-    
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: 'Firebase başlatılamadı' });
-    }
-    
-    const db = admin.database();
-    const analysisRef = db.ref(`users/${userId}/analyses/${analysisId}`);
-    
-    await analysisRef.remove();
-    
-    res.json({ success: true, message: 'Analiz silindi' });
-    
-  } catch (error) {
-    console.error('❌ Analiz silme hatası:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Backend server running on port ${PORT}`);
-  console.log(`📡 Football API: http://localhost:${PORT}/api/football/*`);
-  console.log(`🤖 Gemini Analiz: http://localhost:${PORT}/api/gemini/analyze`);
-  console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
-  console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
-  console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
-});
+  console.log
