@@ -1,11 +1,13 @@
 {
   "name": "aikupon-backend-proxy",
-  "version": "1.0.0",
-  "description": "API-Football CORS proxy server",
-  "main": "backend-proxy-server.js",
+  "version": "2.0.0",
+  "description": "AI Kupon Backend - Ana API + Görsel Analiz Servisleri",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend-proxy-server.js",
-    "dev": "nodemon backend-proxy-server.js"
+    "start": "node server.js & node server2.js",
+    "start:main": "node server.js",
+    "start:image": "node server2.js",
+    "dev": "nodemon server.js & nodemon server2.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -14,7 +16,8 @@
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "axios": "^1.6.2",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^12.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
