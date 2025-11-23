@@ -37,7 +37,7 @@ export const shopierPackages: Package[] = [
 ];
 
 export const shopierService = {
-  // Shopier ödeme sayfasına yönlendir
+  // Shopier ödeme sayfasına yönlendir (Yeni sekmede)
   redirectToPayment(packageId: string, userId: string, userEmail: string, userName?: string): void {
     const pkg = shopierPackages.find((p) => p.id === packageId);
     if (!pkg || !pkg.shopierUrl) {
@@ -63,8 +63,27 @@ export const shopierService = {
       url.searchParams.append('buyer_name', userName);
     }
 
-    // Shopier sayfasına yönlendir (buyer_email parametresi ile)
-    window.location.href = url.toString();
+    // Yeni sekmede aç
+    const paymentUrl = url.toString();
+    const newWindow = window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+    
+    // Eğer pop-up engelleyici varsa, kullanıcıya bildir
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      // Pop-up engellendi, kullanıcıya alternatif sun
+      const userConfirm = window.confirm(
+        '⚠️ Pop-up engelleyici aktif olabilir.\n\n' +
+        'Ödeme sayfasını yeni sekmede açmak için "Tamam"a tıklayın.\n' +
+        'Veya "İptal" ile mevcut sekmede devam edin.'
+      );
+      
+      if (userConfirm) {
+        // Yeniden dene
+        window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        // Mevcut sekmede aç (fallback)
+        window.location.href = paymentUrl;
+      }
+    }
   },
 
   // Bekleyen ödeme bilgisini al
