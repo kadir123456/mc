@@ -21,7 +21,28 @@ export const PricingPlans: React.FC = () => {
         user.email
       );
 
-      window.open(paymentUrl, '_blank');
+      // Yeni sekmede aç
+      const newWindow = window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+      
+      // Eğer pop-up engelleyici varsa, kullanıcıya bildir
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        // Pop-up engellendi, kullanıcıya alternatif sun
+        const userConfirm = window.confirm(
+          '⚠️ Pop-up engelleyici aktif olabilir.\n\n' +
+          'Ödeme sayfasını yeni sekmede açmak için "Tamam"a tıklayın.\n' +
+          'Veya "İptal" ile mevcut sekmede devam edin.'
+        );
+        
+        if (userConfirm) {
+          // Yeniden dene
+          window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          // Mevcut sekmede aç (fallback)
+          window.location.href = paymentUrl;
+        }
+      }
+      
+      setLoading(null);
     } catch (err: any) {
       setError(err.message || 'Ödeme başlatılamadı');
       setLoading(null);
