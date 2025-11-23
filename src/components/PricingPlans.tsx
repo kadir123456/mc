@@ -21,7 +21,7 @@ export const PricingPlans: React.FC = () => {
         user.email
       );
 
-      window.location.href = paymentUrl;
+      window.open(paymentUrl, '_blank');
     } catch (err: any) {
       setError(err.message || 'Ödeme başlatılamadı');
       setLoading(null);
@@ -32,7 +32,7 @@ export const PricingPlans: React.FC = () => {
     <div className="max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold text-white mb-2">Kredi Satın Al</h2>
       <p className="text-slate-400 mb-8">
-        Standart kupon (3 maç) = 1 kredi | Detaylı kupon (5 maç + ilk yarı) = 5 kredi
+        Standart analiz (3 maç) = 1 kredi | Detaylı analiz (5 maç + ilk yarı) = 5 kredi
       </p>
 
       {error && (
@@ -70,11 +70,11 @@ export const PricingPlans: React.FC = () => {
               </li>
               <li className="flex items-start gap-3 text-slate-300">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span>{Math.floor(pkg.searches / 1)} standart kupon</span>
+                <span>{Math.floor(pkg.searches / 1)} standart analiz</span>
               </li>
               <li className="flex items-start gap-3 text-slate-300">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <span>{Math.floor(pkg.searches / 5)} detaylı kupon</span>
+                <span>{Math.floor(pkg.searches / 5)} detaylı analiz</span>
               </li>
               <li className="flex items-start gap-3 text-slate-300">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -112,7 +112,7 @@ export const PricingPlans: React.FC = () => {
         <div className="p-6 bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/30 rounded-lg">
           <h3 className="text-lg font-bold text-white mb-4">🎁 İlk Kayıt Bonusu</h3>
           <p className="text-slate-300 mb-2">
-            Yeni üyelerimize hoş geldin hediyesi olarak <strong className="text-blue-400">1 ÜCRETSİZ KREDİ</strong> veriyoruz!
+            Yeni üyelerimize hoş geldin hediyesi olarak <strong className="text-blue-400">2 ÜCRETSİZ KREDİ</strong> veriyoruz!
           </p>
           <p className="text-slate-400 text-sm">
             Sistemi denemek için 1 standart kupon (3 maç) analizi yapabilirsiniz.

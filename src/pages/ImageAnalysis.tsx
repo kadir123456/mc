@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, CheckCircle, XCircle, Zap, ArrowLeft, Save, History, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface ExtractedMatch {
@@ -33,6 +33,14 @@ interface AnalysisResult {
   analysis?: string;
 }
 
+interface SavedAnalysis {
+  id: string;
+  result: AnalysisResult;
+  previewUrl?: string;
+  savedAt: number;
+  timestamp: string;
+}
+
 export const ImageAnalysis: React.FC = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
@@ -41,6 +49,10 @@ export const ImageAnalysis: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,6 +117,7 @@ export const ImageAnalysis: React.FC = () => {
       // ✅ User ID'yi backend'e gönder (kredi düşürmek için)
       formData.append('userId', user.uid);
       formData.append('creditsToDeduct', REQUIRED_CREDITS.toString());
+      formData.append('analysisType', 'hepsi'); // ✅ Tüm tahmin türlerini al
 
       const response = await fetch('/api/analyze-coupon-image', {
         method: 'POST',
@@ -138,6 +151,103 @@ export const ImageAnalysis: React.FC = () => {
     setResult(null);
     setError(null);
   };
+
+  // Analizi kaydet
+  const handleSaveAnalysis = async () => {
+    if (!user || !result) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const response = await fetch('/api/save-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          analysisData: {
+            result,
+            previewUrl
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Kaydetme başarısız');
+      }
+
+      alert('✅ Analiz başarıyla kaydedildi!');
+      loadAnalysisHistory(); // Geçmişi yenile
+
+    } catch (err: any) {
+      console.error('Kaydetme hatası:', err);
+      setError(err.message || 'Kaydetme sırasında hata oluştu');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Geçmiş analizleri yükle
+  const loadAnalysisHistory = async () => {
+    if (!user) return;
+
+    try {
+      setLoadingHistory(true);
+
+      const response = await fetch(`/api/get-analyses/${user.uid}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSavedAnalyses(data.analyses || []);
+      }
+
+    } catch (err) {
+      console.error('Geçmiş yükleme hatası:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Analizi sil
+  const handleDeleteAnalysis = async (analysisId: string) => {
+    if (!user) return;
+    
+    if (!confirm('Bu analizi silmek istediğinizden emin misiniz?')) return;
+
+    try {
+      const response = await fetch(`/api/delete-analysis/${user.uid}/${analysisId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert('✅ Analiz silindi');
+        loadAnalysisHistory(); // Geçmişi yenile
+      }
+
+    } catch (err) {
+      console.error('Silme hatası:', err);
+      alert('❌ Silme sırasında hata oluştu');
+    }
+  };
+
+  // Kaydedilmiş analizi görüntüle
+  const handleViewSavedAnalysis = (analysis: SavedAnalysis) => {
+    setResult(analysis.result);
+    setPreviewUrl(analysis.previewUrl || null);
+    setSelectedFile(null);
+    setShowHistory(false);
+  };
+
+  // Sayfa yüklendiğinde geçmişi yükle
+  useEffect(() => {
+    if (user) {
+      loadAnalysisHistory();
+    }
+  }, [user]);
 
   if (!user) {
     return (
@@ -173,9 +283,22 @@ export const ImageAnalysis: React.FC = () => {
               <ImageIcon className="w-6 h-6 text-yellow-400" />
               <h1 className="text-lg font-bold text-white">Görsel Analizi</h1>
             </div>
-            <div className="bg-slate-700/80 px-2.5 py-1.5 rounded text-xs font-medium text-yellow-400 flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5" />
-              {user.credits}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="p-1.5 text-slate-300 hover:text-white relative"
+              >
+                <History className="w-5 h-5" />
+                {savedAnalyses.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {savedAnalyses.length}
+                  </span>
+                )}
+              </button>
+              <div className="bg-slate-700/80 px-2.5 py-1.5 rounded text-xs font-medium text-yellow-400 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5" />
+                {user.credits}
+              </div>
             </div>
           </div>
         </div>
@@ -194,9 +317,23 @@ export const ImageAnalysis: React.FC = () => {
             <ImageIcon className="w-8 h-8 text-yellow-400" />
             <h1 className="text-3xl font-bold text-white">Maç Görseli Analizi</h1>
           </div>
-          <p className="text-slate-400 ml-14">
-            Maç listesi görselinizi yükleyin, AI ile detaylı analiz edelim
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-slate-400 ml-14">
+              Maç listesi görselinizi yükleyin, AI ile detaylı analiz edelim
+            </p>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+            >
+              <History className="w-5 h-5" />
+              Geçmiş Analizler
+              {savedAnalyses.length > 0 && (
+                <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5">
+                  {savedAnalyses.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Info Card */}
@@ -236,12 +373,9 @@ export const ImageAnalysis: React.FC = () => {
                   <p className="text-sm text-slate-400 mb-4">
                     veya sürükleyip bırakın
                   </p>
-                  <button
-                    type="button"
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
-                  >
-                    Boşluğa Tıkla
-                  </button>
+                  <span className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition inline-block">
+                    Dosya Seç
+                  </span>
                 </label>
                 <p className="text-xs text-slate-500 mt-4">
                   PNG, JPG, JPEG (Max 10MB)
@@ -435,6 +569,23 @@ export const ImageAnalysis: React.FC = () => {
             {/* Actions */}
             <div className="flex gap-3 justify-center pt-4">
               <button
+                onClick={handleSaveAnalysis}
+                disabled={saving}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Kaydediliyor...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Analizi Kaydet
+                  </>
+                )}
+              </button>
+              <button
                 onClick={handleReset}
                 className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
               >
@@ -447,6 +598,73 @@ export const ImageAnalysis: React.FC = () => {
                 Bültene Git
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Geçmiş Analizler */}
+        {showHistory && (
+          <div className="mt-8 bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <History className="w-6 h-6 text-blue-400" />
+                Kaydedilmiş Analizler ({savedAnalyses.length})
+              </h3>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingHistory ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-8 h-8 mx-auto text-blue-400 animate-spin mb-2" />
+                <p className="text-slate-400">Yükleniyor...</p>
+              </div>
+            ) : savedAnalyses.length === 0 ? (
+              <div className="text-center py-8">
+                <History className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+                <p className="text-slate-400">Henüz kaydedilmiş analiz yok</p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                {savedAnalyses.map((analysis) => (
+                  <div
+                    key={analysis.id}
+                    className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-blue-500/50 transition"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <ImageIcon className="w-5 h-5 text-blue-400" />
+                          <p className="text-white font-medium">
+                            {analysis.result.matchedMatches?.length || 0} Maç Analizi
+                          </p>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {new Date(analysis.savedAt).toLocaleString('tr-TR')}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleViewSavedAnalysis(analysis)}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition"
+                        >
+                          Görüntüle
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAnalysis(analysis.id)}
+                          className="p-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
