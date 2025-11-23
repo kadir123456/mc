@@ -1,57 +1,18 @@
-// server2.js - Görsel Analiz Servisi (Gelişmiş)
+// routes/imageAnalysis.js - Gelişmiş Görsel Analiz
 const express = require('express');
-const cors = require('cors');
 const axios = require('axios');
-require('dotenv').config();
+const router = express.Router();
 
 const {
   firebaseInitialized,
   parseGeminiJSON,
   refundCreditsToUser,
   deductCreditsFromUser
-} = require('./utils');
-
-const app = express();
-const PORT = process.env.PORT2 || 3002;
-
-// CORS ayarları
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// JSON body parser - Görsel analiz için büyük limit
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-
-// Request logger
-app.use((req, res, next) => {
-  if (req.path === '/api/analyze-coupon-image') {
-    console.log('🔍 Görsel analiz isteği alındı:', {
-      hasImage: !!req.body?.image,
-      userId: req.body?.userId,
-      analysisType: req.body?.analysisType
-    });
-  }
-  next();
-});
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    service: 'image-analysis',
-    timestamp: new Date().toISOString(),
-    firebase: firebaseInitialized,
-    gemini: !!process.env.GEMINI_API_KEY,
-    football: !!process.env.FOOTBALL_API_KEY
-  });
-});
+} = require('../utils');
 
 // ==================== GELİŞMİŞ GÖRSEL ANALİZ ====================
 
-app.post('/api/analyze-coupon-image', async (req, res) => {
+router.post('/api/analyze-coupon-image', async (req, res) => {
   let creditsDeducted = false;
   
   try {
@@ -96,7 +57,7 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
       }
     }
 
-    console.log('🖼️ GELİŞMİŞ KUPON ANALİZİ BAŞLIYOR...');
+    console.log('\n🎯 GELİŞMİŞ KUPON ANALİZİ BAŞLIYOR...');
 
     // Base64 temizleme
     let base64Data = image;
@@ -394,7 +355,7 @@ TAHMİN ÖRNEKLERİ:
 - Alt/Üst: "Alt", "Üst"
 - Hepsi: "1 & Üst & Var"
 
-ÖNEMLI:
+ÖNEMLİ:
 - matchIndex 0'dan başla (0, 1, 2...)
 - confidence 50-85 arası olsun (çok yüksek güven verme)
 - reasoning'de kullandığın istatistikleri belirt
@@ -500,10 +461,4 @@ TAHMİN ÖRNEKLERİ:
   }
 });
 
-// ==================== SERVER START ====================
-app.listen(PORT, () => {
-  console.log(`\n🎯 GÖRSEL ANALİZ SERVİSİ BAŞLATILDI`);
-  console.log(`📡 Port: ${PORT}`);
-  console.log(`🏥 Health: http://localhost:${PORT}/health`);
-  console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/analyze-coupon-image\n`);
-});
+module.exports = router;
