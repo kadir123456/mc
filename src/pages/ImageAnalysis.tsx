@@ -88,19 +88,10 @@ export const ImageAnalysis: React.FC = () => {
       return;
     }
 
-    // ✅ Kredi kontrolü (3 kredi gerekli)
-    const REQUIRED_CREDITS = 3;
+    // ✅ Kredi kontrolü (1 kredi gerekli)
+    const REQUIRED_CREDITS = 1;
     if (user.credits < REQUIRED_CREDITS) {
       setError(`Yetersiz kredi. Bu analiz için ${REQUIRED_CREDITS} kredi gereklidir. Lütfen kredi satın alın.`);
-      return;
-    }
-
-    // ✅ Kullanıcıya onay sor
-    const confirmed = window.confirm(
-      `Bu analiz ${REQUIRED_CREDITS} kredi harcayacaktır.\n\nMevcut krediniz: ${user.credits}\nKalan krediniz: ${user.credits - REQUIRED_CREDITS}\n\nDevam etmek istiyor musunuz?`
-    );
-
-    if (!confirmed) {
       return;
     }
 
@@ -216,7 +207,7 @@ export const ImageAnalysis: React.FC = () => {
           </h3>
           <ul className="text-sm text-slate-300 space-y-1">
             <li>• Bülten veya müsabaka görselinizin ekran görüntüsünü alın</li>
-            <li>• Görseli buraya yükleyin (3 kredi)</li>
+            <li>• Görseli buraya yükleyin (1 kredi)</li>
             <li>• AI, görseldeki maçları otomatik çıkarır</li>
             <li>• Müsabakalar API'den bulunur ve AI tahmini yapılır</li>
             <li>• Her maç için tahmin, güven skoru ve açıklama görürsünüz</li>
@@ -283,7 +274,7 @@ export const ImageAnalysis: React.FC = () => {
                     ) : (
                       <>
                         <Zap className="w-5 h-5" />
-                        Analiz Et (3 Kredi)
+                        Analiz Et (1 Kredi)
                       </>
                     )}
                   </button>
@@ -313,7 +304,7 @@ export const ImageAnalysis: React.FC = () => {
               <div>
                 <p className="text-green-300 font-medium">Analiz Tamamlandı!</p>
                 <p className="text-sm text-green-200/80">
-                  Görsel başarıyla analiz edildi ve müsabaka tahminleri hazırlandı. 3 kredi hesabınızdan düşüldü.
+                  Görsel başarıyla analiz edildi ve müsabaka tahminleri hazırlandı. 1 kredi hesabınızdan düşüldü.
                 </p>
               </div>
             </div>
