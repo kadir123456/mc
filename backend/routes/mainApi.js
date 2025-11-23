@@ -1,7 +1,6 @@
 // routes/mainApi.js - Ana API Endpoint'leri
 const express = require('express');
 const axios = require('axios');
-const crypto = require('crypto');
 const router = express.Router();
 
 const {
@@ -13,17 +12,34 @@ const {
   deductCreditsFromUser
 } = require('../utils');
 
-// ==================== HEALTH CHECK ====================
-router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    service: 'aikupon-api',
-    timestamp: new Date().toISOString(),
-    firebase: firebaseInitialized,
-    gemini: !!process.env.GEMINI_API_KEY,
-    football: !!process.env.FOOTBALL_API_KEY
-  });
-});
+// Gemini API fonksiyonu (Emergent LLM key destekli)
+async function callGeminiAPI(prompt, responseFormat = 'json', temperature = 0.7) {
+  const GEMINI_API_KEY = process.env.EMERGENT_LLM_KEY || process.env.GEMINI_API_KEY;
+  
+  if (!GEMINI_API_KEY) {
+    throw new Error('Gemini API key bulunamadı');
+  }
+
+  const response = await axios.post(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        temperature,
+        maxOutputTokens: 4000,
+        responseMimeType: responseFormat === 'json' ? 'application/json' : 'text/plain'
+      }
+    },
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 45000
+    }
+  );
+
+  return response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+}
 
 // ==================== API-FOOTBALL PROXY ====================
 router.get('/api/football/*', async (req, res) => {
@@ -75,13 +91,6 @@ router.post('/api/gemini/analyze', async (req, res) => {
   const { matches, userId, creditsToDeduct } = req.body;
   
   try {
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-    if (!GEMINI_API_KEY) {
-      console.error('❌ Gemini API key bulunamadı');
-      return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
-    }
-
     if (!matches || !Array.isArray(matches)) {
       return res.status(400).json({ error: 'Geçersiz maç verisi' });
     }
@@ -101,19 +110,16 @@ router.post('/api/gemini/analyze', async (req, res) => {
 
     console.log(`🤖 Gemini analizi başlatılıyor: ${matches.length} maç`);
 
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{
-          parts: [{
-            text: `Sen bir futbol analiz uzmanısın. Aşağıdaki maçları analiz et ve her maç için tahmin yap.
-
-Maçlar:
-${matches.map((m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}
+    const matchesText = matches.map((m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}
    - Lig: ${m.league}
    - Tarih: ${m.date}
    - Saat: ${m.time}
-   ${m.statistics ? `- İstatistikler: ${JSON.stringify(m.statistics)}` : ''}`).join('\n\n')}
+   ${m.statistics ? `- İstatistikler: ${JSON.stringify(m.statistics)}` : ''}`).join('\n\n');
+
+    const prompt = `Sen bir futbol analiz uzmanısın. Aşağıdaki maçları analiz et ve her maç için tahmin yap.
+
+Maçlar:
+${matchesText}
 
 Her maç için şu formatta JSON yanıt ver:
 {
@@ -127,22 +133,9 @@ Her maç için şu formatta JSON yanıt ver:
   ]
 }
 
-SADECE JSON yanıt ver, başka metin ekleme.`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2000,
-          responseMimeType: "application/json"
-        }
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      }
-    );
+SADECE JSON yanıt ver, başka metin ekleme.`;
 
-    const geminiText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const geminiText = await callGeminiAPI(prompt, 'json', 0.7);
     
     if (!geminiText) {
       throw new Error('Gemini yanıtı alınamadı');
@@ -187,7 +180,7 @@ SADECE JSON yanıt ver, başka metin ekleme.`
 router.post('/api/gemini/analyze-image', async (req, res) => {
   try {
     const { image, prompt } = req.body;
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    const GEMINI_API_KEY = process.env.EMERGENT_LLM_KEY || process.env.GEMINI_API_KEY;
 
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'Gemini API key yapılandırılmamış' });
@@ -283,7 +276,6 @@ SADECE JSON yanıt ver.`
 });
 
 // ==================== SHOPIER CALLBACK ====================
-
 const PRICE_TO_CREDITS = {
   99: 5,
   189: 10,
