@@ -1,134 +1,170 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, TrendingUp, Shield, Clock, ChevronRight, Star, Check, BarChart3 } from 'lucide-react';
+import { Zap, TrendingUp, Shield, Clock, ChevronRight, Star, Check, BarChart3, Menu, X } from 'lucide-react';
 import { Footer } from '../components/Footer';
 
 export const Home: React.FC = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <header className="bg-slate-800/50 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-slate-100 md:bg-gradient-to-br md:from-slate-900 md:via-slate-800 md:to-slate-900">
+      {/* Header - Mobil App Tarzı */}
+      <header className="bg-white md:bg-slate-800/50 md:backdrop-blur border-b border-slate-200 md:border-slate-700 sticky top-0 z-50 shadow-sm md:shadow-none">
+        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="w-8 h-8 text-yellow-400" />
-              <h1 className="text-2xl font-bold text-white">Aikupon</h1>
+              <Zap className="w-7 h-7 md:w-8 md:h-8 text-blue-600 md:text-yellow-400" />
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 md:text-white">Aikupon</h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               <Link
                 to="/login"
-                className="text-slate-300 hover:text-white transition px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base"
+                className="text-slate-300 hover:text-white transition px-4 py-2"
               >
                 Giriş Yap
               </Link>
               <Link
                 to="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-lg font-medium transition text-sm sm:text-base"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition"
               >
                 Ücretsiz Başla
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition active:scale-95"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-3 pb-2 border-t border-slate-200 pt-3">
+              <div className="flex flex-col gap-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-slate-700 hover:bg-slate-100 transition px-4 py-2.5 rounded-lg font-medium"
+                >
+                  Giriş Yap
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium transition text-center"
+                >
+                  Ücretsiz Başla
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
       <main>
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
+        {/* Hero Section - Mobil App Tarzı */}
+        <section className="py-12 md:py-20 px-4">
           <div className="max-w-7xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Star className="w-4 h-4" />
-              Yapay Zeka Destekli Futbol İstatistik Analizi
+            <div className="inline-flex items-center gap-2 bg-blue-100 md:bg-blue-600/20 text-blue-600 md:text-blue-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6">
+              <Star className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              Yapay Zeka Destekli Analiz
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-3xl md:text-6xl font-bold text-slate-900 md:text-white mb-4 md:mb-6 leading-tight px-2">
               Futbol Maçlarını
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                Yapay Zeka ile Değerlendirin
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 md:from-blue-400 md:to-purple-400">
+                AI ile Değerlendirin
               </span>
             </h1>
 
-            <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Günlük maç bülteninden maçları seçin, yapay zeka her maçı gerçek verilerle değerlendirsin.
-              Profesyonel istatistiksel analiz ile detaylı inceleme yapın.
+            <p className="text-base md:text-xl text-slate-700 md:text-slate-300 mb-6 md:mb-10 max-w-3xl mx-auto leading-relaxed px-4">
+              Günlük maç bülteninden maçları seçin, yapay zeka gerçek verilerle değerlendirsin.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+            <div className="flex flex-col gap-3 mb-8 md:mb-12 px-4">
               <Link
                 to="/bulletin"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition flex items-center gap-2 shadow-xl shadow-blue-600/20 w-full sm:w-auto justify-center"
+                className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold text-base transition flex items-center justify-center gap-2 shadow-lg active:scale-95"
               >
                 Günlük Bülteni Görüntüle
                 <ChevronRight className="w-5 h-5" />
               </Link>
               <Link
                 to="/how-to-use"
-                className="bg-slate-700/50 hover:bg-slate-700 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition border border-slate-600 w-full sm:w-auto justify-center"
+                className="bg-white md:bg-slate-700/50 hover:bg-slate-50 md:hover:bg-slate-700 text-slate-900 md:text-white px-6 py-3.5 rounded-xl font-semibold text-base transition border border-slate-300 md:border-slate-600 active:scale-95"
               >
                 Nasıl Çalışır?
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-8 text-slate-400">
+            <div className="flex flex-col md:flex-row md:flex-wrap items-center justify-center gap-3 md:gap-8 text-slate-600 md:text-slate-400 text-sm px-4">
               <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-400" />
+                <Check className="w-4 h-4 text-green-600 md:text-green-400" />
                 <span>Ücretsiz Deneme</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-400" />
+                <Check className="w-4 h-4 text-green-600 md:text-green-400" />
                 <span>Kredi Kartı Gerekmez</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-5 h-5 text-green-400" />
+                <Check className="w-4 h-4 text-green-600 md:text-green-400" />
                 <span>Anında Sonuç</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-800/30">
+        {/* Features Section - Mobil Card Tarzı */}
+        <section className="py-8 md:py-20 px-4 bg-white md:bg-slate-800/30">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-white mb-4">Neden Aikupon?</h2>
-              <p className="text-xl text-slate-300">Yapay zeka ile profesyonel istatistiksel değerlendirmeye saniyeler içinde ulaşın</p>
+            <div className="text-center mb-8 md:mb-16">
+              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 md:text-white mb-2 md:mb-4">Neden Aikupon?</h2>
+              <p className="text-base md:text-xl text-slate-600 md:text-slate-300 px-4">Yapay zeka ile profesyonel analiz</p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="bg-slate-700/50 border border-slate-600 rounded-xl p-6 hover:border-blue-500/50 transition">
-                <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4">
-                  <TrendingUp className="w-6 h-6 text-blue-400" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8">
+              <div className="bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-6 hover:border-blue-400 md:hover:border-blue-500/50 transition shadow-sm md:shadow-none">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 md:bg-blue-600/20 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                  <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-blue-600 md:text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Gerçek Veri Analizi</h3>
-                <p className="text-slate-300">
-                  Günlük güncellenen maç verileri, takım formu, lig durumu ve profesyonel istatistiksel değerlendirme.
+                <h3 className="text-lg md:text-xl font-bold text-slate-900 md:text-white mb-2 md:mb-3">Gerçek Veri Analizi</h3>
+                <p className="text-sm md:text-base text-slate-600 md:text-slate-300">
+                  Günlük güncellenen maç verileri, takım formu ve profesyonel istatistiksel değerlendirme.
                 </p>
               </div>
 
-              <div className="bg-slate-700/50 border border-slate-600 rounded-xl p-6 hover:border-blue-500/50 transition">
-                <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center mb-4">
-                  <BarChart3 className="w-6 h-6 text-purple-400" />
+              <div className="bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-6 hover:border-purple-400 md:hover:border-blue-500/50 transition shadow-sm md:shadow-none">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 md:bg-purple-600/20 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                  <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-purple-600 md:text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Güven Skorları</h3>
-                <p className="text-slate-300">
-                  Her maç değerlendirmesi için 0-100 arası güven skoru, yüzde olasılıkları ve profesyonel öneriler.
+                <h3 className="text-lg md:text-xl font-bold text-slate-900 md:text-white mb-2 md:mb-3">Güven Skorları</h3>
+                <p className="text-sm md:text-base text-slate-600 md:text-slate-300">
+                  Her maç için güven skoru, yüzde olasılıkları ve profesyonel öneriler.
                 </p>
               </div>
 
-              <div className="bg-slate-700/50 border border-slate-600 rounded-xl p-6 hover:border-blue-500/50 transition">
-                <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center mb-4">
-                  <Clock className="w-6 h-6 text-green-400" />
+              <div className="bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-6 hover:border-green-400 md:hover:border-blue-500/50 transition shadow-sm md:shadow-none">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 md:bg-green-600/20 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                  <Clock className="w-5 h-5 md:w-6 md:h-6 text-green-600 md:text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Anlık Değerlendirme</h3>
-                <p className="text-slate-300">
-                  Maçları seçin, yapay zeka 30 saniye içinde detaylı istatistiksel rapor oluşturur.
+                <h3 className="text-lg md:text-xl font-bold text-slate-900 md:text-white mb-2 md:mb-3">Anlık Değerlendirme</h3>
+                <p className="text-sm md:text-base text-slate-600 md:text-slate-300">
+                  Maçları seçin, AI 30 saniye içinde detaylı istatistiksel rapor oluşturur.
                 </p>
               </div>
 
-              <div className="bg-slate-700/50 border border-slate-600 rounded-xl p-6 hover:border-blue-500/50 transition">
-                <div className="w-12 h-12 bg-yellow-600/20 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="w-6 h-6 text-yellow-400" />
+              <div className="bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-6 hover:border-yellow-400 md:hover:border-blue-500/50 transition shadow-sm md:shadow-none">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 md:bg-yellow-600/20 rounded-lg flex items-center justify-center mb-3 md:mb-4">
+                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-yellow-600 md:text-yellow-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Güvenli Platform</h3>
-                <p className="text-slate-300">
+                <h3 className="text-lg md:text-xl font-bold text-slate-900 md:text-white mb-2 md:mb-3">Güvenli Platform</h3>
+                <p className="text-sm md:text-base text-slate-600 md:text-slate-300">
                   Verileriniz şifrelenir, gizliliğiniz tamamen korunur.
                 </p>
               </div>
@@ -136,75 +172,56 @@ export const Home: React.FC = () => {
           </div>
         </section>
 
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
+        {/* How it Works - Mobil Optimized */}
+        <section className="py-8 md:py-20 px-4 bg-slate-50 md:bg-transparent">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-white mb-4">Nasıl Çalışır?</h2>
-              <p className="text-xl text-slate-300">3 basit adımda istatistiksel değerlendirme</p>
+            <div className="text-center mb-8 md:mb-16">
+              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 md:text-white mb-2 md:mb-4">Nasıl Çalışır?</h2>
+              <p className="text-base md:text-xl text-slate-600 md:text-slate-300">3 basit adımda analiz</p>
             </div>
 
-            {/* Tanıtım Videosu */}
-            <div className="mb-12">
-              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                <iframe
-                  className="absolute top-0 left-0 w-full h-full rounded-xl shadow-2xl border-2 border-slate-600"
-                  src="https://www.youtube.com/embed/kCBz3-lPJVc"
-                  title="Aikupon Nasıl Kullanılır?"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-              <p className="text-center text-slate-400 mt-4 text-sm">
-                📹 Platform kullanımını anlatan detaylı video rehberimizi izleyin
-              </p>
-            </div>
-
-            <div className="space-y-8">
-              <div className="flex items-start gap-6 bg-slate-700/50 border border-slate-600 rounded-xl p-8">
-                <div className="flex-shrink-0 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+            <div className="space-y-4 md:space-y-8">
+              <div className="flex items-start gap-4 md:gap-6 bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-8 shadow-sm md:shadow-none">
+                <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl">
                   1
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Bültenden Maç Seç</h3>
-                  <p className="text-slate-300 text-lg">
+                  <h3 className="text-lg md:text-2xl font-bold text-slate-900 md:text-white mb-1 md:mb-2">Bültenden Maç Seç</h3>
+                  <p className="text-sm md:text-lg text-slate-600 md:text-slate-300">
                     Günlük güncellenen maç bülteninden istediğiniz maçları seçin.
-                    3 maç için 1 kredi, 5 maç + ilk yarı incelemesi için 5 kredi.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-6 bg-slate-700/50 border border-slate-600 rounded-xl p-8">
-                <div className="flex-shrink-0 w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+              <div className="flex items-start gap-4 md:gap-6 bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-8 shadow-sm md:shadow-none">
+                <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl">
                   2
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Yapay Zeka Değerlendirmesi</h3>
-                  <p className="text-slate-300 text-lg">
-                    Aikupon yapay zekası seçtiğiniz maçları gerçek verilerle değerlendirir.
-                    İstatistiksel olasılıklar, form analizi ve detaylı inceleme.
+                  <h3 className="text-lg md:text-2xl font-bold text-slate-900 md:text-white mb-1 md:mb-2">AI Değerlendirmesi</h3>
+                  <p className="text-sm md:text-lg text-slate-600 md:text-slate-300">
+                    Aikupon yapay zekası maçları gerçek verilerle analiz eder.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-6 bg-slate-700/50 border border-slate-600 rounded-xl p-8">
-                <div className="flex-shrink-0 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+              <div className="flex items-start gap-4 md:gap-6 bg-white md:bg-slate-700/50 border border-slate-200 md:border-slate-600 rounded-xl p-5 md:p-8 shadow-sm md:shadow-none">
+                <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl">
                   3
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Sonuçları Görüntüle</h3>
-                  <p className="text-slate-300 text-lg">
-                    Detaylı değerlendirme sonuçları "Analizlerim" sayfasında saklanır.
-                    Yüzde olasılıkları, güven skorları ve öneriler ile bilinçli inceleme yapın.
+                  <h3 className="text-lg md:text-2xl font-bold text-slate-900 md:text-white mb-1 md:mb-2">Sonuçları Görüntüle</h3>
+                  <p className="text-sm md:text-lg text-slate-600 md:text-slate-300">
+                    Detaylı sonuçlar "Analizlerim" sayfasında saklanır.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="text-center mt-12">
+            <div className="text-center mt-8 md:mt-12">
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition shadow-2xl shadow-blue-600/30"
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3.5 md:px-10 md:py-4 rounded-xl font-bold text-base md:text-lg transition shadow-lg active:scale-95 w-full md:w-auto"
               >
                 Ücretsiz Dene
                 <ChevronRight className="w-5 h-5" />
@@ -213,34 +230,34 @@ export const Home: React.FC = () => {
           </div>
         </section>
 
-        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-800/30">
+        {/* CTA Section - Mobil Optimized */}
+        <section className="py-8 md:py-20 px-4 bg-white md:bg-slate-800/30">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 mb-8">
-              <h3 className="text-lg font-bold text-red-400 mb-3">⚠️ Önemli Yasal Uyarılar</h3>
-              <div className="text-slate-300 text-sm leading-relaxed space-y-2">
-                <p>• <strong>18 Yaş Sınırı:</strong> Bu platform 18 yaş altı kullanıcılar için uygun değildir. Platforma erişim ve kullanım için 18 yaşında veya daha büyük olmanız gerekmektedir.</p>
-                <p>• <strong>Bilgilendirme Amaçlıdır:</strong> Sunulan tüm analizler, değerlendirmeler ve raporlar sadece bilgilendirme ve eğitim amaçlıdır. Hiçbir şekilde yatırım, finansal tavsiye veya kesin sonuç garantisi niteliği taşımaz.</p>
-                <p>• <strong>Kişisel Sorumluluk:</strong> Kullanıcılar, platform üzerinden elde ettikleri bilgilere dayanarak aldıkları kararlardan tamamen kendileri sorumludur. Platform yöneticileri herhangi bir kayıptan sorumlu tutulamaz.</p>
-                <p>• <strong>Yerel Yasalara Uyum:</strong> Bulunduğunuz ülke ve bölgenin yasalarına göre hareket etmek sizin sorumluluğunuzdadır. Platformu kullanmadan önce yerel düzenlemeleri kontrol ediniz.</p>
-                <p>• <strong>Sonuç Garantisi Yoktur:</strong> İstatistiksel değerlendirmeler geçmiş verilere dayanır ve gelecek sonuçlarını garanti etmez.</p>
+            <div className="bg-red-50 md:bg-red-500/10 border border-red-200 md:border-red-500/30 rounded-xl p-4 md:p-6 mb-6 md:mb-8">
+              <h3 className="text-base md:text-lg font-bold text-red-600 md:text-red-400 mb-2 md:mb-3">⚠️ Önemli Uyarılar</h3>
+              <div className="text-slate-700 md:text-slate-300 text-xs md:text-sm leading-relaxed space-y-1.5 md:space-y-2">
+                <p>• <strong>18 Yaş Sınırı:</strong> Bu platform 18 yaş üzeri kullanıcılar içindir.</p>
+                <p>• <strong>Bilgilendirme Amaçlıdır:</strong> Sunulan analizler sadece bilgilendirme amaçlıdır.</p>
+                <p>• <strong>Kişisel Sorumluluk:</strong> Kullanıcılar kararlarından sorumludur.</p>
+                <p>• <strong>Sonuç Garantisi Yoktur:</strong> İstatistikler geçmiş verilere dayanır.</p>
               </div>
             </div>
 
             <div className="text-center">
-              <h2 className="text-4xl font-bold text-white mb-6">Hemen Başlayın</h2>
-              <p className="text-xl text-slate-300 mb-10">
-                Ücretsiz hesap oluşturun, ilk değerlendirmenizi yapın. Kredi kartı bilgisi gerekmez.
+              <h2 className="text-2xl md:text-4xl font-bold text-slate-900 md:text-white mb-3 md:mb-6">Hemen Başlayın</h2>
+              <p className="text-base md:text-xl text-slate-700 md:text-slate-300 mb-6 md:mb-10 px-4">
+                Ücretsiz hesap oluşturun. Kredi kartı bilgisi gerekmez.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="flex flex-col gap-3 md:flex-row md:justify-center md:gap-4">
                 <Link
                   to="/register"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition w-full sm:w-auto text-center"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 md:px-10 md:py-4 rounded-xl font-bold text-base md:text-lg transition text-center active:scale-95"
                 >
                   Ücretsiz Kayıt Ol
                 </Link>
                 <Link
                   to="/contact"
-                  className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 sm:px-10 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition border border-slate-600 w-full sm:w-auto text-center"
+                  className="bg-white md:bg-slate-700 hover:bg-slate-50 md:hover:bg-slate-600 text-slate-900 md:text-white px-8 py-3.5 md:px-10 md:py-4 rounded-xl font-bold text-base md:text-lg transition border border-slate-300 md:border-slate-600 text-center active:scale-95"
                 >
                   İletişim
                 </Link>
