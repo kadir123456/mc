@@ -17,9 +17,9 @@ try {
   });
   
   firebaseInitialized = true;
-  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
-  
-  return currentCredits - credits; // Kalan kredi
+  console.log('✅ Firebase Admin SDK initialized');
+} catch (error) {
+  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
 }
 
 // Helper: Kullanıcıya kredi iade et
@@ -181,10 +181,7 @@ app.listen(PORT, () => {
   console.log(`🖼️ Görsel Analiz: http://localhost:${PORT}/api/gemini/analyze-image`);
   console.log(`🎯 Görsel Kupon Analiz: http://localhost:${PORT}/api/analyze-coupon-image`);
   console.log(`📦 Shopier callback: http://localhost:${PORT}/api/shopier/callback`);
-});('✅ Firebase Admin SDK initialized');
-} catch (error) {
-  console.error('❌ Firebase Admin SDK initialization failed:', error.message);
-}
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -196,7 +193,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// JSON body parser - ÖNCE raw body'yi logla
+// JSON body parser - Görsel analiz için limit artırıldı (100MB)
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+// Request logger - Debug için
 app.use((req, res, next) => {
   if (req.path === '/api/analyze-coupon-image') {
     console.log('🔍 Request alındı:', {
@@ -204,14 +205,11 @@ app.use((req, res, next) => {
       path: req.path,
       contentType: req.get('content-type'),
       contentLength: req.get('content-length'),
-      hasBody: !!req.body
+      bodySize: req.body ? JSON.stringify(req.body).length : 0
     });
   }
   next();
 });
-
-app.use(express.json({ limit: '50mb' })); // Görsel analiz için limit artırıldı
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // API-Football Proxy Endpoint
 app.get('/api/football/*', async (req, res) => {
@@ -478,17 +476,26 @@ SADECE JSON yanıt ver.`
 
 app.post('/api/analyze-coupon-image', async (req, res) => {
   let creditsDeducted = false;
-  const { image, userId, creditsToDeduct, analysisType } = req.body;
-  
-  console.log('📥 Gelen istek:', {
-    hasImage: !!image,
-    imagePrefix: image?.substring(0, 30),
-    userId,
-    creditsToDeduct,
-    analysisType
-  });
   
   try {
+    // Request body kontrolü
+    if (!req.body) {
+      console.error('❌ Request body boş');
+      return res.status(400).json({ error: 'Geçersiz istek formatı' });
+    }
+
+    const { image, userId, creditsToDeduct, analysisType } = req.body;
+  
+    console.log('📥 Gelen istek:', {
+      hasImage: !!image,
+      imageSize: image ? image.length : 0,
+      imagePrefix: image?.substring(0, 50),
+      userId,
+      creditsToDeduct,
+      analysisType,
+      bodyKeys: Object.keys(req.body)
+    });
+  
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const FOOTBALL_API_KEY = process.env.API_FOOTBALL_KEY;
 
@@ -502,9 +509,12 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
       return res.status(500).json({ error: 'Football API key yapılandırılmamış' });
     }
 
-    if (!image) {
-      console.error('❌ Görsel parametresi eksik');
-      return res.status(400).json({ error: 'Görsel bulunamadı' });
+    if (!image || typeof image !== 'string' || image.length === 0) {
+      console.error('❌ Görsel parametresi eksik veya geçersiz');
+      return res.status(400).json({ 
+        error: 'Görsel bulunamadı',
+        details: 'Lütfen geçerli bir görsel yükleyin'
+      });
     }
 
     if (!userId || !creditsToDeduct) {
@@ -531,9 +541,32 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
     if (image.includes('base64,')) {
       base64Data = image.split('base64,')[1];
     }
+    
+    // Base64 validasyonu
+    if (!base64Data || base64Data.length < 100) {
+      console.error('❌ Geçersiz base64 görsel');
+      return res.status(400).json({ 
+        error: 'Görsel formatı geçersiz',
+        details: 'Base64 görsel verisi çok kısa veya bozuk'
+      });
+    }
+    
+    console.log(`📏 Base64 görsel boyutu: ${(base64Data.length / 1024 / 1024).toFixed(2)} MB`);
 
     // ADIM 1: Gemini ile görselden maçları çıkar
     console.log('🤖 Gemini ile maçlar çıkarılıyor...');
+    
+    // Görsel formatını tespit et
+    let mimeType = 'image/jpeg';
+    if (image.startsWith('data:image/png')) {
+      mimeType = 'image/png';
+    } else if (image.startsWith('data:image/webp')) {
+      mimeType = 'image/webp';
+    } else if (image.startsWith('data:image/jpg')) {
+      mimeType = 'image/jpeg';
+    }
+    console.log(`🖼️ Görsel formatı: ${mimeType}`);
+    
     const extractResponse = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -562,7 +595,7 @@ SADECE JSON yanıt ver.`
             },
             {
               inline_data: {
-                mime_type: 'image/jpeg',
+                mime_type: mimeType,
                 data: base64Data
               }
             }
@@ -576,7 +609,9 @@ SADECE JSON yanıt ver.`
       },
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 45000
+        timeout: 60000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
       }
     );
 
@@ -802,20 +837,33 @@ KURALLAR:
   } catch (error) {
     console.error('❌ Kupon analiz hatası:', error.message);
     console.error('Stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      code: error.code,
+      response: error.response?.data
+    });
     
     // Hata durumunda kredi iadesi yap
-    if (creditsDeducted && firebaseInitialized && userId && creditsToDeduct) {
-      try {
-        await refundCreditsToUser(userId, parseInt(creditsToDeduct), 'Analiz hatası - otomatik iade');
-        console.log(`♻️ ${creditsToDeduct} kredi iade edildi: ${userId}`);
-      } catch (refundError) {
-        console.error('❌ Kredi iadesi hatası:', refundError.message);
+    if (creditsDeducted && firebaseInitialized) {
+      const { userId, creditsToDeduct } = req.body || {};
+      if (userId && creditsToDeduct) {
+        try {
+          await refundCreditsToUser(userId, parseInt(creditsToDeduct), 'Analiz hatası - otomatik iade');
+          console.log(`♻️ ${creditsToDeduct} kredi iade edildi: ${userId}`);
+        } catch (refundError) {
+          console.error('❌ Kredi iadesi hatası:', refundError.message);
+        }
       }
     }
     
+    // Daha detaylı hata mesajı
+    const errorMessage = error.message || 'Bilinmeyen hata';
+    const errorDetails = error.response?.data?.error?.message || errorMessage;
+    
     res.status(500).json({ 
       error: 'Görsel analizi yapılamadı',
-      details: error.message 
+      details: errorDetails,
+      message: 'Lütfen daha küçük bir görsel deneyin veya görsel formatını kontrol edin'
     });
   }
 });
