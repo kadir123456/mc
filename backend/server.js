@@ -512,6 +512,83 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
   });
   
   try {
+    // ADIM 0: Temel parametre kontrolleri (API key kontrolünden ÖNCE)
+    if (!image) {
+      console.error('❌ Görsel parametresi eksik');
+      return res.status(400).json({ error: 'Görsel bulunamadı' });
+    }
+
+    if (!userId || !creditsToDeduct) {
+      console.error('❌ Kullanıcı bilgisi eksik');
+      return res.status(400).json({ error: 'Kullanıcı bilgisi eksik' });
+    }
+
+    console.log('🖼️ Kupon görsel analizi başlatılıyor...');
+
+    // ✅ ADIM 1: Base64 Format Kontrolü ve MIME Type Tespiti (EN ÖNCE!)
+    let base64Data = '';
+    let mimeType = 'image/jpeg'; // Varsayılan
+
+    try {
+      // 1. Data URI kontrolü
+      if (image.includes('data:image/')) {
+        // MIME type'ı çıkar
+        const mimeMatch = image.match(/data:image\/([a-zA-Z0-9+.-]+);base64,/);
+        if (mimeMatch) {
+          const detectedType = mimeMatch[1].toLowerCase();
+          // Geçerli MIME type'ları
+          const validTypes = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp'];
+          mimeType = validTypes.includes(detectedType) ? `image/${detectedType}` : 'image/jpeg';
+          console.log(`📷 Görsel formatı tespit edildi: ${mimeType}`);
+          
+          // Base64 verisini al
+          const splitIndex = image.indexOf('base64,');
+          if (splitIndex !== -1) {
+            base64Data = image.substring(splitIndex + 7);
+          } else {
+            throw new Error('Base64 verisi bulunamadı');
+          }
+        } else {
+          throw new Error('Geçersiz data URI formatı');
+        }
+      } else if (image.match(/^[A-Za-z0-9+/]+=*$/)) {
+        // Saf base64 string (data URI olmadan)
+        base64Data = image;
+        console.log('📷 Saf base64 string tespit edildi, varsayılan MIME: image/jpeg');
+      } else {
+        throw new Error('Görsel formatı tanınamadı');
+      }
+
+      // 2. Base64 boyut kontrolü
+      const sizeInBytes = (base64Data.length * 3) / 4;
+      const sizeInMB = sizeInBytes / (1024 * 1024);
+      console.log(`📊 Görsel boyutu: ${sizeInMB.toFixed(2)} MB`);
+
+      // Gemini API limiti: ~20MB (güvenlik için 15MB)
+      if (sizeInMB > 15) {
+        throw new Error(`Görsel çok büyük: ${sizeInMB.toFixed(2)} MB. Maksimum: 15 MB`);
+      }
+
+      // 3. Base64 geçerlilik kontrolü
+      if (!base64Data || base64Data.length < 50) {
+        throw new Error('Base64 verisi çok kısa veya geçersiz');
+      }
+
+      console.log(`✅ Görsel doğrulandı: ${mimeType}, ${sizeInMB.toFixed(2)} MB`);
+
+    } catch (validationError) {
+      console.error('❌ Görsel doğrulama hatası:', validationError.message);
+      
+      // NOT: Henüz kredi düşürülmediği için iade gerekmez
+      
+      return res.status(400).json({ 
+        error: 'Görsel yükleme hatası',
+        details: validationError.message,
+        hint: 'Lütfen geçerli bir görsel yükleyin (JPEG, PNG, GIF, WebP)'
+      });
+    }
+
+    // ADIM 2: API key kontrolleri (görsel doğrulandıktan SONRA)
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const FOOTBALL_API_KEY = process.env.API_FOOTBALL_KEY;
 
@@ -525,17 +602,7 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
       return res.status(500).json({ error: 'Football API key yapılandırılmamış' });
     }
 
-    if (!image) {
-      console.error('❌ Görsel parametresi eksik');
-      return res.status(400).json({ error: 'Görsel bulunamadı' });
-    }
-
-    if (!userId || !creditsToDeduct) {
-      console.error('❌ Kullanıcı bilgisi eksik');
-      return res.status(400).json({ error: 'Kullanıcı bilgisi eksik' });
-    }
-
-    // Kredi düşürme işlemi
+    // ADIM 3: Kredi düşürme işlemi (validasyondan sonra, işlemden önce)
     if (firebaseInitialized) {
       try {
         await deductCreditsFromUser(userId, parseInt(creditsToDeduct), 'image_analysis');
@@ -547,15 +614,7 @@ app.post('/api/analyze-coupon-image', async (req, res) => {
       }
     }
 
-    console.log('🖼️ Kupon görsel analizi başlatılıyor...');
-
-    // Base64'ten data:image prefix'ini temizle
-    let base64Data = image;
-    if (image.includes('base64,')) {
-      base64Data = image.split('base64,')[1];
-    }
-
-    // ADIM 1: Gemini ile görselden maçları çıkar (Google Search Grounding ile)
+    // ADIM 4: Gemini ile görselden maçları çıkar (Google Search Grounding ile)
     console.log('🤖 Gemini ile maçlar çıkarılıyor (Web Search aktif)...');
     const extractResponse = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
@@ -591,7 +650,7 @@ SADECE JSON yanıt ver.`
             },
             {
               inline_data: {
-                mime_type: 'image/jpeg',
+                mime_type: mimeType, // Dinamik MIME type
                 data: base64Data
               }
             }
