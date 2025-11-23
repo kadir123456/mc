@@ -1,4 +1,4 @@
-import { ref, get, set, push, remove, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, get, set, push, query, orderByChild, limitToLast } from 'firebase/database';
 import { database } from './firebase';
 import { MatchSelection } from './matchService';
 
@@ -30,7 +30,6 @@ export interface Coupon {
   matches: MatchSelection[];
   analysis: MatchAnalysis[];
   type: 'standard' | 'detailed';
-  analysisType?: string;
   creditsUsed: number;
   purchasedAt: number;
 }
@@ -104,18 +103,6 @@ export const couponService = {
       id: couponId,
       ...snapshot.val()
     };
-  },
-
-  // ✅ YENİ: Kupon silme fonksiyonu
-  async deleteCoupon(userId: string, couponId: string): Promise<void> {
-    try {
-      const couponRef = ref(database, `coupons/${userId}/${couponId}`);
-      await remove(couponRef);
-      console.log(`🗑️ Kupon silindi: ${couponId}`);
-    } catch (error) {
-      console.error('❌ Kupon silme hatası:', error);
-      throw error;
-    }
   },
 
   async updatePopularCoupons(matches: MatchSelection[]): Promise<void> {

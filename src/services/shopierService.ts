@@ -37,7 +37,7 @@ export const shopierPackages: Package[] = [
 ];
 
 export const shopierService = {
-  // Shopier ödeme sayfasına yönlendir - YENİ SEKMEDE
+  // Shopier ödeme sayfasına yönlendir
   redirectToPayment(packageId: string, userId: string, userEmail: string, userName?: string): void {
     const pkg = shopierPackages.find((p) => p.id === packageId);
     if (!pkg || !pkg.shopierUrl) {
@@ -63,8 +63,8 @@ export const shopierService = {
       url.searchParams.append('buyer_name', userName);
     }
 
-    // ✅ YENİ SEKMEDE AÇ - Mevcut sekmeyi kapatmaz
-    window.open(url.toString(), '_blank', 'noopener,noreferrer');
+    // Shopier sayfasına yönlendir (buyer_email parametresi ile)
+    window.location.href = url.toString();
   },
 
   // Bekleyen ödeme bilgisini al

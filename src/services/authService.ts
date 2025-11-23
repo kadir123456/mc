@@ -43,7 +43,7 @@ export const authService = {
         uid: userCredential.user.uid,
         email,
         displayName,
-        credits: 5,
+        credits: 1,
         totalSpent: 0,
         createdAt: Date.now(),
         lastLogin: Date.now(),
