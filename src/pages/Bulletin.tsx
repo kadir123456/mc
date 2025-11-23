@@ -88,10 +88,12 @@ export const Bulletin: React.FC = () => {
     }
 
     if (selectedMatches.length !== maxSelections) {
+      alert(`Lütfen ${maxSelections} maç seçin`);
       return;
     }
 
     if (user.credits < creditsRequired) {
+      alert('Yetersiz kredi. Lütfen kredi satın alın.');
       navigate('/dashboard');
       return;
     }
@@ -119,12 +121,15 @@ export const Bulletin: React.FC = () => {
 
       // Kredi backend'den düşürüldü, sadece local state güncelle
       // Firebase'den yeni veriyi çekmek için refresh
+      window.location.reload();
+
+      alert('Analiz tamamlandı!');
       setSelectedMatches([]);
       navigate('/my-coupons');
 
     } catch (error: any) {
       console.error('Analiz hatası:', error);
-      // Hata durumunda kullanıcı dashboard'a yönlendirilir
+      alert(error.message || 'Analiz yapılırken bir hata oluştu');
     } finally {
       setProcessing(false);
     }
