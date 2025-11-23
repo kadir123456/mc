@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Calendar, Zap, TrendingUp, Shield, 
-  LogOut, ArrowLeft, Settings, CreditCard, FileText,
-  Image as ImageIcon, Gift
+  LogOut, ArrowLeft, CreditCard, FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,28 +33,12 @@ export const Profile: React.FC = () => {
       border: 'border-yellow-500/30'
     },
     { 
-      icon: FileText, 
-      label: 'Toplam Kupon', 
-      value: '0',
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10',
-      border: 'border-blue-500/30'
-    },
-    { 
       icon: TrendingUp, 
       label: 'Harcama', 
       value: `${user.totalSpent}₺`,
       color: 'text-green-400',
       bg: 'bg-green-500/10',
       border: 'border-green-500/30'
-    },
-    { 
-      icon: ImageIcon, 
-      label: 'Görsel Analiz', 
-      value: '0',
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10',
-      border: 'border-purple-500/30'
     }
   ];
 
@@ -79,13 +63,6 @@ export const Profile: React.FC = () => {
       desc: 'Kupon fotoğrafı analizi',
       path: '/image-analysis',
       color: 'text-pink-400'
-    },
-    { 
-      icon: Gift, 
-      label: 'Hediye Kredi', 
-      desc: 'Arkadaşlarını davet et',
-      path: '#',
-      color: 'text-orange-400'
     }
   ];
 
@@ -141,11 +118,6 @@ export const Profile: React.FC = () => {
                   </span>
                 </div>
               </div>
-
-              {/* Settings Button */}
-              <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
-                <Settings className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </div>

@@ -927,4 +927,106 @@ async function deductCreditsFromUser(userId, credits, analysisType) {
     timestamp: new Date().toISOString()
   });
   
+
+  console.log(`💳 ${credits} kredi ${userId} kullanıcısından düşüldü (${analysisType})`);
+  
+  return currentCredits - credits; // Kalan kredi
+}
+
+// ✅ Analizi Kaydet
+app.post('/api/save-analysis', async (req, res) => {
+  try {
+    const { userId, analysisData } = req.body;
+    
+    if (!userId || !analysisData) {
+      return res.status(400).json({ error: 'userId ve analysisData gerekli' });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: 'Firebase başlatılamadı' });
+    }
+    
+    const db = admin.database();
+    const analysisRef = db.ref(`users/${userId}/analyses`).push();
+    
+    await analysisRef.set({
+      ...analysisData,
+      savedAt: Date.now(),
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({ 
+      success: true, 
+      analysisId: analysisRef.key,
+      message: 'Analiz kaydedildi' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Analiz kaydetme hatası:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ Kullanıcının Analizlerini Getir
+app.get('/api/get-analyses/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: 'Firebase başlatılamadı' });
+    }
+    
+    const db = admin.database();
+    const analysesRef = db.ref(`users/${userId}/analyses`);
+    const snapshot = await analysesRef.once('value');
+    const data = snapshot.val();
+    
+    if (!data) {
+      return res.json({ success: true, analyses: [] });
+    }
+    
+    // Object'i array'e çevir
+    const analyses = Object.entries(data).map(([id, value]) => ({
+      id,
+      ...value
+    }));
+    
+    // Tarihe göre sırala (yeni -> eski)
+    analyses.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    
+    res.json({ success: true, analyses });
+    
+  } catch (error) {
+    console.error('❌ Analizler getirme hatası:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ Analizi Sil
+app.delete('/api/delete-analysis/:userId/:analysisId', async (req, res) => {
+  try {
+    const { userId, analysisId } = req.params;
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: 'Firebase başlatılamadı' });
+    }
+    
+    const db = admin.database();
+    const analysisRef = db.ref(`users/${userId}/analyses/${analysisId}`);
+    
+    await analysisRef.remove();
+    
+    res.json({ success: true, message: 'Analiz silindi' });
+    
+  } catch (error) {
+    console.error('❌ Analiz silme hatası:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start server
+const PORT = process.env.PORT || 8001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Backend server running on port ${PORT}`);
+});
   console.log
