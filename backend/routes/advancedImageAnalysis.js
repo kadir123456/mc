@@ -304,33 +304,57 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
       });
     }
 
-    // ========== ADIM 2: Football API'den Yaklaşan Maçları Al ==========
+// ========== ADIM 2: Football API'den Yaklaşan Maçları Al ==========
     console.log('\n' + '─'.repeat(80));
     console.log('⚽ ADIM 2: FOOTBALL API\'DEN YAKLAŞAN MAÇLARI ÇEKME');
     console.log('─'.repeat(80));
     
     console.log('\n🔍 API isteği gönderiliyor...');
     console.log(`   ├─ Endpoint: https://v3.football.api-sports.io/fixtures`);
-    console.log(`   ├─ Parametre: next=200 (önümüzdeki 200 maç)`);
+    console.log(`   ├─ Parametre: date (bugün ve yarın)`);
     console.log(`   └─ Timeout: 20 saniye`);
 
-    const footballResponse = await axios.get(
-      'https://v3.football.api-sports.io/fixtures',
-      {
-        params: {
-          next: 200
-        },
+    // Bugün ve yarının maçlarını çek
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    console.log(`   ├─ Bugün: ${todayStr}`);
+    console.log(`   └─ Yarın: ${tomorrowStr}`);
+    
+    // İki istek paralel olarak
+    const [todayResponse, tomorrowResponse] = await Promise.all([
+      axios.get('https://v3.football.api-sports.io/fixtures', {
+        params: { date: todayStr },
         headers: {
-          'x-apisports-key': FOOTBALL_API_KEY
+          'x-rapidapi-host': 'v3.football.api-sports.io',
+          'x-rapidapi-key': FOOTBALL_API_KEY
         },
         timeout: 20000
-      }
-    );
-
-    const allFixtures = footballResponse.data?.response || [];
+      }),
+      axios.get('https://v3.football.api-sports.io/fixtures', {
+        params: { date: tomorrowStr },
+        headers: {
+          'x-rapidapi-host': 'v3.football.api-sports.io',
+          'x-rapidapi-key': FOOTBALL_API_KEY
+        },
+        timeout: 20000
+      })
+    ]);
+    
+    // Maçları birleştir
+    const allFixtures = [
+      ...(todayResponse.data.response || []),
+      ...(tomorrowResponse.data.response || [])
+    ];
     
     console.log(`\n✅ Football API yanıtı alındı:`);
-    console.log(`   └─ Toplam maç sayısı: ${allFixtures.length}`);
+    console.log(`   ├─ Bugün: ${todayResponse.data.response?.length || 0} maç`);
+    console.log(`   ├─ Yarın: ${tomorrowResponse.data.response?.length || 0} maç`);
+    console.log(`   └─ Toplam: ${allFixtures.length} maç`);
 
     if (allFixtures.length === 0) {
       console.error('\n❌ HATA: Football API\'den maç alınamadı');
