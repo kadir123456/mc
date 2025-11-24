@@ -1,4 +1,4 @@
-,// server.js - Ana Entry Point (Modüler Mimari)
+// server.js - Ana Entry Point (Modüler Mimari)
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();

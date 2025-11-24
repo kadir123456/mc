@@ -3,6 +3,9 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
+// ✅ Firebase Admin SDK ve utils fonksiyonları
+const { deductCreditsFromUser } = require('../utils');
+
 // ==================== HELPER FUNCTIONS ====================
 
 // Gemini JSON yanıtını güvenli şekilde parse et
@@ -897,14 +900,66 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
     console.log(`   └─ Eşleşmeyen: ${unmatchedMatches.length}`);
     console.log('\n' + '='.repeat(80) + '\n');
 
-    res.json({
-      success: true,
-      message: `${matchedMatches.length} maç başarıyla analiz edildi`,
-      extractedMatches,
-      matchedMatches,
-      unmatchedMatches,
-      analysisType
-    });
+    // ========================================
+    // ✅ KREDİ DÜŞÜRME - ANALİZ TAMAMLANDI
+    // ========================================
+    
+    console.log('💳 KREDİ DÜŞÜRME İŞLEMİ BAŞLATILIYOR...');
+    console.log(`   ├─ Kullanıcı ID: ${userId}`);
+    console.log(`   └─ Düşürülecek Kredi: 1`);
+    
+    try {
+      if (!userId) {
+        console.error('❌ HATA: userId parametresi eksik!');
+        return res.status(400).json({ 
+          error: 'Kullanıcı kimliği bulunamadı',
+          details: 'userId parametresi gereklidir'
+        });
+      }
+
+      // Kredi düş (utils.js fonksiyonu)
+      await deductCreditsFromUser(userId, 1, 'gorsel_analizi');
+      
+      // Güncel kredi bilgisini al
+      const admin = require('firebase-admin');
+      const db = admin.database();
+      const userSnapshot = await db.ref(`users/${userId}`).once('value');
+      const userData = userSnapshot.val();
+      const remainingCredits = userData?.credits || 0;
+      
+      console.log(`✅ KREDİ DÜŞÜRME BAŞARILI!`);
+      console.log(`   └─ Yeni kredi: ${remainingCredits}`);
+
+      // Response gönder
+      res.json({
+        success: true,
+        message: `${matchedMatches.length} maç başarıyla analiz edildi`,
+        creditsDeducted: 1,
+        remainingCredits: remainingCredits,
+        extractedMatches,
+        matchedMatches,
+        unmatchedMatches,
+        analysisType
+      });
+
+    } catch (creditError) {
+      console.error('❌ KREDİ DÜŞÜRME HATASI:', creditError.message);
+      
+      // Kredi hatası durumunda özel yanıt
+      if (creditError.message.includes('Yetersiz kredi')) {
+        return res.status(402).json({ 
+          error: 'Yetersiz kredi',
+          details: creditError.message,
+          requiredCredits: 1
+        });
+      }
+      
+      // Diğer hatalar
+      return res.status(500).json({ 
+        error: 'Kredi düşürme işlemi başarısız',
+        details: creditError.message
+      });
+    }
 
   } catch (error) {
     console.error('\n' + '='.repeat(80));
