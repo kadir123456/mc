@@ -8,6 +8,7 @@ const { firebaseInitialized } = require('./utils');
 // Route'ları import et
 const mainApiRoutes = require('./routes/mainApi');
 const imageAnalysisRoutes = require('./routes/imageAnalysis');
+const advancedImageAnalysisRoutes = require('./routes/advancedImageAnalysis');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -49,6 +50,9 @@ app.use('/', mainApiRoutes);
 // Gelişmiş görsel analiz route'ları
 app.use('/', imageAnalysisRoutes);
 
+// YENİ: Gelişmiş görsel analiz v3.0 (Fuzzy Matching + Gemini Doğrulama)
+app.use('/', advancedImageAnalysisRoutes);
+
 // ==================== ERROR HANDLER ====================
 app.use((err, req, res, next) => {
   console.error('❌ Global hata:', err.message);
@@ -71,7 +75,8 @@ app.listen(PORT, () => {
   console.log(`   🖼️  Gemini Basit Görsel: /api/gemini/analyze-image`);
   console.log(`   📦 Shopier Callback: /api/shopier/callback`);
   console.log(`\n🎯 GELİŞMİŞ ANALİZ ROUTE'LARI:`);
-  console.log(`   📸 Kupon Görsel Analizi: /api/analyze-coupon-image`);
+  console.log(`   📸 Kupon Görsel Analizi (ESKİ): /api/analyze-coupon-image`);
+  console.log(`   🎯 Kupon Görsel Analizi (YENİ v3.0): /api/analyze-coupon-advanced`);
   console.log(`\n🔧 SİSTEM:`);
   console.log(`   Firebase: ${firebaseInitialized ? '✅' : '❌'}`);
   console.log(`   Gemini API: ${process.env.GEMINI_API_KEY ? '✅' : '❌'}`);
