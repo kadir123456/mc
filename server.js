@@ -1292,7 +1292,39 @@ app.post('/api/shopier/osb', upload.none(), async (req, res) => {
     res.status(200).send('success');
   }
 });
+// ============================================
+// 🎯 BACKEND PROXY (Port 3002)
+// ============================================
 
+// Yeni endpoint: Gelişmiş kupon analizi (v3.0)
+app.post('/api/analyze-coupon-advanced', async (req, res) => {
+  try {
+    console.log('🔄 Proxy: /api/analyze-coupon-advanced isteği backend\'e yönlendiriliyor...');
+    
+    const response = await axios.post('http://localhost:3002/api/analyze-coupon-advanced', req.body, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 90000 // 90 saniye (Gemini + Football API için)
+    });
+    
+    console.log('✅ Proxy: Backend\'den yanıt alındı');
+    res.json(response.data);
+    
+  } catch (error) {
+    console.error('❌ Proxy hatası:', error.message);
+    
+    // Backend'den gelen hata mesajını ilet
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ 
+        error: 'Backend sunucusuna ulaşılamadı',
+        details: error.message 
+      });
+    }
+  }
+});
 // ============================================
 // SERVER BAŞLATMA
 // ============================================
