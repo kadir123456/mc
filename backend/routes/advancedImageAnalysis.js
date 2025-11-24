@@ -423,18 +423,20 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
         
         if (isValid) {
           matchedMatches.push({
-            extracted,
-            fixtureId: bestMatch.fixture.fixture.id,
-            homeTeam: bestMatch.fixture.teams.home.name,
-            awayTeam: bestMatch.fixture.teams.away.name,
-            homeTeamId: bestMatch.fixture.teams.home.id,
-            awayTeamId: bestMatch.fixture.teams.away.id,
-            league: bestMatch.fixture.league.name,
-            leagueId: bestMatch.fixture.league.id,
-            season: bestMatch.fixture.league.season,
-            date: bestMatch.fixture.fixture.date,
-            status: bestMatch.fixture.fixture.status.long,
-            similarityScore: bestMatch.avgScore
+            extracted: {
+              homeTeam: extracted.homeTeam,
+              awayTeam: extracted.awayTeam,
+              league: null
+            },
+            apiMatch: {
+              fixtureId: bestMatch.fixture.fixture.id,
+              homeTeam: bestMatch.fixture.teams.home.name,
+              awayTeam: bestMatch.fixture.teams.away.name,
+              league: bestMatch.fixture.league.name,
+              date: bestMatch.fixture.fixture.date,
+              status: bestMatch.fixture.fixture.status.short
+            },
+            matchScore: Math.round(bestMatch.avgScore * 100)
           });
           console.log(`   └─ ✅ Gemini ONAYLADI - Eşleşme kabul edildi\n`);
         } else {
