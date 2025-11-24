@@ -139,6 +139,282 @@ JSON yanıt ver:
   }
 }
 
+// Football API çağrısı (Rate Limit Retry ile)
+async function fetchFootballAPIWithRetry(url, params, FOOTBALL_API_KEY, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await axios.get(url, {
+        params,
+        headers: {
+          'x-rapidapi-key': FOOTBALL_API_KEY,
+          'x-rapidapi-host': 'v3.football.api-sports.io'
+        },
+        timeout: 20000
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 429 && attempt < maxRetries - 1) {
+        const waitTime = 2000 * (attempt + 1); // 2s, 4s, 6s
+        console.log(`   ⚠️ Rate limit, ${waitTime/1000}s bekleniyor...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+// Takım istatistikleri çek (Son 10 maç)
+async function getTeamStats(teamId, FOOTBALL_API_KEY) {
+  try {
+    const data = await fetchFootballAPIWithRetry(
+      'https://v3.football.api-sports.io/fixtures',
+      { team: teamId, last: 10 },
+      FOOTBALL_API_KEY
+    );
+
+    const fixtures = data.response || [];
+    if (fixtures.length === 0) {
+      return null;
+    }
+
+    // İstatistikleri hesapla
+    let wins = 0, draws = 0, losses = 0;
+    let goalsScored = 0, goalsConceded = 0;
+    let bttsCount = 0, cleanSheetCount = 0;
+    let homeFixtures = [];
+    let awayFixtures = [];
+    const formArray = [];
+
+    for (const fixture of fixtures) {
+      const isHome = fixture.teams.home.id === teamId;
+      const goalsFor = isHome ? fixture.goals.home : fixture.goals.away;
+      const goalsAgainst = isHome ? fixture.goals.away : fixture.goals.home;
+
+      // Form hesapla
+      if (goalsFor > goalsAgainst) {
+        wins++;
+        formArray.push('W');
+      } else if (goalsFor < goalsAgainst) {
+        losses++;
+        formArray.push('L');
+      } else {
+        draws++;
+        formArray.push('D');
+      }
+
+      // Goller
+      goalsScored += goalsFor || 0;
+      goalsConceded += goalsAgainst || 0;
+
+      // BTTS (Both Teams To Score)
+      if ((fixture.goals.home || 0) > 0 && (fixture.goals.away || 0) > 0) {
+        bttsCount++;
+      }
+
+      // Clean Sheet
+      if (goalsAgainst === 0) {
+        cleanSheetCount++;
+      }
+
+      // Ev/Deplasman ayır
+      if (isHome) {
+        homeFixtures.push(fixture);
+      } else {
+        awayFixtures.push(fixture);
+      }
+    }
+
+    // Ev/Deplasman formları
+    const calculateForm = (fixtures, teamId) => {
+      const form = [];
+      for (const f of fixtures) {
+        const isHome = f.teams.home.id === teamId;
+        const goalsFor = isHome ? f.goals.home : f.goals.away;
+        const goalsAgainst = isHome ? f.goals.away : f.goals.home;
+        if (goalsFor > goalsAgainst) form.push('W');
+        else if (goalsFor < goalsAgainst) form.push('L');
+        else form.push('D');
+      }
+      return form.join('');
+    };
+
+    return {
+      form: formArray.join(''),
+      wins,
+      draws,
+      losses,
+      goalsScored,
+      goalsConceded,
+      goalsAvg: (goalsScored / fixtures.length).toFixed(1),
+      concededAvg: (goalsConceded / fixtures.length).toFixed(1),
+      homeForm: calculateForm(homeFixtures.slice(0, 5), teamId),
+      awayForm: calculateForm(awayFixtures.slice(0, 5), teamId),
+      btts: Math.round((bttsCount / fixtures.length) * 100),
+      cleanSheet: Math.round((cleanSheetCount / fixtures.length) * 100)
+    };
+
+  } catch (error) {
+    console.error(`   ⚠️ Takım ${teamId} istatistikleri alınamadı:`, error.message);
+    return null;
+  }
+}
+
+// Head-to-Head istatistikleri çek
+async function getH2H(homeTeamId, awayTeamId, FOOTBALL_API_KEY) {
+  try {
+    const data = await fetchFootballAPIWithRetry(
+      'https://v3.football.api-sports.io/fixtures/headtohead',
+      { h2h: `${homeTeamId}-${awayTeamId}`, last: 5 },
+      FOOTBALL_API_KEY
+    );
+
+    const fixtures = data.response || [];
+    if (fixtures.length === 0) {
+      return null;
+    }
+
+    let homeWins = 0, draws = 0, awayWins = 0, totalGoals = 0;
+
+    for (const fixture of fixtures) {
+      const homeGoals = fixture.goals.home || 0;
+      const awayGoals = fixture.goals.away || 0;
+      totalGoals += homeGoals + awayGoals;
+
+      // Kazananı belirle (ev sahibi perspektifinden)
+      const isHomeTeamHome = fixture.teams.home.id === homeTeamId;
+      if (homeGoals > awayGoals) {
+        if (isHomeTeamHome) homeWins++;
+        else awayWins++;
+      } else if (homeGoals < awayGoals) {
+        if (isHomeTeamHome) awayWins++;
+        else homeWins++;
+      } else {
+        draws++;
+      }
+    }
+
+    return {
+      total: fixtures.length,
+      homeWins,
+      draws,
+      awayWins,
+      totalGoals,
+      avgGoals: (totalGoals / fixtures.length).toFixed(1)
+    };
+
+  } catch (error) {
+    console.error(`   ⚠️ H2H alınamadı (${homeTeamId} vs ${awayTeamId}):`, error.message);
+    return null;
+  }
+}
+
+// Gemini ile tahmin yap
+async function getGeminiPrediction(match, homeStats, awayStats, h2h, GEMINI_API_KEY) {
+  try {
+    const promptText = `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. 
+Aşağıdaki maç verilerine göre TAHMİN YAP ve SKORLA.
+
+MAÇ:
+Ev Sahibi: ${match.apiMatch.homeTeam}
+Deplasman: ${match.apiMatch.awayTeam}
+Lig: ${match.apiMatch.league}
+
+EV SAHİBİ İSTATİSTİKLER:
+- Son 10 Maç Formu: ${homeStats?.form || 'N/A'}
+- Galibiyet/Beraberlik/Mağlubiyet: ${homeStats?.wins || 0}/${homeStats?.draws || 0}/${homeStats?.losses || 0}
+- Gol Ortalaması: ${homeStats?.goalsAvg || 0} gol/maç
+- Gol Yeme: ${homeStats?.concededAvg || 0} gol/maç
+- Evdeki Form (Son 5): ${homeStats?.homeForm || 'N/A'}
+- BTTS: %${homeStats?.btts || 0}
+- Clean Sheet: %${homeStats?.cleanSheet || 0}
+
+DEPLASMAN İSTATİSTİKLER:
+- Son 10 Maç Formu: ${awayStats?.form || 'N/A'}
+- Galibiyet/Beraberlik/Mağlubiyet: ${awayStats?.wins || 0}/${awayStats?.draws || 0}/${awayStats?.losses || 0}
+- Gol Ortalaması: ${awayStats?.goalsAvg || 0} gol/maç
+- Gol Yeme: ${awayStats?.concededAvg || 0} gol/maç
+- Deplasmanki Form (Son 5): ${awayStats?.awayForm || 'N/A'}
+- BTTS: %${awayStats?.btts || 0}
+- Clean Sheet: %${awayStats?.cleanSheet || 0}
+
+HEAD-TO-HEAD (Son 5):
+- Ev Sahibi Galibiyet: ${h2h?.homeWins || 0}
+- Beraberlik: ${h2h?.draws || 0}
+- Deplasman Galibiyet: ${h2h?.awayWins || 0}
+- Ortalama Gol: ${h2h?.avgGoals || 0}
+
+SKORLAMA SİSTEMİ (Toplam 100 Puan):
+Her kritere puan ver ve TOPLA:
+
+1. FORM FARKI (0-30 puan):
+   - Son 10 maçtaki kazanma yüzdelerini karşılaştır
+   - Fark ne kadar büyükse o kadar yüksek puan
+
+2. EV SAHİBİ AVANTAJI (0-15 puan):
+   - Ev sahibi evinde ne kadar iyi?
+   - Deplasman takımı deplasmanki ne kadar kötü?
+
+3. GOL ÜRETİM KABİLİYETİ (0-25 puan):
+   - Gol ortalamaları
+   - BTTS yüzdeleri
+   - Hangi takım daha golcü?
+
+4. H2H ÜSTÜNLÜĞÜ (0-20 puan):
+   - Geçmişte kim daha başarılı?
+   - Son karşılaşmalarda trend var mı?
+
+5. SAVUNMA KALİTESİ (0-10 puan):
+   - Clean sheet yüzdeleri
+   - Gol yeme ortalamaları
+
+TOPLAM SKORA GÖRE TAHMİN:
+- 70+ puan → Net tahmin (1 veya 2)
+- 50-70 puan → Orta güven
+- 50 altı → Belirsiz (X veya düşük güven)
+
+JSON formatında yanıt ver:
+{
+  "prediction": "1" veya "X" veya "2",
+  "confidence": 0-100,
+  "totalScore": 0-100,
+  "scores": {
+    "formDifference": 0-30,
+    "homeAdvantage": 0-15,
+    "goalProduction": 0-25,
+    "h2hDominance": 0-20,
+    "defenseQuality": 0-10
+  },
+  "reasoning": "Kısa açıklama (max 200 karakter)",
+  "keyFactors": ["faktör1", "faktör2", "faktör3"]
+}
+
+SADECE JSON yanıt ver, başka hiçbir şey yazma.`;
+
+    const predictionText = await callGeminiAPI(promptText, 'json', 0.2, GEMINI_API_KEY);
+    const prediction = parseGeminiJSON(predictionText);
+    
+    return prediction;
+
+  } catch (error) {
+    console.error(`   ⚠️ Gemini tahmini alınamadı:`, error.message);
+    return {
+      prediction: 'N/A',
+      confidence: 0,
+      totalScore: 0,
+      scores: {
+        formDifference: 0,
+        homeAdvantage: 0,
+        goalProduction: 0,
+        h2hDominance: 0,
+        defenseQuality: 0
+      },
+      reasoning: 'Tahmin üretilemedi',
+      keyFactors: []
+    };
+  }
+}
+
 // ==================== YENİ ENDPOINT: /api/analyze-coupon-advanced ====================
 
 router.post('/api/analyze-coupon-advanced', async (req, res) => {
@@ -452,13 +728,172 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
+    // ========== ADIM 4: KAPSAMLI İSTATİSTİKLER ÇEK ==========
+    console.log('\n' + '─'.repeat(80));
+    console.log('📊 ADIM 4: KAPSAMLI İSTATİSTİKLER ÇEKİLİYOR');
+    console.log('─'.repeat(80));
+
+    for (let idx = 0; idx < matchedMatches.length; idx++) {
+      const match = matchedMatches[idx];
+      console.log(`\n⚽ Maç ${idx + 1}/${matchedMatches.length}: ${match.apiMatch.homeTeam} vs ${match.apiMatch.awayTeam}`);
+      
+      try {
+        // Takım ID'lerini al (Football API'den fixture verisi içinde var)
+        const fixtureId = match.apiMatch.fixtureId;
+        
+        // Takım ID'lerini bulmak için fixture detaylarını çek
+        console.log(`   ├─ 🔍 Takım ID'leri alınıyor...`);
+        const fixtureData = await fetchFootballAPIWithRetry(
+          'https://v3.football.api-sports.io/fixtures',
+          { id: fixtureId },
+          FOOTBALL_API_KEY
+        );
+        
+        const fixture = fixtureData.response?.[0];
+        if (!fixture) {
+          console.log(`   └─ ⚠️ Fixture bulunamadı, istatistik atlanıyor`);
+          continue;
+        }
+
+        const homeTeamId = fixture.teams.home.id;
+        const awayTeamId = fixture.teams.away.id;
+        console.log(`   │  └─ Ev Sahibi ID: ${homeTeamId}, Deplasman ID: ${awayTeamId}`);
+
+        // Ev sahibi istatistikleri
+        console.log(`   ├─ 📈 Ev sahibi son 10 maç alınıyor...`);
+        const homeStats = await getTeamStats(homeTeamId, FOOTBALL_API_KEY);
+        if (homeStats) {
+          console.log(`   │  └─ Form: ${homeStats.form} (${homeStats.wins}G ${homeStats.draws}B ${homeStats.losses}M)`);
+        } else {
+          console.log(`   │  └─ ⚠️ İstatistik alınamadı`);
+        }
+
+        // Deplasman istatistikleri
+        console.log(`   ├─ 📉 Deplasman son 10 maç alınıyor...`);
+        const awayStats = await getTeamStats(awayTeamId, FOOTBALL_API_KEY);
+        if (awayStats) {
+          console.log(`   │  └─ Form: ${awayStats.form} (${awayStats.wins}G ${awayStats.draws}B ${awayStats.losses}M)`);
+        } else {
+          console.log(`   │  └─ ⚠️ İstatistik alınamadı`);
+        }
+
+        // Head-to-Head
+        console.log(`   ├─ 🔄 H2H son 5 karşılaşma alınıyor...`);
+        const h2h = await getH2H(homeTeamId, awayTeamId, FOOTBALL_API_KEY);
+        if (h2h) {
+          console.log(`   │  └─ ${h2h.homeWins}-${h2h.draws}-${h2h.awayWins} (Ort. ${h2h.avgGoals} gol)`);
+        } else {
+          console.log(`   │  └─ ⚠️ H2H verisi yok`);
+        }
+
+        // İstatistikleri match objesine ekle
+        match.statistics = {
+          homeTeam: homeStats,
+          awayTeam: awayStats,
+          h2h: h2h
+        };
+
+        // Takım ID'lerini de sakla (ADIM 5 için)
+        match.homeTeamId = homeTeamId;
+        match.awayTeamId = awayTeamId;
+
+        console.log(`   └─ ✅ İstatistikler tamamlandı`);
+
+        // Rate limit için bekleme
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+      } catch (error) {
+        console.log(`   └─ ❌ Hata: ${error.message} - Bu maç atlanıyor`);
+        // Hata durumunda boş istatistikler ekle
+        match.statistics = {
+          homeTeam: null,
+          awayTeam: null,
+          h2h: null
+        };
+      }
+    }
+
+    // ========== ADIM 5: GEMİNİ İLE KAPSAMLI TAHMİNLER ==========
+    console.log('\n' + '─'.repeat(80));
+    console.log('🤖 ADIM 5: GEMİNİ İLE KAPSAMLI TAHMİNLER');
+    console.log('─'.repeat(80));
+
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < matchedMatches.length; i += BATCH_SIZE) {
+      const batch = matchedMatches.slice(i, i + BATCH_SIZE);
+      
+      console.log(`\n📦 Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(matchedMatches.length / BATCH_SIZE)}: ${batch.length} maç`);
+
+      await Promise.all(batch.map(async (match, batchIdx) => {
+        const globalIdx = i + batchIdx;
+        console.log(`\n📊 Maç ${globalIdx + 1}/${matchedMatches.length}: ${match.apiMatch.homeTeam} vs ${match.apiMatch.awayTeam}`);
+        
+        try {
+          if (!match.statistics || (!match.statistics.homeTeam && !match.statistics.awayTeam)) {
+            console.log(`   └─ ⚠️ İstatistik yok, tahmin atlanıyor`);
+            return;
+          }
+
+          console.log(`   ├─ 🤖 Gemini tahmini üretiliyor...`);
+          const prediction = await getGeminiPrediction(
+            match,
+            match.statistics.homeTeam,
+            match.statistics.awayTeam,
+            match.statistics.h2h,
+            GEMINI_API_KEY
+          );
+
+          // Tahmin verilerini match objesine ekle
+          match.prediction = prediction.prediction;
+          match.confidence = prediction.confidence;
+          match.totalScore = prediction.totalScore;
+          match.scores = prediction.scores;
+          match.reasoning = prediction.reasoning;
+          match.keyFactors = prediction.keyFactors;
+
+          console.log(`   ├─ Toplam Skor: ${match.totalScore}/100`);
+          console.log(`   │  ├─ Form Farkı: ${match.scores.formDifference}/30`);
+          console.log(`   │  ├─ Ev Avantajı: ${match.scores.homeAdvantage}/15`);
+          console.log(`   │  ├─ Gol Üretimi: ${match.scores.goalProduction}/25`);
+          console.log(`   │  ├─ H2H: ${match.scores.h2hDominance}/20`);
+          console.log(`   │  └─ Savunma: ${match.scores.defenseQuality}/10`);
+          console.log(`   ├─ 🎯 Tahmin: ${match.prediction} (Güven: %${match.confidence})`);
+          console.log(`   └─ 💡 ${match.reasoning}`);
+
+        } catch (error) {
+          console.log(`   └─ ❌ Tahmin hatası: ${error.message}`);
+          // Hata durumunda boş tahmin ekle
+          match.prediction = 'N/A';
+          match.confidence = 0;
+          match.totalScore = 0;
+          match.scores = {
+            formDifference: 0,
+            homeAdvantage: 0,
+            goalProduction: 0,
+            h2hDominance: 0,
+            defenseQuality: 0
+          };
+          match.reasoning = 'Tahmin üretilemedi';
+          match.keyFactors = [];
+        }
+      }));
+
+      // Batch'ler arası 1 saniye bekle
+      if (i + BATCH_SIZE < matchedMatches.length) {
+        console.log(`\n⏳ Sonraki batch için 1 saniye bekleniyor...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
     // ========== SONUÇ ==========
     console.log('\n' + '='.repeat(80));
-    console.log('✅ GELİŞMİŞ KUPON ANALİZİ TAMAMLANDI!');
+    console.log('✅ TÜM ANALİZLER TAMAMLANDI!');
     console.log('='.repeat(80));
     console.log(`\n📊 ÖZET:`);
     console.log(`   ├─ Görselden çıkarılan maç: ${extractedMatches.length}`);
     console.log(`   ├─ Başarıyla eşleştirilen: ${matchedMatches.length}`);
+    console.log(`   ├─ İstatistik çekilen: ${matchedMatches.filter(m => m.statistics?.homeTeam).length}`);
+    console.log(`   ├─ Tahmin üretilen: ${matchedMatches.filter(m => m.prediction && m.prediction !== 'N/A').length}`);
     console.log(`   └─ Eşleşmeyen: ${unmatchedMatches.length}`);
     console.log('\n' + '='.repeat(80) + '\n');
 
