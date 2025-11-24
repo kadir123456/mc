@@ -1326,6 +1326,36 @@ app.post('/api/analyze-coupon-advanced', async (req, res) => {
     }
   }
 });
+
+// YENİ: Bülten analizi (Kullanıcı maç listesi)
+app.post('/api/analyze-bulletin-advanced', async (req, res) => {
+  try {
+    console.log('🔄 Proxy: /api/analyze-bulletin-advanced isteği backend\'e yönlendiriliyor...');
+    
+    const response = await axios.post('http://localhost:3002/api/analyze-bulletin-advanced', req.body, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 90000 // 90 saniye (Gemini + Football API için)
+    });
+    
+    console.log('✅ Proxy: Bülten analizi tamamlandı');
+    res.json(response.data);
+    
+  } catch (error) {
+    console.error('❌ Bülten analiz proxy hatası:', error.message);
+    
+    // Backend'den gelen hata mesajını ilet
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ 
+        error: 'Backend sunucusuna ulaşılamadı',
+        details: error.message 
+      });
+    }
+  }
+});
 // ============================================
 // SERVER BAŞLATMA
 // ============================================
