@@ -36,12 +36,11 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'aikupon-backend',
-    version: '2.0.0',
+    version: '4.0.0-compact',
     timestamp: new Date().toISOString(),
     firebase: firebaseInitialized,
-    gemini: !!process.env.GEMINI_API_KEY || !!process.env.EMERGENT_LLM_KEY,
-    football: !!process.env.FOOTBALL_API_KEY,
-    emergentKey: !!process.env.EMERGENT_LLM_KEY
+    gemini: !!process.env.GEMINI_API_KEY,
+    football: !!process.env.FOOTBALL_API_KEY
   });
 });
 
@@ -69,7 +68,7 @@ app.use((err, req, res, next) => {
 // ==================== SERVER START ====================
 app.listen(PORT, () => {
   console.log('\n' + '='.repeat(60));
-  console.log('🚀 AIKUPON BACKEND SERVİSİ BAŞLATILDI (v2.0)');
+  console.log('🚀 AIKUPON BACKEND SERVİSİ BAŞLATILDI (v4.0 - COMPACT)');
   console.log('='.repeat(60));
   console.log(`📡 Port: ${PORT}`);
   console.log(`🏥 Health: http://localhost:${PORT}/health`);
@@ -80,13 +79,17 @@ app.listen(PORT, () => {
   console.log(`   📦 Shopier Callback: /api/shopier/callback`);
   console.log(`\n🎯 GELİŞMİŞ ANALİZ ROUTE'LARI:`);
   console.log(`   📸 Kupon Görsel Analizi (ESKİ): /api/analyze-coupon-image`);
-  console.log(`   🎯 Kupon Görsel Analizi (YENİ v3.0): /api/analyze-coupon-advanced`);
+  console.log(`   🎯 Kupon Görsel Analizi (COMPACT v4.0): /api/analyze-coupon-advanced`);
   console.log(`   📋 Bülten Analizi (Maç Listesi): /api/analyze-bulletin-advanced`);
-  console.log(`\n🔧 SİSTEM:`);
+  console.log(`\n🔧 SİSTEM (COMPACT v4.0):`);
   console.log(`   Firebase: ${firebaseInitialized ? '✅' : '❌'}`);
-  console.log(`   Gemini API: ${process.env.GEMINI_API_KEY ? '✅' : '❌'}`);
-  console.log(`   Emergent LLM Key: ${process.env.EMERGENT_LLM_KEY ? '✅ (Aktif)' : '❌'}`);
+  console.log(`   Gemini API: ${process.env.GEMINI_API_KEY ? '✅ (COMPACT MODE)' : '❌'}`);
   console.log(`   Football API: ${process.env.FOOTBALL_API_KEY ? '✅' : '❌'}`);
+  console.log(`\n💡 YENİ ÖZELLİKLER:`);
+  console.log(`   ✅ %80 daha kısa prompt (token tasarrufu)`);
+  console.log(`   ✅ Kalite kontrolü (60+ skor gerekli)`);
+  console.log(`   ✅ Sadece güvenilir tahminler (confidence > 60)`);
+  console.log(`   ✅ Otomatik bahis türü seçimi (MS/Alt-Üst/KG)`);
   console.log('='.repeat(60) + '\n');
 });
 
