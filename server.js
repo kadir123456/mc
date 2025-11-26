@@ -45,8 +45,8 @@ try {
 
 // CORS ayarları
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '250mb' }));
+app.use(express.urlencoded({ limit: '250mb', extended: true }));
 
 // API credentials
 const SPORTSRADAR_API_KEY = process.env.VITE_SPORTSRADAR_API_KEY;

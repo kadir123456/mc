@@ -110,133 +110,6 @@ async function callGeminiAPI(prompt, responseFormat = 'json', temperature = 0.3,
   return response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
 }
 
-// ==================== COMPACT GEMINI SISTEM (v4.0 - KREDİ DOSTU) ====================
-
-// Basit kalite skoru hesapla (60+ = iyi, 40-60 = orta, <40 = reddet)
-function calculateSimpleQualityScore(match) {
-  let score = 0;
-  
-  // Temel kontroller
-  if (match.statistics?.homeTeam && match.statistics?.awayTeam) score += 30;
-  if (match.statistics?.h2h?.total >= 3) score += 20;
-  
-  // H2H güncelliği
-  const monthsAgo = match.statistics?.h2h?.lastMatchDate ? 
-    (Date.now() - new Date(match.statistics.h2h.lastMatchDate)) / (1000*60*60*24*30) : 999;
-  
-  if (monthsAgo <= 12) score += 20;
-  else if (monthsAgo <= 24) score += 10;
-  
-  // Form farkı (formPoints yoksa wins/total ile hesapla)
-  const homeFormPoints = match.statistics?.homeTeam?.wins || 0;
-  const awayFormPoints = match.statistics?.awayTeam?.wins || 0;
-  const formDiff = Math.abs(homeFormPoints - awayFormPoints);
-  
-  if (formDiff >= 3) score += 20;
-  else if (formDiff >= 2) score += 10;
-  
-  // Oran kontrolü
-  if (match.apiMatch) score += 10;
-  
-  return {
-    score,
-    verdict: score >= 60 ? "GOOD" : score >= 40 ? "MODERATE" : "REJECT"
-  };
-}
-
-// Hızlı bahis seçici - En iyi bahis türünü döndür
-function selectBestBetFast(match, probabilities, goalPred) {
-  const bets = [];
-  
-  // MS (Maç Sonucu)
-  const maxProb = Math.max(probabilities.home, probabilities.draw, probabilities.away);
-  if (maxProb >= 65) {
-    const pred = probabilities.home >= 65 ? "1" : 
-                 probabilities.away >= 65 ? "2" : "X";
-    bets.push({
-      type: "MS",
-      prediction: pred,
-      confidence: maxProb,
-      odds: 1.80 // Varsayılan oran
-    });
-  }
-  
-  // Alt/Üst 2.5
-  if (goalPred.over25 >= 65) {
-    bets.push({
-      type: "ALT_UST",
-      prediction: "Üst 2.5",
-      confidence: goalPred.over25,
-      odds: 1.85
-    });
-  } else if (goalPred.over25 <= 35) {
-    bets.push({
-      type: "ALT_UST",
-      prediction: "Alt 2.5",
-      confidence: 100 - goalPred.over25,
-      odds: 1.85
-    });
-  }
-  
-  // KG (Karşılıklı Gol)
-  if (goalPred.btts >= 65) {
-    bets.push({
-      type: "KG",
-      prediction: "Var",
-      confidence: goalPred.btts,
-      odds: 1.80
-    });
-  } else if (goalPred.btts <= 35) {
-    bets.push({
-      type: "KG",
-      prediction: "Yok",
-      confidence: 100 - goalPred.btts,
-      odds: 1.80
-    });
-  }
-  
-  // En yüksek güvene sahip olanı seç
-  return bets.sort((a, b) => b.confidence - a.confidence)[0] || null;
-}
-
-// Compact Gemini prompt oluştur (80% daha kısa)
-function generateCompactPredictionPrompt(match, homeStats, awayStats, h2h) {
-  return `Sen profesyonel futbol analistisin. Sadece güvenilir tahminler yap.
-
-🏠 ${match.apiMatch.homeTeam} vs ✈️ ${match.apiMatch.awayTeam}
-
-📊 TEMEL VERİLER:
-Ev: Form ${homeStats?.form || 'N/A'}, ${homeStats?.goalsAvg || 0} gol/maç
-Deplasman: Form ${awayStats?.form || 'N/A'}, ${awayStats?.goalsAvg || 0} gol/maç
-H2H: ${h2h?.homeWins || 0}-${h2h?.draws || 0}-${h2h?.awayWins || 0} (Son ${h2h?.total || 0} maç)
-
-⚠️ KURALLAR:
-1. Veri yetersizse → "dataQuality": "INSUFFICIENT"
-2. Güven <%60 ise → "status": "NO_VALUE"
-3. Sadece EN İYİ 1 bahis türünü öner (MS/Alt-Üst/KG)
-
-🎯 ANALİZ:
-A) OLASILIK: Form + Ev avantajı + H2H
-B) BAHİS TÜRÜ: MS/Alt-Üst/KG (en güvenilir olanı)
-C) VALUE: Oran olasılığı vs tahmin
-
-JSON ÇIKTI:
-{
-  "dataQuality": "SUFFICIENT/INSUFFICIENT",
-  "probabilities": {"home": 0-100, "draw": 0-100, "away": 0-100},
-  "goalPrediction": {"expectedTotal": 0-10, "over25": 0-100, "btts": 0-100},
-  "recommendation": {
-    "betType": "MS/ALT_UST/KG",
-    "prediction": "tahmin",
-    "confidence": 0-100,
-    "reasoning": "kısa açıklama (max 100 karakter)"
-  },
-  "status": "RECOMMENDED/NO_VALUE/REJECTED"
-}
-
-SADECE JSON!`;
-}
-
 // Gemini ile maç eşleştirme doğrulama
 async function validateMatchWithGemini(extractedMatch, apiMatch, GEMINI_API_KEY) {
   try {
@@ -439,82 +312,108 @@ async function getH2H(homeTeamId, awayTeamId, FOOTBALL_API_KEY) {
   }
 }
 
-// Compact Gemini Prediction (v4.0 - Token Optimized)
+// Gemini ile tahmin yap
 async function getGeminiPrediction(match, homeStats, awayStats, h2h, GEMINI_API_KEY) {
   try {
-    // ADIM 1: Kalite Kontrolü
-    const quality = calculateSimpleQualityScore(match);
-    console.log(`   ├─ 📊 Kalite Skoru: ${quality.score}/100 (${quality.verdict})`);
+    const promptText = `Sen profesyonel bir futbol analisti ve istatistik uzmanısın. 
+Aşağıdaki maç verilerine göre TAHMİN YAP ve SKORLA.
+
+MAÇ:
+Ev Sahibi: ${match.apiMatch.homeTeam}
+Deplasman: ${match.apiMatch.awayTeam}
+Lig: ${match.apiMatch.league}
+
+EV SAHİBİ İSTATİSTİKLER:
+- Son 10 Maç Formu: ${homeStats?.form || 'N/A'}
+- Galibiyet/Beraberlik/Mağlubiyet: ${homeStats?.wins || 0}/${homeStats?.draws || 0}/${homeStats?.losses || 0}
+- Gol Ortalaması: ${homeStats?.goalsAvg || 0} gol/maç
+- Gol Yeme: ${homeStats?.concededAvg || 0} gol/maç
+- Evdeki Form (Son 5): ${homeStats?.homeForm || 'N/A'}
+- BTTS: %${homeStats?.btts || 0}
+- Clean Sheet: %${homeStats?.cleanSheet || 0}
+
+DEPLASMAN İSTATİSTİKLER:
+- Son 10 Maç Formu: ${awayStats?.form || 'N/A'}
+- Galibiyet/Beraberlik/Mağlubiyet: ${awayStats?.wins || 0}/${awayStats?.draws || 0}/${awayStats?.losses || 0}
+- Gol Ortalaması: ${awayStats?.goalsAvg || 0} gol/maç
+- Gol Yeme: ${awayStats?.concededAvg || 0} gol/maç
+- Deplasmanki Form (Son 5): ${awayStats?.awayForm || 'N/A'}
+- BTTS: %${awayStats?.btts || 0}
+- Clean Sheet: %${awayStats?.cleanSheet || 0}
+
+HEAD-TO-HEAD (Son 5):
+- Ev Sahibi Galibiyet: ${h2h?.homeWins || 0}
+- Beraberlik: ${h2h?.draws || 0}
+- Deplasman Galibiyet: ${h2h?.awayWins || 0}
+- Ortalama Gol: ${h2h?.avgGoals || 0}
+
+SKORLAMA SİSTEMİ (Toplam 100 Puan):
+Her kritere puan ver ve TOPLA:
+
+1. FORM FARKI (0-30 puan):
+   - Son 10 maçtaki kazanma yüzdelerini karşılaştır
+   - Fark ne kadar büyükse o kadar yüksek puan
+
+2. EV SAHİBİ AVANTAJI (0-15 puan):
+   - Ev sahibi evinde ne kadar iyi?
+   - Deplasman takımı deplasmanki ne kadar kötü?
+
+3. GOL ÜRETİM KABİLİYETİ (0-25 puan):
+   - Gol ortalamaları
+   - BTTS yüzdeleri
+   - Hangi takım daha golcü?
+
+4. H2H ÜSTÜNLÜĞÜ (0-20 puan):
+   - Geçmişte kim daha başarılı?
+   - Son karşılaşmalarda trend var mı?
+
+5. SAVUNMA KALİTESİ (0-10 puan):
+   - Clean sheet yüzdeleri
+   - Gol yeme ortalamaları
+
+TOPLAM SKORA GÖRE TAHMİN:
+- 70+ puan → Net tahmin (1 veya 2)
+- 50-70 puan → Orta güven
+- 50 altı → Belirsiz (X veya düşük güven)
+
+JSON formatında yanıt ver:
+{
+  "prediction": "1" veya "X" veya "2",
+  "confidence": 0-100,
+  "totalScore": 0-100,
+  "scores": {
+    "formDifference": 0-30,
+    "homeAdvantage": 0-15,
+    "goalProduction": 0-25,
+    "h2hDominance": 0-20,
+    "defenseQuality": 0-10
+  },
+  "reasoning": "Kısa açıklama (max 200 karakter)",
+  "keyFactors": ["faktör1", "faktör2", "faktör3"]
+}
+
+SADECE JSON yanıt ver, başka hiçbir şey yazma.`;
+
+    const predictionText = await callGeminiAPI(promptText, 'json', 0.2, GEMINI_API_KEY);
+    const prediction = parseGeminiJSON(predictionText);
     
-    if (quality.verdict === "REJECT") {
-      return {
-        status: "REJECTED",
-        reason: `Yetersiz veri - kalite skoru: ${quality.score}`,
-        qualityScore: quality.score
-      };
-    }
-    
-    // ADIM 2: Compact Prompt Oluştur
-    const prompt = generateCompactPredictionPrompt(match, homeStats, awayStats, h2h);
-    
-    // ADIM 3: Gemini API Çağrısı
-    console.log(`   ├─ 🤖 Gemini API'ye compact prompt gönderiliyor...`);
-    const predictionText = await callGeminiAPI(prompt, 'json', 0.2, GEMINI_API_KEY);
-    
-    // ADIM 4: JSON Parse
-    let prediction = parseGeminiJSON(predictionText);
-    
-    // ADIM 5: AI Kalite Kontrolü
-    if (prediction.dataQuality === "INSUFFICIENT" || prediction.status === "REJECTED") {
-      return { 
-        status: "REJECTED", 
-        reason: "AI: Veri yetersiz",
-        qualityScore: quality.score 
-      };
-    }
-    
-    // ADIM 6: En İyi Bahis Seçimi
-    const bestBet = selectBestBetFast(
-      match, 
-      prediction.probabilities || {home: 33, draw: 33, away: 33},
-      prediction.goalPrediction || {expectedTotal: 2.5, over25: 50, btts: 50}
-    );
-    
-    // ADIM 7: Final Kontrol
-    if (!bestBet || bestBet.confidence < 60) {
-      return {
-        status: "NO_VALUE",
-        reason: "Güvenilir fırsat yok (confidence < 60)",
-        qualityScore: quality.score,
-        bestConfidence: bestBet?.confidence || 0
-      };
-    }
-    
-    // ADIM 8: Başarılı Sonuç
-    return {
-      status: "RECOMMENDED",
-      match: {
-        home: match.apiMatch.homeTeam,
-        away: match.apiMatch.awayTeam,
-        league: match.apiMatch.league,
-        date: match.apiMatch.date
-      },
-      qualityScore: quality.score,
-      recommendation: {
-        ...bestBet,
-        reasoning: prediction.recommendation?.reasoning || "Güvenilir analiz"
-      },
-      riskLevel: bestBet.confidence >= 75 ? "DÜŞÜK" : 
-                 bestBet.confidence >= 65 ? "ORTA" : "YÜKSEK",
-      probabilities: prediction.probabilities,
-      goalPrediction: prediction.goalPrediction
-    };
-    
+    return prediction;
+
   } catch (error) {
-    console.error(`   ⚠️ Gemini compact prediction hatası:`, error.message);
-    return { 
-      status: "ERROR", 
-      reason: error.message 
+    console.error(`   ⚠️ Gemini tahmini alınamadı:`, error.message);
+    return {
+      prediction: 'N/A',
+      confidence: 0,
+      totalScore: 0,
+      scores: {
+        formDifference: 0,
+        homeAdvantage: 0,
+        goalProduction: 0,
+        h2hDominance: 0,
+        defenseQuality: 0
+      },
+      reasoning: 'Tahmin üretilemedi',
+      keyFactors: []
     };
   }
 }
@@ -529,9 +428,9 @@ router.post('/api/analyze-coupon-advanced', async (req, res) => {
 
     const { image, userId, creditsToDeduct, analysisType } = req.body;
     
-    // ENV değişkenleri - SADECE GEMINI_API_KEY KULLAN
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    const FOOTBALL_API_KEY = process.env.FOOTBALL_API_KEY || process.env.VITE_FOOTBALL_API_KEY;
+    // ENV değişkenleri
+    const GEMINI_API_KEY = process.env.EMERGENT_LLM_KEY || process.env.VITE_GEMINI_API_KEY;
+    const FOOTBALL_API_KEY = process.env.VITE_FOOTBALL_API_KEY;
 
     console.log('\n📋 PARAMETRE KONTROLÜ:');
     console.log(`   ├─ userId: ${userId || 'YOK'}`);
@@ -935,15 +834,11 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
         try {
           if (!match.statistics || (!match.statistics.homeTeam && !match.statistics.awayTeam)) {
             console.log(`   └─ ⚠️ İstatistik yok, tahmin atlanıyor`);
-            match.predictionResult = {
-              status: "REJECTED",
-              reason: "İstatistik eksik"
-            };
             return;
           }
 
-          console.log(`   ├─ 🤖 Compact Gemini tahmini üretiliyor...`);
-          const predictionResult = await getGeminiPrediction(
+          console.log(`   ├─ 🤖 Gemini tahmini üretiliyor...`);
+          const prediction = await getGeminiPrediction(
             match,
             match.statistics.homeTeam,
             match.statistics.awayTeam,
@@ -951,29 +846,38 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
             GEMINI_API_KEY
           );
 
-          // Yeni compact sonuç formatı
-          match.predictionResult = predictionResult;
-          
-          // Status'e göre log
-          if (predictionResult.status === "RECOMMENDED") {
-            console.log(`   ├─ ✅ Durum: ${predictionResult.status}`);
-            console.log(`   ├─ 📊 Kalite Skoru: ${predictionResult.qualityScore}/100`);
-            console.log(`   ├─ 🎯 Bahis Türü: ${predictionResult.recommendation.type}`);
-            console.log(`   ├─ 💡 Tahmin: ${predictionResult.recommendation.prediction}`);
-            console.log(`   ├─ 🎲 Güven: %${predictionResult.recommendation.confidence}`);
-            console.log(`   ├─ ⚠️ Risk: ${predictionResult.riskLevel}`);
-            console.log(`   └─ 💬 ${predictionResult.recommendation.reasoning}`);
-          } else {
-            console.log(`   ├─ ❌ Durum: ${predictionResult.status}`);
-            console.log(`   └─ 💬 Sebep: ${predictionResult.reason}`);
-          }
+          // Tahmin verilerini match objesine ekle
+          match.prediction = prediction.prediction;
+          match.confidence = prediction.confidence;
+          match.totalScore = prediction.totalScore;
+          match.scores = prediction.scores;
+          match.reasoning = prediction.reasoning;
+          match.keyFactors = prediction.keyFactors;
+
+          console.log(`   ├─ Toplam Skor: ${match.totalScore}/100`);
+          console.log(`   │  ├─ Form Farkı: ${match.scores.formDifference}/30`);
+          console.log(`   │  ├─ Ev Avantajı: ${match.scores.homeAdvantage}/15`);
+          console.log(`   │  ├─ Gol Üretimi: ${match.scores.goalProduction}/25`);
+          console.log(`   │  ├─ H2H: ${match.scores.h2hDominance}/20`);
+          console.log(`   │  └─ Savunma: ${match.scores.defenseQuality}/10`);
+          console.log(`   ├─ 🎯 Tahmin: ${match.prediction} (Güven: %${match.confidence})`);
+          console.log(`   └─ 💡 ${match.reasoning}`);
 
         } catch (error) {
           console.log(`   └─ ❌ Tahmin hatası: ${error.message}`);
-          match.predictionResult = {
-            status: "ERROR",
-            reason: error.message
+          // Hata durumunda boş tahmin ekle
+          match.prediction = 'N/A';
+          match.confidence = 0;
+          match.totalScore = 0;
+          match.scores = {
+            formDifference: 0,
+            homeAdvantage: 0,
+            goalProduction: 0,
+            h2hDominance: 0,
+            defenseQuality: 0
           };
+          match.reasoning = 'Tahmin üretilemedi';
+          match.keyFactors = [];
         }
       }));
 
@@ -986,23 +890,13 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
 
     // ========== SONUÇ ==========
     console.log('\n' + '='.repeat(80));
-    console.log('✅ TÜM ANALİZLER TAMAMLANDI! (COMPACT v4.0)');
+    console.log('✅ TÜM ANALİZLER TAMAMLANDI!');
     console.log('='.repeat(80));
-    
-    // Compact sistem istatistikleri
-    const recommendedCount = matchedMatches.filter(m => m.predictionResult?.status === "RECOMMENDED").length;
-    const rejectedCount = matchedMatches.filter(m => m.predictionResult?.status === "REJECTED").length;
-    const noValueCount = matchedMatches.filter(m => m.predictionResult?.status === "NO_VALUE").length;
-    const errorCount = matchedMatches.filter(m => m.predictionResult?.status === "ERROR").length;
-    
     console.log(`\n📊 ÖZET:`);
     console.log(`   ├─ Görselden çıkarılan maç: ${extractedMatches.length}`);
     console.log(`   ├─ Başarıyla eşleştirilen: ${matchedMatches.length}`);
     console.log(`   ├─ İstatistik çekilen: ${matchedMatches.filter(m => m.statistics?.homeTeam).length}`);
-    console.log(`   ├─ ✅ ÖNERİLEN (RECOMMENDED): ${recommendedCount}`);
-    console.log(`   ├─ ❌ REDDEDİLEN (REJECTED): ${rejectedCount}`);
-    console.log(`   ├─ ⚠️  DEĞER YOK (NO_VALUE): ${noValueCount}`);
-    console.log(`   ├─ 🔴 HATA (ERROR): ${errorCount}`);
+    console.log(`   ├─ Tahmin üretilen: ${matchedMatches.filter(m => m.prediction && m.prediction !== 'N/A').length}`);
     console.log(`   └─ Eşleşmeyen: ${unmatchedMatches.length}`);
     console.log('\n' + '='.repeat(80) + '\n');
 
@@ -1036,51 +930,14 @@ SADECE JSON yanıt ver, başka açıklama ekleme.`
       console.log(`✅ KREDİ DÜŞÜRME BAŞARILI!`);
       console.log(`   └─ Yeni kredi: ${remainingCredits}`);
 
-      // Maçları status'e göre ayır (Compact v4.0 formatı)
-      const recommendedMatches = matchedMatches.filter(m => m.predictionResult?.status === "RECOMMENDED");
-      const rejectedMatches = matchedMatches.filter(m => 
-        m.predictionResult?.status === "REJECTED" || 
-        m.predictionResult?.status === "NO_VALUE" ||
-        m.predictionResult?.status === "ERROR"
-      );
-
-      // Response gönder (Yeni Compact Format)
+      // Response gönder
       res.json({
         success: true,
-        message: `${matchedMatches.length} maç analiz edildi. ${recommendedMatches.length} önerilen, ${rejectedMatches.length} reddedilen.`,
+        message: `${matchedMatches.length} maç başarıyla analiz edildi`,
         creditsDeducted: 1,
         remainingCredits: remainingCredits,
-        analysisVersion: "v4.0-compact",
-        
-        // Önerilen maçlar (sadece güvenilir tahminler)
-        recommendedMatches: recommendedMatches.map(m => ({
-          match: {
-            home: m.apiMatch.homeTeam,
-            away: m.apiMatch.awayTeam,
-            league: m.apiMatch.league,
-            date: m.apiMatch.date
-          },
-          qualityScore: m.predictionResult.qualityScore,
-          recommendation: m.predictionResult.recommendation,
-          riskLevel: m.predictionResult.riskLevel,
-          probabilities: m.predictionResult.probabilities,
-          goalPrediction: m.predictionResult.goalPrediction
-        })),
-        
-        // Reddedilen maçlar
-        rejectedMatches: rejectedMatches.map(m => ({
-          match: {
-            home: m.apiMatch.homeTeam,
-            away: m.apiMatch.awayTeam
-          },
-          status: m.predictionResult?.status || "UNKNOWN",
-          reason: m.predictionResult?.reason || "Bilinmeyen sebep",
-          qualityScore: m.predictionResult?.qualityScore
-        })),
-        
-        // Eski format uyumluluğu için (isteğe bağlı)
         extractedMatches,
-        matchedMatches, // Tüm maçlar (eski format ile uyumluluk)
+        matchedMatches,
         unmatchedMatches,
         analysisType
       });
