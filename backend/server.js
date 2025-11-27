@@ -9,7 +9,6 @@ const { firebaseInitialized } = require('./utils');
 const mainApiRoutes = require('./routes/mainApi');
 const imageAnalysisRoutes = require('./routes/imageAnalysis');
 const advancedImageAnalysisRoutes = require('./routes/advancedImageAnalysis');
-const bulletinAnalysisRoutes = require('./routes/bulletinAnalysis');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,8 +20,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json({ limit: '250mb' }));
-app.use(express.urlencoded({ extended: true, limit: '250mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Request logger
 app.use((req, res, next) => {
@@ -54,9 +53,6 @@ app.use('/', imageAnalysisRoutes);
 // YENİ: Gelişmiş görsel analiz v3.0 (Fuzzy Matching + Gemini Doğrulama)
 app.use('/', advancedImageAnalysisRoutes);
 
-// YENİ: Bülten Analizi (Kullanıcı Maç Listesi)
-app.use('/', bulletinAnalysisRoutes);
-
 // ==================== ERROR HANDLER ====================
 app.use((err, req, res, next) => {
   console.error('❌ Global hata:', err.message);
@@ -81,7 +77,6 @@ app.listen(PORT, () => {
   console.log(`\n🎯 GELİŞMİŞ ANALİZ ROUTE'LARI:`);
   console.log(`   📸 Kupon Görsel Analizi (ESKİ): /api/analyze-coupon-image`);
   console.log(`   🎯 Kupon Görsel Analizi (YENİ v3.0): /api/analyze-coupon-advanced`);
-  console.log(`   📋 Bülten Analizi (Maç Listesi): /api/analyze-bulletin-advanced`);
   console.log(`\n🔧 SİSTEM:`);
   console.log(`   Firebase: ${firebaseInitialized ? '✅' : '❌'}`);
   console.log(`   Gemini API: ${process.env.GEMINI_API_KEY ? '✅' : '❌'}`);

@@ -45,8 +45,7 @@ try {
 
 // CORS ayarları
 app.use(cors());
-app.use(express.json({ limit: '250mb' }));
-app.use(express.urlencoded({ limit: '250mb', extended: true }));
+app.use(express.json());
 
 // API credentials
 const SPORTSRADAR_API_KEY = process.env.VITE_SPORTSRADAR_API_KEY;
@@ -1314,36 +1313,6 @@ app.post('/api/analyze-coupon-advanced', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Proxy hatası:', error.message);
-    
-    // Backend'den gelen hata mesajını ilet
-    if (error.response) {
-      res.status(error.response.status).json(error.response.data);
-    } else {
-      res.status(500).json({ 
-        error: 'Backend sunucusuna ulaşılamadı',
-        details: error.message 
-      });
-    }
-  }
-});
-
-// YENİ: Bülten analizi (Kullanıcı maç listesi)
-app.post('/api/analyze-bulletin-advanced', async (req, res) => {
-  try {
-    console.log('🔄 Proxy: /api/analyze-bulletin-advanced isteği backend\'e yönlendiriliyor...');
-    
-    const response = await axios.post('http://localhost:3002/api/analyze-bulletin-advanced', req.body, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      timeout: 90000 // 90 saniye (Gemini + Football API için)
-    });
-    
-    console.log('✅ Proxy: Bülten analizi tamamlandı');
-    res.json(response.data);
-    
-  } catch (error) {
-    console.error('❌ Bülten analiz proxy hatası:', error.message);
     
     // Backend'den gelen hata mesajını ilet
     if (error.response) {
