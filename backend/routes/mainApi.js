@@ -21,7 +21,7 @@ async function callGeminiAPI(prompt, responseFormat = 'json', temperature = 0.7)
   }
 
   const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       contents: [{
         parts: [{ text: prompt }]
@@ -199,7 +199,7 @@ router.post('/api/gemini/analyze-image', async (req, res) => {
     console.log('🖼️ Basit görsel analizi başlatılıyor...');
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{
           parts: [
