@@ -28,8 +28,7 @@ async function callGeminiAPI(prompt, responseFormat = 'json', temperature = 0.7)
       }],
       generationConfig: {
         temperature,
-        maxOutputTokens: 4000,
-        responseMimeType: responseFormat === 'json' ? 'application/json' : 'text/plain'
+        maxOutputTokens: 4000
       }
     },
     {
@@ -232,8 +231,7 @@ SADECE JSON yanıt ver.`
         }],
         generationConfig: {
           temperature: 0.4,
-          maxOutputTokens: 2000,
-          responseMimeType: "application/json"
+          maxOutputTokens: 2000
         }
       },
       {
