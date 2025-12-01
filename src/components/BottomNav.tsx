@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, FileText, ShoppingCart, User, Image } from 'lucide-react';
+import { Home, FileText, ShoppingCart, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const BottomNav: React.FC = () => {
@@ -20,7 +20,6 @@ export const BottomNav: React.FC = () => {
 
   const navItems = [
     { path: '/bulletin', icon: Home, label: 'Bülten', badge: null },
-    { path: '/image-analysis', icon: Image, label: 'Görsel', badge: null },
     { path: '/my-coupons', icon: FileText, label: 'Kuponlar', badge: null },
     { path: '/dashboard', icon: ShoppingCart, label: 'Kredi', badge: user?.credits || 0 },
     { path: '/profile', icon: User, label: 'Profil', badge: null }
@@ -28,7 +27,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 to-slate-900/95 backdrop-blur-xl border-t border-slate-800/50 shadow-2xl z-50 md:hidden">
-      <div className="grid grid-cols-5 px-2 py-2">
+      <div className="grid grid-cols-4 px-2 py-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;

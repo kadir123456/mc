@@ -273,50 +273,124 @@ export const MyCoupons: React.FC = () => {
                                 </div>
                               </div>
 
-                              {/* İstatistiksel Değerlendirme - Tablo Formatı */}
-                              <div className="bg-slate-800/50 rounded-lg p-2 mb-2">
-                                <div className="grid grid-cols-3 gap-2 text-center">
-                                  <div className={`${bestPrediction.key === 'ms1' ? 'bg-green-600/20 border border-green-500/30' : ''} rounded p-1.5`}>
-                                    <div className="text-[10px] text-slate-400 mb-0.5">Ev Sahibi</div>
-                                    <div className={`text-xs font-bold ${bestPrediction.key === 'ms1' ? 'text-green-400' : 'text-white'}`}>
-                                      %{match.predictions.ms1}
+                              {/* İstatistiksel Değerlendirme - Detaylı Tablo Formatı */}
+                              <div className="space-y-2 mb-2">
+                                {/* Maç Sonucu (MS) */}
+                                <div className="bg-slate-800/50 rounded-lg p-2">
+                                  <div className="text-[10px] text-slate-400 mb-1.5 font-semibold">MAÇ SONUCU (MS)</div>
+                                  <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className={`${bestPrediction.key === 'ms1' ? 'bg-green-600/20 border border-green-500/30' : ''} rounded p-1.5`}>
+                                      <div className="text-[10px] text-slate-400 mb-0.5">MS1</div>
+                                      <div className={`text-xs font-bold ${bestPrediction.key === 'ms1' ? 'text-green-400' : 'text-white'}`}>
+                                        %{match.predictions.ms1}
+                                      </div>
+                                    </div>
+                                    <div className={`${bestPrediction.key === 'msX' ? 'bg-yellow-600/20 border border-yellow-500/30' : ''} rounded p-1.5`}>
+                                      <div className="text-[10px] text-slate-400 mb-0.5">MSX</div>
+                                      <div className={`text-xs font-bold ${bestPrediction.key === 'msX' ? 'text-yellow-400' : 'text-white'}`}>
+                                        %{match.predictions.msX}
+                                      </div>
+                                    </div>
+                                    <div className={`${bestPrediction.key === 'ms2' ? 'bg-blue-600/20 border border-blue-500/30' : ''} rounded p-1.5`}>
+                                      <div className="text-[10px] text-slate-400 mb-0.5">MS2</div>
+                                      <div className={`text-xs font-bold ${bestPrediction.key === 'ms2' ? 'text-blue-400' : 'text-white'}`}>
+                                        %{match.predictions.ms2}
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className={`${bestPrediction.key === 'msX' ? 'bg-yellow-600/20 border border-yellow-500/30' : ''} rounded p-1.5`}>
-                                    <div className="text-[10px] text-slate-400 mb-0.5">Beraberlik</div>
-                                    <div className={`text-xs font-bold ${bestPrediction.key === 'msX' ? 'text-yellow-400' : 'text-white'}`}>
-                                      %{match.predictions.msX}
+                                </div>
+
+                                {/* Alt/Üst 2.5 */}
+                                <div className="bg-slate-800/50 rounded-lg p-2">
+                                  <div className="text-[10px] text-slate-400 mb-1.5 font-semibold">ALT/ÜST 2.5 GOL</div>
+                                  <div className="grid grid-cols-2 gap-2 text-center">
+                                    <div className={`${parseInt(match.predictions.under25) > parseInt(match.predictions.over25) ? 'bg-purple-600/20 border border-purple-500/30' : ''} rounded p-1.5`}>
+                                      <div className="text-[10px] text-slate-400 mb-0.5">Alt 2.5</div>
+                                      <div className={`text-xs font-bold ${parseInt(match.predictions.under25) > parseInt(match.predictions.over25) ? 'text-purple-400' : 'text-white'}`}>
+                                        %{match.predictions.under25}
+                                      </div>
+                                    </div>
+                                    <div className={`${parseInt(match.predictions.over25) > parseInt(match.predictions.under25) ? 'bg-orange-600/20 border border-orange-500/30' : ''} rounded p-1.5`}>
+                                      <div className="text-[10px] text-slate-400 mb-0.5">Üst 2.5</div>
+                                      <div className={`text-xs font-bold ${parseInt(match.predictions.over25) > parseInt(match.predictions.under25) ? 'text-orange-400' : 'text-white'}`}>
+                                        %{match.predictions.over25}
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className={`${bestPrediction.key === 'ms2' ? 'bg-blue-600/20 border border-blue-500/30' : ''} rounded p-1.5`}>
-                                    <div className="text-[10px] text-slate-400 mb-0.5">Deplasman</div>
-                                    <div className={`text-xs font-bold ${bestPrediction.key === 'ms2' ? 'text-blue-400' : 'text-white'}`}>
-                                      %{match.predictions.ms2}
+                                </div>
+
+                                {/* Karşılıklı Gol (KG) */}
+                                <div className="bg-slate-800/50 rounded-lg p-2">
+                                  <div className="text-[10px] text-slate-400 mb-1.5 font-semibold">KARŞILIKLI GOL (KG)</div>
+                                  <div className="flex items-center justify-center">
+                                    <div className={`${parseInt(match.predictions.btts) >= 50 ? 'bg-cyan-600/20 border border-cyan-500/30' : 'bg-slate-700/50'} rounded p-2 w-full text-center`}>
+                                      <div className="text-[10px] text-slate-400 mb-0.5">KG Var</div>
+                                      <div className={`text-sm font-bold ${parseInt(match.predictions.btts) >= 50 ? 'text-cyan-400' : 'text-white'}`}>
+                                        %{match.predictions.btts}
+                                      </div>
                                     </div>
                                   </div>
+                                </div>
+
+                                {/* İlk Yarı (İY) - Detaylı analizlerde */}
+                                {match.predictions.firstHalfMs1 && (
+                                  <div className="bg-slate-800/50 rounded-lg p-2">
+                                    <div className="text-[10px] text-slate-400 mb-1.5 font-semibold">İLK YARI (İY)</div>
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                      <div className={`${parseInt(match.predictions.firstHalfMs1) > parseInt(match.predictions.firstHalfMsX) && parseInt(match.predictions.firstHalfMs1) > parseInt(match.predictions.firstHalfMs2) ? 'bg-green-600/20 border border-green-500/30' : ''} rounded p-1.5`}>
+                                        <div className="text-[10px] text-slate-400 mb-0.5">İY MS1</div>
+                                        <div className={`text-xs font-bold ${parseInt(match.predictions.firstHalfMs1) > parseInt(match.predictions.firstHalfMsX) && parseInt(match.predictions.firstHalfMs1) > parseInt(match.predictions.firstHalfMs2) ? 'text-green-400' : 'text-white'}`}>
+                                          %{match.predictions.firstHalfMs1}
+                                        </div>
+                                      </div>
+                                      <div className={`${parseInt(match.predictions.firstHalfMsX) > parseInt(match.predictions.firstHalfMs1) && parseInt(match.predictions.firstHalfMsX) > parseInt(match.predictions.firstHalfMs2) ? 'bg-yellow-600/20 border border-yellow-500/30' : ''} rounded p-1.5`}>
+                                        <div className="text-[10px] text-slate-400 mb-0.5">İY MSX</div>
+                                        <div className={`text-xs font-bold ${parseInt(match.predictions.firstHalfMsX) > parseInt(match.predictions.firstHalfMs1) && parseInt(match.predictions.firstHalfMsX) > parseInt(match.predictions.firstHalfMs2) ? 'text-yellow-400' : 'text-white'}`}>
+                                          %{match.predictions.firstHalfMsX}
+                                        </div>
+                                      </div>
+                                      <div className={`${parseInt(match.predictions.firstHalfMs2) > parseInt(match.predictions.firstHalfMs1) && parseInt(match.predictions.firstHalfMs2) > parseInt(match.predictions.firstHalfMsX) ? 'bg-blue-600/20 border border-blue-500/30' : ''} rounded p-1.5`}>
+                                        <div className="text-[10px] text-slate-400 mb-0.5">İY MS2</div>
+                                        <div className={`text-xs font-bold ${parseInt(match.predictions.firstHalfMs2) > parseInt(match.predictions.firstHalfMs1) && parseInt(match.predictions.firstHalfMs2) > parseInt(match.predictions.firstHalfMsX) ? 'text-blue-400' : 'text-white'}`}>
+                                          %{match.predictions.firstHalfMs2}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* AI Değerlendirme ve Güven Skoru */}
+                              <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <Trophy className="w-4 h-4 text-yellow-400" />
+                                    <span className="text-xs text-slate-300 font-semibold">Öne Çıkan Tahmin:</span>
+                                  </div>
+                                  <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                    match.confidence >= 70 ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                    match.confidence >= 50 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 
+                                    'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  }`}>
+                                    Güven: %{match.confidence}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white font-bold text-sm">{bestPrediction.type}</span>
+                                  <span className="text-slate-400 text-xs">(%{bestPrediction.value})</span>
                                 </div>
                               </div>
 
-                              {/* AI Tavsiyesi - Kompakt */}
-                              <div className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-1">
-                                  <Trophy className="w-3 h-3 text-yellow-400" />
-                                  <span className="text-slate-400">AI Tavsiye:</span>
-                                  <span className="text-white font-bold">{bestPrediction.type}</span>
-                                </div>
-                                <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  match.confidence >= 70 ? 'bg-green-500/20 text-green-400' :
-                                  match.confidence >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
-                                  'bg-red-500/20 text-red-400'
-                                }`}>
-                                  Güven: %{match.confidence}
-                                </div>
-                              </div>
-
-                              {/* Öneri Metni - Opsiyonel */}
+                              {/* Kısa Açıklama */}
                               {match.recommendation && (
-                                <div className="mt-2 bg-blue-500/5 border border-blue-500/20 rounded p-2">
-                                  <p className="text-xs text-slate-300 leading-relaxed">{match.recommendation}</p>
+                                <div className="mt-2 bg-slate-800/30 border border-slate-700/50 rounded-lg p-3">
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-blue-400 text-lg">💡</span>
+                                    <div className="flex-1">
+                                      <p className="text-[11px] text-slate-400 font-semibold mb-1">KISA AÇIKLAMA</p>
+                                      <p className="text-xs text-slate-300 leading-relaxed">{match.recommendation}</p>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
