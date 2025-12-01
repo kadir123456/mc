@@ -2,8 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Calendar, Zap, TrendingUp, Shield, 
-  LogOut, ArrowLeft, Settings, CreditCard, FileText,
-  Image as ImageIcon, Gift
+  LogOut, ArrowLeft, Settings, CreditCard, FileText, Gift
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -47,14 +46,6 @@ export const Profile: React.FC = () => {
       color: 'text-green-400',
       bg: 'bg-green-500/10',
       border: 'border-green-500/30'
-    },
-    { 
-      icon: ImageIcon, 
-      label: 'Görsel Analiz', 
-      value: '0',
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10',
-      border: 'border-purple-500/30'
     }
   ];
 
@@ -72,13 +63,6 @@ export const Profile: React.FC = () => {
       desc: 'Geçmiş analizler',
       path: '/my-coupons',
       color: 'text-purple-400'
-    },
-    { 
-      icon: ImageIcon, 
-      label: 'Görsel Analiz', 
-      desc: 'Kupon fotoğrafı analizi',
-      path: '/image-analysis',
-      color: 'text-pink-400'
     },
     { 
       icon: Gift, 
@@ -151,7 +135,7 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {stats.map((stat, index) => (
             <div 
               key={index}

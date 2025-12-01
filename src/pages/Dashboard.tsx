@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp, Image, FileText, Sparkles, ArrowRight } from 'lucide-react';
+import { Zap, ShoppingCart, LogOut, User as UserIcon, TrendingUp, FileText, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ShopierPayment } from '../components/ShopierPayment';
 
@@ -77,7 +77,7 @@ export const Dashboard: React.FC = () => {
             </p>
             
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={() => navigate('/bulletin')}
                 className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
@@ -90,25 +90,6 @@ export const Dashboard: React.FC = () => {
                     <div className="text-left">
                       <p className="font-bold text-sm">Bülten</p>
                       <p className="text-xs opacity-90">Maç Seç</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </button>
-
-              <button
-                onClick={() => navigate('/image-analysis')}
-                className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
-              >
-                <div className="relative z-10 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
-                      <Image className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-sm">Görsel</p>
-                      <p className="text-xs opacity-90">AI Analiz</p>
                     </div>
                   </div>
                   <ArrowRight className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
