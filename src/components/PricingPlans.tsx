@@ -53,7 +53,7 @@ export const PricingPlans: React.FC = () => {
           >
             {pkg.popular && (
               <div className="mb-4 inline-block px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-300 text-xs font-medium">
-                En Popüler
+            
               </div>
             )}
 
